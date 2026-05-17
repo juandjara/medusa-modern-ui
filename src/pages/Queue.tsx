@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import api from "../lib/api";
 import { useWebSocket } from "../lib/websocket";
+import { formatRelative } from "../lib/time";
 import {
   categorizeLiveItem,
   searchTypeLabel,
@@ -382,7 +383,7 @@ export default function Queue() {
     showQueue.length + postProcessQueue.length + searchQueue.length;
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Queue</h1>
         <button
@@ -515,27 +516,30 @@ function SearchQueueRow({ item }: { item: LiveQueueItem }) {
       </div>
       <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 mb-3">
         <div className="min-w-0 flex-1">
-          {showTitle ? (
-            showSlug ? (
-              <Link
-                to={`/show/${showSlug}`}
-                className="mb-1 text-sm font-medium hover:underline truncate block"
-              >
-                {showTitle}
-              </Link>
-            ) : (
-              <span className="mb-1 text-sm font-medium truncate block">
-                {showTitle}
-              </span>
-            )
-          ) : null}
-          <div className="text-xs text-base-content/50">
+          <p className="mb-1">
+            {showTitle ? (
+              showSlug ? (
+                <Link
+                  to={`/show/${showSlug}`}
+                  className="text-sm font-medium hover:underline truncate"
+                >
+                  {showTitle}
+                </Link>
+              ) : (
+                <span className="text-sm font-medium truncate">
+                  {showTitle}
+                </span>
+              )
+            ) : null}
             {segCount > 0 && (
-              <>
-                {segCount} episode{segCount === 1 ? "" : "s"} ·{" "}
-              </>
+              <span className="text-xs text-base-content/50">
+                {" · "}
+                {segCount} episode{segCount === 1 ? "" : "s"}
+              </span>
             )}
-            queued {formatRelative(item.queueTime)}
+          </p>
+          <div className="text-xs text-base-content/50">
+            Queued {formatRelative(item.queueTime)}
             {item.startTime && <> · started {formatRelative(item.startTime)}</>}
           </div>
         </div>
@@ -567,7 +571,7 @@ function ShowQueueRow({ item }: { item: ShowQueueItem }) {
             </span>
           )}
           <div className="mt-1 text-xs text-base-content/50">
-            Added {formatRelative(item.added)}
+            Queued {formatRelative(item.added)}
             {item.priority !== "normal" && <> · {item.priority} priority</>}
           </div>
         </div>
@@ -598,7 +602,7 @@ function PostProcessRow({ item }: { item: PostProcessQueueItem }) {
 
   return (
     <li className="mt-5">
-      <div className="mb-3 flex items-center gap-2 flex-wrap">
+      <div className="mb-1 flex items-center gap-2 flex-wrap">
         <span className="badge badge-neutral badge-sm">{procTypeLabel}</span>
         {cfg?.process_method && (
           <span className="badge badge-ghost badge-sm">
@@ -638,18 +642,4 @@ function PostProcessRow({ item }: { item: PostProcessQueueItem }) {
       </div>
     </li>
   );
-}
-
-// Lightweight relative time formatter using Intl.RelativeTimeFormat. Avoids
-// pulling in date-fns / dayjs for one helper.
-const RTF = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-function formatRelative(iso: string): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return iso;
-  const diff = (t - Date.now()) / 1000;
-  const abs = Math.abs(diff);
-  if (abs < 60) return RTF.format(Math.round(diff), "second");
-  if (abs < 3600) return RTF.format(Math.round(diff / 60), "minute");
-  if (abs < 86400) return RTF.format(Math.round(diff / 3600), "hour");
-  return RTF.format(Math.round(diff / 86400), "day");
 }

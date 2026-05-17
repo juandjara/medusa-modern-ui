@@ -6,6 +6,7 @@ import {
   Calendar,
   Clock as History,
   Download,
+  Gauge,
   Settings,
   LogOut,
   Menu,
@@ -48,6 +49,7 @@ const navItems = [
   { to: "/schedule", label: "Schedule", icon: Calendar },
   { to: "/history", label: "History", icon: History },
   { to: "/queue", label: "Queue", icon: Download },
+  { to: "/system", label: "System", icon: Gauge },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

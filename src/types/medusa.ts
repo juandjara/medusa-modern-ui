@@ -250,12 +250,45 @@ export interface PostProcessQueueItem {
   [extra: string]: unknown
 }
 
-// Subset of /api/v2/config/system relevant to the Queue page. The endpoint
-// returns much more (schedulers, diskSpace, branch info, etc.); we only model
-// what we use.
+// Scheduler entry from medusa/schedulers/utils.py:_scheduler_to_json. When a
+// scheduler isn't initialized, only key + name are present; all others optional.
+export interface SchedulerItem {
+  key: string
+  name: string
+  isAlive?: boolean
+  isEnabled?: boolean
+  isActive?: boolean
+  startTime?: string | null
+  cycleTime?: number | null // seconds between runs
+  nextRun?: number | null // seconds until next run; null if disabled
+  lastRun?: string
+  isSilent?: boolean
+  queueLength?: number
+}
+
+// Disk space block from medusa/queues/utils.py:generate_location_disk_space.
+// `freeSpace` is a pre-formatted string ('123.4 GB'); no total or percentage.
+export interface DiskSpaceEntry {
+  type: string
+  location: string
+  freeSpace: string
+}
+
+export interface DiskSpace {
+  tvDownloadDir: DiskSpaceEntry
+  rootDir: DiskSpaceEntry[]
+}
+
+// /api/v2/config/system response. Used by both the Queue page (showQueue +
+// postProcessQueue) and the System page (everything else).
 export interface SystemConfig {
   showQueue: ShowQueueItem[]
   postProcessQueue: PostProcessQueueItem[]
+  schedulers?: SchedulerItem[]
+  diskSpace?: DiskSpace
+  memoryUsage?: string
+  branch?: string
+  commitHash?: string
 }
 
 // Items that arrive only via WebSocket QueueItemUpdate events — search
