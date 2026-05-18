@@ -135,95 +135,113 @@ export default function ShowDetail() {
         </div>
       )}
 
-      <header className="flex flex-col sm:flex-row gap-6">
-        <div className="w-40 aspect-2/3 bg-base-300 rounded shrink-0 overflow-hidden">
-          <img
-            src={getAssetUrl(s.id.slug, "poster")}
-            alt={s.title}
-            className="object-cover w-full h-full"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-          />
-        </div>
-        <div className="space-y-2 min-w-0">
-          <h1 className="text-2xl font-bold">{s.title}</h1>
-          <div className="flex flex-wrap gap-2 mb-6">
-            {s.network && (
-              <span
-                title={s.network}
-                className="shrink-0 inline-flex items-center bg-base-200 rounded px-1.5 py-0.5"
-              >
-                <img
-                  alt={s.network}
-                  className="h-5 w-auto max-w-20 object-contain"
-                  src={getAssetUrl(s.id.slug, "network")}
-                  onError={(e) => {
-                    const wrapper = e.currentTarget.parentElement;
-                    if (wrapper) wrapper.style.display = "none";
-                  }}
-                />
-              </span>
-            )}
-            <span
-              className={`badge badge-sm ${seriesStatusBadgeClass(s.status)}`}
-            >
-              {s.status}
-            </span>
-            <span className="badge badge-sm badge-soft">{s.year.start}</span>
-            {s.config.qualities?.allowed && (
-              <span
-                className="badge badge-sm badge-soft"
-                title={s.config.qualities.allowed
-                  .map((q) => qualityName(q))
-                  .join(", ")}
-              >
-                {qualitySummary(s.config.qualities.allowed)}
-              </span>
-            )}
-            {s.showType === "anime" && (
-              <span className="badge badge-sm badge-accent">anime</span>
-            )}
+      <header className="relative rounded-box overflow-hidden border-2 border-base-300">
+        {/* Fanart backdrop. Faded + bottom gradient so the meta stays legible.
+            onError hides the img on 404; the gradient over a transparent
+            background remains invisible when there's no fanart. */}
+        <img
+          src={getAssetUrl(s.id.slug, "fanart")}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-40 pointer-events-none"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none bg-linear-to-b from-transparent via-base-100/40 to-base-100/95"
+          aria-hidden="true"
+        />
+        <div className="relative flex flex-col sm:flex-row gap-6 p-4">
+          <div className="w-40 aspect-2/3 bg-base-300 rounded shrink-0 overflow-hidden">
+            <img
+              src={getAssetUrl(s.id.slug, "poster")}
+              alt={s.title}
+              className="object-cover w-full h-full"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
           </div>
-          {s.genres.length > 0 && (
-            <div className="text-xs text-base-content/60">
-              {s.genres.join(" · ")}
-            </div>
-          )}
-          {s.plot && (
-            <p className="text-sm text-base-content/70 max-w-2xl">{s.plot}</p>
-          )}
-          <div className="text-xs text-base-content/50 pt-1 flex flex-wrap gap-x-3 gap-y-1">
-            <span>
-              {renderedSeasons} season{renderedSeasons === 1 ? "" : "s"} ·{" "}
-              {episodes.data?.length ?? 0} episodes
-            </span>
-            {s.lastUpdate && (
-              <span className="inline-flex items-center gap-1">
-                <Clock size={12} /> Metadata synced: {s.lastUpdate}
-              </span>
-            )}
-            {s.config.location && (
+          <div className="space-y-2 min-w-0">
+            <h1 className="text-2xl font-bold">{s.title}</h1>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {s.network && (
+                <span
+                  title={s.network}
+                  className="shrink-0 inline-flex items-center bg-base-200 rounded px-1.5 py-0.5"
+                >
+                  <img
+                    alt={s.network}
+                    className="h-5 w-auto max-w-20 object-contain"
+                    src={getAssetUrl(s.id.slug, "network")}
+                    onError={(e) => {
+                      const wrapper = e.currentTarget.parentElement;
+                      if (wrapper) wrapper.style.display = "none";
+                    }}
+                  />
+                </span>
+              )}
               <span
-                className={`inline-flex items-center gap-1 font-mono break-all ${
-                  s.config.locationValid === false
-                    ? "text-warning"
-                    : "text-base-content/50"
-                }`}
-                title={
-                  s.config.locationValid === false
-                    ? "Folder not found on disk — post-processing and renaming will fail until this is restored."
-                    : "Show folder on disk"
-                }
+                className={`badge badge-sm ${seriesStatusBadgeClass(s.status)}`}
               >
-                {s.config.locationValid === false ? (
-                  <AlertTriangle size={12} className="shrink-0" />
-                ) : (
-                  <HardDrive size={12} className="shrink-0" />
-                )}
-                {s.config.location}
+                {s.status}
               </span>
+              <span className="badge badge-sm badge-soft">{s.year.start}</span>
+              {s.config.qualities?.allowed && (
+                <span
+                  className="badge badge-sm badge-soft"
+                  title={s.config.qualities.allowed
+                    .map((q) => qualityName(q))
+                    .join(", ")}
+                >
+                  {qualitySummary(s.config.qualities.allowed)}
+                </span>
+              )}
+              {s.showType === "anime" && (
+                <span className="badge badge-sm badge-accent">anime</span>
+              )}
+            </div>
+            {s.genres.length > 0 && (
+              <div className="text-xs text-base-content/60">
+                {s.genres.join(" · ")}
+              </div>
             )}
+            {s.plot && (
+              <p className="text-sm text-base-content/70 max-w-2xl">{s.plot}</p>
+            )}
+            <div className="text-xs text-base-content/50 pt-1 flex flex-wrap gap-x-3 gap-y-1">
+              <span>
+                {renderedSeasons} season{renderedSeasons === 1 ? "" : "s"} ·{" "}
+                {episodes.data?.length ?? 0} episodes
+              </span>
+              {s.lastUpdate && (
+                <span className="inline-flex items-center gap-1">
+                  <Clock size={12} /> Metadata synced: {s.lastUpdate}
+                </span>
+              )}
+              {s.config.location && (
+                <span
+                  className={`inline-flex items-center gap-1 font-mono break-all ${
+                    s.config.locationValid === false
+                      ? "text-warning"
+                      : "text-base-content/50"
+                  }`}
+                  title={
+                    s.config.locationValid === false
+                      ? "Folder not found on disk — post-processing and renaming will fail until this is restored."
+                      : "Show folder on disk"
+                  }
+                >
+                  {s.config.locationValid === false ? (
+                    <AlertTriangle size={12} className="shrink-0" />
+                  ) : (
+                    <HardDrive size={12} className="shrink-0" />
+                  )}
+                  {s.config.location}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </header>

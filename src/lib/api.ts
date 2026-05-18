@@ -13,6 +13,7 @@ export type AssetVariant =
   | "posterThumb"
   | "banner"
   | "bannerThumb"
+  | "fanart"
   | "network";
 
 // Decode the base64url payload of a JWT without verifying the signature.

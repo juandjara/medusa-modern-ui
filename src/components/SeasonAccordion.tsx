@@ -1,47 +1,53 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, History } from 'lucide-react'
-import api from '../lib/api'
-import type { Episode, EpisodeStatus } from '../types/medusa'
-import { EPISODE_STATUS_CODE } from '../types/medusa'
-import StatusBadge from './StatusBadge'
-import EpisodeSearchModal from './EpisodeSearchModal'
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Search, History } from "lucide-react";
+import api from "../lib/api";
+import type { Episode, EpisodeStatus } from "../types/medusa";
+import { EPISODE_STATUS_CODE } from "../types/medusa";
+import StatusBadge from "./StatusBadge";
+import EpisodeSearchModal from "./EpisodeSearchModal";
 
 interface Props {
-  seriesSlug: string
-  season: number
-  episodes: Episode[]
+  seriesSlug: string;
+  season: number;
+  episodes: Episode[];
 }
 
-export default function SeasonAccordion({ seriesSlug, season, episodes }: Props) {
-  const queryClient = useQueryClient()
-  const [searchTarget, setSearchTarget] = useState<number | null>(null)
+export default function SeasonAccordion({
+  seriesSlug,
+  season,
+  episodes,
+}: Props) {
+  const queryClient = useQueryClient();
+  const [searchTarget, setSearchTarget] = useState<number | null>(null);
 
-  const aired = episodes.filter((e) => e.status !== 'Unaired')
+  const aired = episodes.filter((e) => e.status !== "Unaired");
   const downloaded = aired.filter(
-    (e) => e.status === 'Downloaded' || e.status === 'Archived',
-  ).length
+    (e) => e.status === "Downloaded" || e.status === "Archived",
+  ).length;
 
   // PATCH body is keyed by episode identifier (e.g. "s01e02"), status sent as int.
   const setStatus = useMutation({
     mutationFn: (payload: { identifiers: string[]; status: EpisodeStatus }) => {
-      const body: Record<string, { status: number }> = {}
+      const body: Record<string, { status: number }> = {};
       for (const id of payload.identifiers) {
-        body[id] = { status: EPISODE_STATUS_CODE[payload.status] }
+        body[id] = { status: EPISODE_STATUS_CODE[payload.status] };
       }
-      return api.patch(`/series/${seriesSlug}/episodes`, body)
+      return api.patch(`/series/${seriesSlug}/episodes`, body);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['series', seriesSlug, 'episodes'] })
+      queryClient.invalidateQueries({
+        queryKey: ["series", seriesSlug, "episodes"],
+      });
     },
-  })
+  });
 
   return (
-    <div className="collapse collapse-arrow bg-base-100 border border-base-300 rounded-box">
+    <div className="collapse collapse-arrow bg-base-100 border-2 border-base-300 rounded-box">
       <input type="checkbox" className="peer" />
       <div className="collapse-title font-semibold text-lg flex items-center gap-3">
-        Season {season === 0 ? 'Specials' : season}
+        Season {season === 0 ? "Specials" : season}
         <span className="text-sm font-normal text-base-content/50">
           {episodes.length} episodes · {downloaded} downloaded
         </span>
@@ -70,11 +76,11 @@ export default function SeasonAccordion({ seriesSlug, season, episodes }: Props)
               {episodes.map((ep) => (
                 <tr key={ep.identifier}>
                   <td>{ep.episode}</td>
-                  <td className={ep.title ? '' : 'text-base-content/30 italic'}>
-                    {ep.title || 'TBA'}
+                  <td className={ep.title ? "" : "text-base-content/30 italic"}>
+                    {ep.title || "TBA"}
                   </td>
                   <td className="text-xs whitespace-nowrap">
-                    {ep.airDate ? ep.airDate.split('T')[0] : '—'}
+                    {ep.airDate ? ep.airDate.split("T")[0] : "—"}
                   </td>
                   <td>
                     <StatusBadge status={ep.status} />
@@ -108,7 +114,7 @@ export default function SeasonAccordion({ seriesSlug, season, episodes }: Props)
                               onClick={() =>
                                 setStatus.mutate({
                                   identifiers: [ep.identifier],
-                                  status: 'Wanted',
+                                  status: "Wanted",
                                 })
                               }
                             >
@@ -120,7 +126,7 @@ export default function SeasonAccordion({ seriesSlug, season, episodes }: Props)
                               onClick={() =>
                                 setStatus.mutate({
                                   identifiers: [ep.identifier],
-                                  status: 'Skipped',
+                                  status: "Skipped",
                                 })
                               }
                             >
@@ -132,7 +138,7 @@ export default function SeasonAccordion({ seriesSlug, season, episodes }: Props)
                               onClick={() =>
                                 setStatus.mutate({
                                   identifiers: [ep.identifier],
-                                  status: 'Archived',
+                                  status: "Archived",
                                 })
                               }
                             >
@@ -160,5 +166,5 @@ export default function SeasonAccordion({ seriesSlug, season, episodes }: Props)
         />
       )}
     </div>
-  )
+  );
 }
