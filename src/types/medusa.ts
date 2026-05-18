@@ -252,11 +252,15 @@ export interface PostProcessQueueItem {
 
 // Scheduler entry from medusa/schedulers/utils.py:_scheduler_to_json. When a
 // scheduler isn't initialized, only key + name are present; all others optional.
+//
+// `isEnabled` is normally a bool, but `_is_enabled()` returns the literal
+// string 'Paused' for key === 'backlog' when the backlog is paused — so we
+// widen the type rather than try to coerce.
 export interface SchedulerItem {
   key: string
   name: string
   isAlive?: boolean
-  isEnabled?: boolean
+  isEnabled?: boolean | 'Paused'
   isActive?: boolean
   startTime?: string | null
   cycleTime?: number | null // seconds between runs

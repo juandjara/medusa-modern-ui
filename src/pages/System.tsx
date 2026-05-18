@@ -1,7 +1,25 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw, HardDrive, Cpu, Clock } from "lucide-react";
+import {
+  RefreshCw,
+  HardDrive,
+  Cpu,
+  Clock,
+  Play,
+  Pause,
+  Wrench,
+  Trash2,
+} from "lucide-react";
 import api from "../lib/api";
 import { formatDuration, formatRelative } from "../lib/time";
+import {
+  SCHEDULER_HAS_TRIGGER,
+  useCleanSceneExceptionCache,
+  useRefreshSceneExceptions,
+  useRunScheduler,
+  useToggleBacklogPaused,
+} from "../lib/system-actions";
+import ConfirmDialog from "../components/ConfirmDialog";
 import type {
   DiskSpaceEntry,
   SchedulerItem,
@@ -11,6 +29,10 @@ import type {
 const SYSTEM_KEY = ["config", "system"] as const;
 
 export default function System() {
+  const refreshScenes = useRefreshSceneExceptions();
+  const cleanScenes = useCleanSceneExceptionCache();
+  const [confirmCleanOpen, setConfirmCleanOpen] = useState(false);
+
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: SYSTEM_KEY,
     queryFn: ({ signal }) =>
@@ -66,6 +88,7 @@ export default function System() {
                 <th>Next run</th>
                 <th>Cycle</th>
                 <th>Queue</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -115,6 +138,83 @@ export default function System() {
 
       <section>
         <h2 className="mb-3 font-semibold text-sm flex items-center gap-2 text-base-content/70">
+          <Wrench size={14} /> Maintenance
+        </h2>
+        <div className="card bg-primary/10 divide-y divide-base-300">
+          <MaintenanceRow
+            title="Scene exceptions"
+            description="Refresh aliases from XEM, AniDB and AniList. Helps PyMedusa match releases that use alternate show names."
+            action={
+              <button
+                className="btn btn-ghost btn-sm gap-1"
+                onClick={() => refreshScenes.mutate()}
+                disabled={refreshScenes.isPending}
+              >
+                {refreshScenes.isPending ? (
+                  <span className="loading loading-spinner loading-xs" />
+                ) : (
+                  <RefreshCw size={14} />
+                )}
+                Refresh
+              </button>
+            }
+            note={
+              refreshScenes.isSuccess
+                ? "Queued."
+                : refreshScenes.isError
+                  ? "Failed to queue refresh."
+                  : null
+            }
+          />
+          <MaintenanceRow
+            title="Scene exception cache"
+            description="Drop the cached scene exceptions database. Matching falls back to defaults until the next refresh repopulates it."
+            action={
+              <button
+                className="btn btn-ghost btn-sm gap-1 text-error"
+                onClick={() => setConfirmCleanOpen(true)}
+                disabled={cleanScenes.isPending}
+              >
+                {cleanScenes.isPending ? (
+                  <span className="loading loading-spinner loading-xs" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
+                Clean cache
+              </button>
+            }
+            note={
+              cleanScenes.isSuccess
+                ? "Cache cleared."
+                : cleanScenes.isError
+                  ? "Failed to clean cache."
+                  : null
+            }
+          />
+        </div>
+      </section>
+
+      <ConfirmDialog
+        open={confirmCleanOpen}
+        title="Clean scene exception cache?"
+        body={
+          <>
+            <p>
+              This drops the cached scene exceptions from PyMedusa's database.
+              Until the next Refresh runs, scene-name matching will be limited
+              to indexer defaults.
+            </p>
+            <p>The cache is rebuilt automatically on the next refresh cycle.</p>
+          </>
+        }
+        confirmLabel="Clean cache"
+        variant="danger"
+        onConfirm={() => cleanScenes.mutate()}
+        onClose={() => setConfirmCleanOpen(false)}
+      />
+
+      <section>
+        <h2 className="mb-3 font-semibold text-sm flex items-center gap-2 text-base-content/70">
           <Cpu size={14} /> Server
         </h2>
         <div className="card bg-primary/10 border border-base-300 p-4">
@@ -150,61 +250,63 @@ export default function System() {
 }
 
 // ============================================================================
-// Reference: scheduler trigger endpoints (for when we add "Run now" buttons)
+// Reference: still-unwired endpoints (for future work)
 // ----------------------------------------------------------------------------
-// Scheduler keys come from medusa/schedulers/utils.py:all_schedulers. Trigger
-// endpoints come from the legacy Vue page at themes-default/slim/src/
-// components/manage-searches.vue.
+// Implemented triggers (scheduler Run/Pause, scene-exception refresh + clean)
+// live in src/lib/system-actions.ts. The following endpoints exist on the
+// backend but don't have UI yet.
 //
-//   key                | display name        | trigger
-//   -------------------|---------------------|--------------------------------------
-//   dailySearch        | Daily Search        | PUT  /api/v2/search/daily
-//   backlog            | Backlog             | PUT  /api/v2/search/backlog
-//                      |                     |   (also accepts { options: { paused: bool } })
-//   properFinder       | Proper Finder       | PUT  /api/v2/search/proper
-//   subtitlesFinder    | Subtitles Finder    | PUT  /api/v2/search/subtitles
-//   downloadHandler    | Download Handler    | POST /api/v2/system/operation
-//                      |                     |   body { type: 'FORCEADH' }
+// Recommended shows refresh (per source) — needs a Recommended Shows view first:
+//   POST /api/v2/recommended/{source}    source in { trakt, imdb, anidb, anilist }
 //
-// Not in `all_schedulers`, but adjacent actions from the same legacy page:
-//   - Scene exceptions cache rebuild: POST /api/v2/alias-source/all/operation
-//                                     body { type: 'REFRESH' }
-//   - Recommended shows refresh:      POST /api/v2/recommended/{source}
-//                                     source in { trakt, imdb, anidb, anilist }
-//
-// Internal queues (no documented trigger; surface read-only):
+// Schedulers with no user-triggerable endpoint (rows stay action-less):
 //   showUpdate, versionCheck, showQueue, searchQueue, forcedSearchQueue,
 //   postProcess, postProcessQueue, traktChecker, snatchQueue, episodeUpdater
 //
-// Bonus — POST /api/v2/system/operation also handles these admin types
-// (see medusa/server/api/v2/system.py):
-//   RESTART (needs pid)        SHUTDOWN (needs pid)
+// Other admin types on POST /api/v2/system/operation (medusa/server/api/v2/system.py):
+//   RESTART (needs pid)              SHUTDOWN (needs pid)
 //   CHECKOUT_BRANCH (needs branch)   NEED_UPDATE        UPDATE
-//   CHECKFORUPDATE             BACKUP                  BACKUPTOZIP
-//   RESTOREFROMZIP             FORCEADH (above)
+//   CHECKFORUPDATE                   BACKUP             BACKUPTOZIP
+//   RESTOREFROMZIP                   FORCEADH (used by Run Download Handler)
 // ============================================================================
 
 function SchedulerRow({ item }: { item: SchedulerItem }) {
-  const notInitialized = item.isAlive === undefined;
+  const run = useRunScheduler();
+  const togglePaused = useToggleBacklogPaused();
 
+  const notInitialized = item.isAlive === undefined;
+  const isPaused = item.isEnabled === "Paused";
+  const hasTrigger = SCHEDULER_HAS_TRIGGER[item.key] === true;
+  const isBacklog = item.key === "backlog";
+
+  // Treat paused as a distinct visual state; otherwise fall back to the usual
+  // enabled / running / idle / stopped hierarchy.
   const stateLabel = notInitialized
     ? "Not initialized"
-    : !item.isEnabled
-      ? "Disabled"
-      : item.isActive
-        ? "Running"
-        : item.isAlive
-          ? "Idle"
-          : "Stopped";
+    : isPaused
+      ? "Paused"
+      : !item.isEnabled
+        ? "Disabled"
+        : item.isActive
+          ? "Running"
+          : item.isAlive
+            ? "Idle"
+            : "Stopped";
   const stateClass = notInitialized
     ? "badge-ghost"
-    : !item.isEnabled
-      ? "badge-ghost"
-      : item.isActive
-        ? "badge-warning"
-        : item.isAlive
-          ? "badge-success"
-          : "badge-error";
+    : isPaused
+      ? "badge-warning"
+      : !item.isEnabled
+        ? "badge-ghost"
+        : item.isActive
+          ? "badge-warning"
+          : item.isAlive
+            ? "badge-success"
+            : "badge-error";
+
+  // Pending state is keyed per row: useMutation.variables tells us whose run
+  // is in flight, so other rows stay enabled.
+  const runPending = run.isPending && run.variables === item.key;
 
   const lastRun = item.lastRun ? formatRelative(item.lastRun) : "—";
   const nextRun =
@@ -234,6 +336,70 @@ function SchedulerRow({ item }: { item: SchedulerItem }) {
           <span className="text-base-content/30">—</span>
         )}
       </td>
+      <td className="text-right whitespace-nowrap">
+        <div className="inline-flex items-center gap-1">
+          {isBacklog && (
+            <button
+              className="btn btn-ghost btn-xs gap-1"
+              title={isPaused ? "Resume backlog" : "Pause backlog"}
+              onClick={() => togglePaused.mutate(!isPaused)}
+              disabled={togglePaused.isPending}
+            >
+              {togglePaused.isPending ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : isPaused ? (
+                <Play size={14} />
+              ) : (
+                <Pause size={14} />
+              )}
+              {isPaused ? "Resume" : "Pause"}
+            </button>
+          )}
+          {hasTrigger && (
+            <button
+              className="btn btn-ghost btn-xs gap-1"
+              title="Run now"
+              onClick={() => run.mutate(item.key)}
+              disabled={runPending || (isBacklog && isPaused)}
+            >
+              {runPending ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                <Play size={14} />
+              )}
+              Run
+            </button>
+          )}
+          {!hasTrigger && !isBacklog && (
+            <span className="text-base-content/30">—</span>
+          )}
+        </div>
+      </td>
     </tr>
+  );
+}
+
+function MaintenanceRow({
+  title,
+  description,
+  action,
+  note,
+}: {
+  title: string;
+  description: string;
+  action: React.ReactNode;
+  note: string | null;
+}) {
+  return (
+    <div className="flex items-start gap-4 p-4">
+      <div className="min-w-0 flex-1">
+        <div className="font-medium text-sm">{title}</div>
+        <div className="text-xs text-base-content/60 mt-0.5">{description}</div>
+        {note && (
+          <div className="text-xs text-base-content/50 mt-1 italic">{note}</div>
+        )}
+      </div>
+      {action}
+    </div>
   );
 }
