@@ -191,7 +191,7 @@ export const QUALITY_PRESETS: Record<
   { label: string; allowed: number[] }
 > = {
   any_hd_4k: {
-    label: "Any HD + 4K (default)",
+    label: "Any HD or 4K (default)",
     allowed: DEFAULT_QUALITY_ALLOWED,
   },
   any_hd: {
@@ -215,7 +215,7 @@ export const QUALITY_PRESETS: Record<
     allowed: [QUALITY.UHD_4K_WEBDL, QUALITY.UHD_4K_BLURAY],
   },
   sd: {
-    label: "Standard Definition",
+    label: "Any SD",
     allowed: [QUALITY.SDTV, QUALITY.SDDVD],
   },
 };
