@@ -194,18 +194,54 @@ export interface ScheduleEntry {
   seriesId: number
 }
 
+// Shape per medusa/server/api/v2/history.py rows. `status` is the integer
+// from medusa/common.py; `statusName` is the server-formatted label, so we
+// don't need a client-side enum map.
 export interface HistoryEntry {
-  date: string
-  episode: string
-  series: string
-  seriesId: number
+  id: number
+  showSlug: string
+  showTitle: string
+  series: string // duplicate of showSlug; kept because the backend sends both
   season: number
-  episodeNumber: number
-  quality: string
-  provider: string
-  score: number
+  episode: number
+  episodeTitle: string
+  status: number
+  statusName: string // e.g. 'Snatched', 'Downloaded', 'Failed', 'Subtitled'
+  actionDate: number // YYYYMMDDHHMMSS integer (sbdatetime.encode)
+  quality: number // bitmask — single bit set in practice; see QUALITY_NAMES
   resource: string
-  action: number
+  size: number
+  properTags: string
+  manuallySearched: boolean
+  infoHash: string | null
+  provider: { id: string; name: string; imageName: string }
+  releaseName: string | null
+  releaseGroup: string | null
+  fileName: string | null
+  subtitleLanguage: string | null
+  providerType: string
+  clientStatus: { status: number[]; string: string } | null
+  partOfBatch: boolean
+}
+
+// Friendly labels for the quality bitmask values declared in QUALITY above.
+// Each history row's `quality` is a single bit; map to a short display string.
+export const QUALITY_NAMES: Record<number, string> = {
+  [QUALITY.SDTV]: 'SDTV',
+  [QUALITY.SDDVD]: 'SD DVD',
+  [QUALITY.HDTV]: 'HDTV',
+  [QUALITY.RAWHDTV]: 'Raw HD-TV',
+  [QUALITY.FULLHDTV]: '1080i HDTV',
+  [QUALITY.HDWEBDL]: '720p WEB-DL',
+  [QUALITY.FULLHDWEBDL]: '1080p WEB-DL',
+  [QUALITY.HDBLURAY]: '720p BluRay',
+  [QUALITY.FULLHDBLURAY]: '1080p BluRay',
+  [QUALITY.UHD_4K_WEBDL]: '4K WEB-DL',
+  [QUALITY.UHD_4K_BLURAY]: '4K BluRay',
+}
+
+export function qualityName(value: number): string {
+  return QUALITY_NAMES[value] ?? `Q-${value}`
 }
 
 // Show queue items (refresh / update / rename / etc.) — shape from

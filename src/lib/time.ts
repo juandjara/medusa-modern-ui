@@ -19,6 +19,24 @@ export function formatRelative(iso: string): string {
 }
 
 /**
+ * Parse PyMedusa's history `actionDate` format — a `YYYYMMDDHHMMSS` integer
+ * baked by sbdatetime.encode — into a JS Date. Returns null on bad input.
+ */
+export function parseActionDate(n: number): Date | null {
+  const s = String(n).padStart(14, "0");
+  if (s.length !== 14) return null;
+  const date = new Date(
+    +s.slice(0, 4),
+    +s.slice(4, 6) - 1,
+    +s.slice(6, 8),
+    +s.slice(8, 10),
+    +s.slice(10, 12),
+    +s.slice(12, 14),
+  );
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
  * Format a duration in seconds as a compact human string: "30s", "15m",
  * "2h 30m", "1d 4h".
  */

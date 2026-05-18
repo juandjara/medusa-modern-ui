@@ -9,6 +9,7 @@ export default defineConfig({
       "/api": { target: "https://pymedusa.djara.dev", changeOrigin: true },
       "/token": { target: "https://pymedusa.djara.dev", changeOrigin: true },
       "/login": { target: "https://pymedusa.djara.dev", changeOrigin: true },
+      "/images": { target: "https://pymedusa.djara.dev", changeOrigin: true },
       "/ws": {
         target: "wss://pymedusa.djara.dev",
         ws: true,
