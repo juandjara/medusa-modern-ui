@@ -248,7 +248,7 @@ export default function AddShow() {
   return (
     <div className="max-w-lg mx-auto space-y-6 pt-8">
       <h1 className="text-2xl font-bold">Configure Show</h1>
-      <div className="bg-primary/10 rounded-box p-4 space-y-1">
+      <div className="bg-base-100 border border-base-300 rounded-box p-4 space-y-1">
         <div className="font-semibold flex items-center gap-2">
           {selected.title}
           {selectedYear && (
@@ -400,7 +400,7 @@ function SearchResultCard({
   // Card root is a div so we can place an external <a> next to the primary
   // <button> without invalid anchor-in-button nesting.
   return (
-    <div className="bg-primary/10 rounded-box flex items-center gap-2 pr-2 border border-base-100 hover:border-accent transition-colors">
+    <div className="bg-base-100 rounded-box flex items-center gap-2 pr-2 border border-base-300 hover:border-accent transition-colors">
       <button
         type="button"
         className="flex items-center gap-3 text-left flex-1 min-w-0 p-3"

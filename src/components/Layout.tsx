@@ -132,8 +132,8 @@ export default function Layout() {
         onChange={(e) => setMobileOpen(e.target.checked)}
       />
 
-      <div className="drawer-content flex flex-col">
-        <header className="navbar bg-base-200 lg:hidden shadow-sm">
+      <div className="drawer-content flex flex-col bg-base-200">
+        <header className="navbar bg-base-300 lg:hidden shadow-sm">
           <div className="flex-none">
             <label htmlFor="drawer" className="btn btn-square btn-ghost">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -156,8 +156,12 @@ export default function Layout() {
       </div>
 
       <div className="drawer-side z-40">
-        <label htmlFor="drawer" className="drawer-overlay" />
-        <aside className="bg-base-200 text-base-content min-h-full w-64 p-4 flex flex-col gap-4">
+        <label
+          htmlFor="drawer"
+          aria-label="Close sidebar"
+          className="drawer-overlay"
+        />
+        <aside className="bg-base-300 text-base-content min-h-full w-64 p-4 flex flex-col gap-4">
           <div className="text-xl font-bold tracking-tight px-2 pt-2 pb-6">
             🧬 Medusa
           </div>
@@ -170,7 +174,7 @@ export default function Layout() {
                   end={to === "/"}
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
-                    isActive ? "active font-semibold" : ""
+                    isActive ? "menu-active font-semibold" : ""
                   }
                 >
                   <Icon size={18} />
