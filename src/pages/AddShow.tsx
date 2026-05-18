@@ -29,7 +29,7 @@ type AddCompletion =
   | { state: "failed" };
 
 const SYSTEM_KEY = ["config", "system"] as const;
-const DEFAULT_QUALITY_PRESET = "any_hd_4k";
+const DEFAULT_QUALITY_PRESET = "any_hd";
 
 // IDs from medusa/indexers/config.py. INDEXER_TVRAGE (2) is deprecated and
 // omitted. 0 is the sentinel for "search every enabled indexer".

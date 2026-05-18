@@ -11,6 +11,7 @@ import History from "../pages/History";
 import Queue from "../pages/Queue";
 
 const ShowDetail = lazy(() => import("../pages/ShowDetail"));
+const ShowSettings = lazy(() => import("../pages/ShowSettings"));
 const Settings = lazy(() => import("../pages/Settings"));
 const System = lazy(() => import("../pages/System"));
 
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <ShowList /> },
           { path: "show/:slug", element: <ShowDetail /> },
+          { path: "show/:slug/settings", element: <ShowSettings /> },
           { path: "add", element: <AddShow /> },
           { path: "schedule", element: <Schedule /> },
           { path: "history", element: <History /> },

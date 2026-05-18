@@ -1,9 +1,19 @@
 import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, AlertTriangle, RefreshCw, Pause } from "lucide-react";
+import {
+  ChevronLeft,
+  AlertTriangle,
+  RefreshCw,
+  Pause,
+  Settings as SettingsIcon,
+  HardDrive,
+  Clock,
+} from "lucide-react";
 import api, { getAssetUrl } from "../lib/api";
 import {
+  qualityName,
+  qualitySummary,
   seriesStatusBadgeClass,
   type Episode,
   type Series,
@@ -86,14 +96,23 @@ export default function ShowDetail() {
         <Link to="/" className="btn btn-ghost btn-sm gap-1">
           <ChevronLeft size={16} /> Back
         </Link>
-        <ShowActionsMenu
-          series={s}
-          isPending={actions.isPending}
-          queued={actions.queued}
-          onAction={actions.run}
-          onTogglePause={() => pause.mutate(!s.config.paused)}
-          isPausePending={pause.isPending}
-        />
+        <div className="flex items-center gap-2">
+          <Link
+            to={`/show/${s.id.slug}/settings`}
+            className="btn btn-ghost btn-sm gap-1"
+            title="Show settings"
+          >
+            <SettingsIcon size={14} /> Settings
+          </Link>
+          <ShowActionsMenu
+            series={s}
+            isPending={actions.isPending}
+            queued={actions.queued}
+            onAction={actions.run}
+            onTogglePause={() => pause.mutate(!s.config.paused)}
+            isPausePending={pause.isPending}
+          />
+        </div>
       </div>
 
       {actions.queued && (
@@ -148,8 +167,8 @@ export default function ShowDetail() {
                   className="h-5 w-auto max-w-20 object-contain"
                   src={getAssetUrl(s.id.slug, "network")}
                   onError={(e) => {
-                    const wrapper = e.currentTarget.parentElement
-                    if (wrapper) wrapper.style.display = 'none'
+                    const wrapper = e.currentTarget.parentElement;
+                    if (wrapper) wrapper.style.display = "none";
                   }}
                 />
               </span>
@@ -160,6 +179,16 @@ export default function ShowDetail() {
               {s.status}
             </span>
             <span className="badge badge-sm badge-soft">{s.year.start}</span>
+            {s.config.qualities?.allowed && (
+              <span
+                className="badge badge-sm badge-soft"
+                title={s.config.qualities.allowed
+                  .map((q) => qualityName(q))
+                  .join(", ")}
+              >
+                {qualitySummary(s.config.qualities.allowed)}
+              </span>
+            )}
             {s.showType === "anime" && (
               <span className="badge badge-sm badge-accent">anime</span>
             )}
@@ -172,12 +201,37 @@ export default function ShowDetail() {
           {s.plot && (
             <p className="text-sm text-base-content/70 max-w-2xl">{s.plot}</p>
           )}
-          <div className="text-xs text-base-content/50 pt-1 flex flex-wrap gap-x-4 gap-y-1">
+          <div className="text-xs text-base-content/50 pt-1 flex flex-wrap gap-x-3 gap-y-1">
             <span>
               {renderedSeasons} season{renderedSeasons === 1 ? "" : "s"} ·{" "}
               {episodes.data?.length ?? 0} episodes
             </span>
-            {s.lastUpdate && <span>Metadata synced: {s.lastUpdate}</span>}
+            {s.lastUpdate && (
+              <span className="inline-flex items-center gap-1">
+                <Clock size={12} /> Metadata synced: {s.lastUpdate}
+              </span>
+            )}
+            {s.config.location && (
+              <span
+                className={`inline-flex items-center gap-1 font-mono break-all ${
+                  s.config.locationValid === false
+                    ? "text-warning"
+                    : "text-base-content/50"
+                }`}
+                title={
+                  s.config.locationValid === false
+                    ? "Folder not found on disk — post-processing and renaming will fail until this is restored."
+                    : "Show folder on disk"
+                }
+              >
+                {s.config.locationValid === false ? (
+                  <AlertTriangle size={12} className="shrink-0" />
+                ) : (
+                  <HardDrive size={12} className="shrink-0" />
+                )}
+                {s.config.location}
+              </span>
+            )}
           </div>
         </div>
       </header>

@@ -109,3 +109,18 @@ export function usePauseSeries(slug: string) {
     },
   })
 }
+
+// General per-show edit. Accepts a partial JSON-pointer body — caller passes
+// the exact keys from the patches dict in series.py:146 (config.anime,
+// config.qualities.allowed, etc.). Invalidates ['series', slug] so any other
+// page reading the show picks up the changes immediately.
+export function useEditSeries(slug: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.patch(`/series/${slug}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['series', slug] })
+    },
+  })
+}

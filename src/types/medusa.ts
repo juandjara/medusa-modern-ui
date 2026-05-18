@@ -112,6 +112,17 @@ export type EpisodeStatus =
 // Integer codes for PATCH /series/{slug}/episodes — status is sent as a
 // number. Values mirror medusa/common.py; note Subtitled=10 sits between
 // Snatched (Proper)=9 and Failed=11.
+// Valid values for config.defaultEpisodeStatus on the per-show settings form.
+// Other EpisodeStatus values exist (Snatched, Downloaded, etc.) but aren't
+// meaningful as defaults — they apply to the lifecycle of an episode, not the
+// "what to do with newly-discovered episodes" policy.
+export const DEFAULT_EPISODE_STATUSES = [
+  "Wanted",
+  "Skipped",
+  "Ignored",
+  "Archived",
+] as const
+
 export const EPISODE_STATUS_CODE: Record<EpisodeStatus, number> = {
   Unaired: 1,
   Snatched: 2,
@@ -159,55 +170,56 @@ export interface SearchResult {
   alreadyAddedSlug: string | null;
 }
 
-// PyMedusa quality bitmask values (medusa/common.py). Matches what existing
-// shows on the user's backend store for `qualities.allowed`.
+// PyMedusa quality bitmask values from medusa/common.py:Quality. Note the
+// class starts shifts at `1 << 1` (so SDTV = 2, NOT 1) — getting the indexing
+// wrong silently sends the wrong qualities to the backend and reads the wrong
+// labels back. The trailing comment is the human label from `qualityStrings`.
 export const QUALITY = {
-  SDTV: 1,
-  SDDVD: 2,
-  HDTV: 4,
-  RAWHDTV: 8,
-  FULLHDTV: 16,
-  HDWEBDL: 32,
-  FULLHDWEBDL: 64,
-  HDBLURAY: 128,
-  FULLHDBLURAY: 256,
-  UHD_4K_WEBDL: 512,
-  UHD_4K_BLURAY: 1024,
+  UNKNOWN: 1,
+  SDTV: 2, // 'SDTV'
+  SDDVD: 4, // 'SD DVD'
+  HDTV: 8, // '720p HDTV'
+  RAWHDTV: 16, // 'RawHD'
+  FULLHDTV: 32, // '1080p HDTV'
+  HDWEBDL: 64, // '720p WEB-DL'
+  FULLHDWEBDL: 128, // '1080p WEB-DL'
+  HDBLURAY: 256, // '720p BluRay'
+  FULLHDBLURAY: 512, // '1080p BluRay'
+  UHD_4K_TV: 1024, // '4K UHD TV'
+  UHD_4K_WEBDL: 2048, // '4K UHD WEB-DL'
+  UHD_4K_BLURAY: 4096, // '4K UHD BluRay'
 } as const;
 
-// Default profile used when a user adds a show without picking qualities —
-// HD WEB/Bluray + 4K WEB. Mirrors the default seen on existing shows.
+// Default profile used when a user adds a show without picking qualities.
+// Matches the [8, 32, 64, 128, 256, 512] seen on existing shows in the user's
+// library — Any HD across TV / WEB / BluRay sources, no SD, no 4K.
 export const DEFAULT_QUALITY_ALLOWED = [
-  QUALITY.RAWHDTV,
+  QUALITY.HDTV,
+  QUALITY.FULLHDTV,
   QUALITY.HDWEBDL,
   QUALITY.FULLHDWEBDL,
   QUALITY.HDBLURAY,
   QUALITY.FULLHDBLURAY,
-  QUALITY.UHD_4K_WEBDL,
 ];
 
-// Curated quality presets for the Add Show form. Keys are stable identifiers
-// for state; labels are user-facing; `allowed` is the bitmask array sent in
-// the POST /series body. `any_hd_4k` is the default — it matches what every
-// existing show on the user's library has.
+// Curated quality presets for the Add Show / Settings forms. Keys are stable
+// identifiers for state; labels are user-facing; `allowed` is the bitmask
+// array sent in the POST /series and PATCH /series bodies. `any_hd` matches
+// what every existing show in the user's library has — kept as the default.
 export const QUALITY_PRESETS: Record<
   string,
   { label: string; allowed: number[] }
 > = {
-  any_hd_4k: {
-    label: "Any HD or 4K (default)",
+  any_hd: {
+    label: "Any HD (default)",
     allowed: DEFAULT_QUALITY_ALLOWED,
   },
-  any_hd: {
-    label: "Any HD",
+  any_hd_4k: {
+    label: "Any HD or 4K",
     allowed: [
-      QUALITY.HDTV,
-      QUALITY.RAWHDTV,
-      QUALITY.FULLHDTV,
-      QUALITY.HDWEBDL,
-      QUALITY.FULLHDWEBDL,
-      QUALITY.HDBLURAY,
-      QUALITY.FULLHDBLURAY,
+      ...DEFAULT_QUALITY_ALLOWED,
+      QUALITY.UHD_4K_WEBDL,
+      QUALITY.UHD_4K_BLURAY,
     ],
   },
   fullhd_only: {
@@ -278,22 +290,46 @@ export interface HistoryEntry {
 
 // Friendly labels for the quality bitmask values declared in QUALITY above.
 // Each history row's `quality` is a single bit; map to a short display string.
+// Strings mirror medusa/common.py:Quality.qualityStrings.
 export const QUALITY_NAMES: Record<number, string> = {
+  [QUALITY.UNKNOWN]: "Unknown",
   [QUALITY.SDTV]: "SDTV",
   [QUALITY.SDDVD]: "SD DVD",
-  [QUALITY.HDTV]: "HDTV",
-  [QUALITY.RAWHDTV]: "Raw HD-TV",
-  [QUALITY.FULLHDTV]: "1080i HDTV",
+  [QUALITY.HDTV]: "720p HDTV",
+  [QUALITY.RAWHDTV]: "RawHD",
+  [QUALITY.FULLHDTV]: "1080p HDTV",
   [QUALITY.HDWEBDL]: "720p WEB-DL",
   [QUALITY.FULLHDWEBDL]: "1080p WEB-DL",
   [QUALITY.HDBLURAY]: "720p BluRay",
   [QUALITY.FULLHDBLURAY]: "1080p BluRay",
-  [QUALITY.UHD_4K_WEBDL]: "4K WEB-DL",
-  [QUALITY.UHD_4K_BLURAY]: "4K BluRay",
+  [QUALITY.UHD_4K_TV]: "4K UHD TV",
+  [QUALITY.UHD_4K_WEBDL]: "4K UHD WEB-DL",
+  [QUALITY.UHD_4K_BLURAY]: "4K UHD BluRay",
 };
 
 export function qualityName(value: number): string {
   return QUALITY_NAMES[value] ?? `Q-${value}`;
+}
+
+// Returns the QUALITY_PRESETS key (e.g. 'any_hd') whose `allowed` matches the
+// input exactly, or null when no preset fits. Sorted comparison so ordering
+// differences don't trip us up.
+export function detectQualityPreset(allowed: number[]): string | null {
+  const a = [...allowed].sort((x, y) => x - y);
+  for (const [key, preset] of Object.entries(QUALITY_PRESETS)) {
+    const b = [...preset.allowed].sort((x, y) => x - y);
+    if (a.length === b.length && a.every((v, i) => v === b[i])) return key;
+  }
+  return null;
+}
+
+// Short label for a show's quality config — preset name when one fits, or
+// 'Custom' otherwise. Strips the trailing '(default)' for use in tight
+// chrome like header badges.
+export function qualitySummary(allowed: number[]): string {
+  const key = detectQualityPreset(allowed);
+  if (key) return QUALITY_PRESETS[key].label.replace(/\s*\([^)]+\)\s*$/, "");
+  return "Custom";
 }
 
 // daisyUI badge classes for series status strings emitted by PyMedusa
