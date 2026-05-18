@@ -9,6 +9,7 @@ import {
   Settings as SettingsIcon,
   HardDrive,
   Clock,
+  History,
 } from "lucide-react";
 import api, { getAssetUrl } from "../lib/api";
 import {
@@ -97,6 +98,13 @@ export default function ShowDetail() {
           <ChevronLeft size={16} /> Back
         </Link>
         <div className="flex items-center gap-2">
+          <Link
+            to={`/history?show=${s.id.slug}`}
+            className="btn btn-ghost btn-sm gap-1"
+            title="History for this show"
+          >
+            <History size={14} /> History
+          </Link>
           <Link
             to={`/show/${s.id.slug}/settings`}
             className="btn btn-ghost btn-sm gap-1"

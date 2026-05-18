@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import api from "../lib/api";
 import { formatRelative, parseActionDate } from "../lib/time";
 import { qualityName, type HistoryEntry } from "../types/medusa";
@@ -31,12 +30,56 @@ interface HistoryPage {
   limit: number;
 }
 
+// Build the v2 history endpoint based on the active filters. PyMedusa exposes:
+//   GET /history                                   — all rows
+//   GET /history/{slug}                             — filtered to one show
+//   GET /history/{slug}/episode/{sNNeNN}            — exact episode
+// We pick the most specific endpoint we can. Season alone (no episode) has
+// no server-side support, so we fetch /history/{slug} and filter client-side.
+function buildHistoryPath(
+  showSlug: string | null,
+  season: number | null,
+  episode: number | null,
+): string {
+  if (!showSlug) return "/history";
+  if (season !== null && episode !== null) {
+    const eid = `s${String(season).padStart(2, "0")}e${String(episode).padStart(2, "0")}`;
+    return `/history/${showSlug}/episode/${eid}`;
+  }
+  return `/history/${showSlug}`;
+}
+
 export default function History() {
-  const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // All filter / paging state lives in the URL — reads are derived, writes
+  // call setSearchParams.
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const status = searchParams.get("status") ?? "";
+  const showSlug = searchParams.get("show");
+  const seasonParam = searchParams.get("season");
+  const episodeParam = searchParams.get("episode");
+  const season = seasonParam !== null ? parseInt(seasonParam, 10) : null;
+  const episode = episodeParam !== null ? parseInt(episodeParam, 10) : null;
+
+  // Patch URL params; reset to page 1 whenever any non-page param changes
+  // (filtered totals can shrink — landing past totalPages would be broken).
+  const updateParams = (patch: Record<string, string | null>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null || value === "") next.delete(key);
+        else next.set(key, value);
+      }
+      if (Object.keys(patch).some((k) => k !== "page")) next.delete("page");
+      return next;
+    });
+  };
+
+  const path = buildHistoryPath(showSlug, season, episode);
 
   const { data, isLoading, isFetching } = useQuery<HistoryPage>({
-    queryKey: ["history", page, filter],
+    queryKey: ["history", path, page, status],
     queryFn: async ({ signal }) => {
       const params: Record<string, string | number> = {
         page,
@@ -46,16 +89,13 @@ export default function History() {
         // Most-recent first.
         sort: JSON.stringify([{ field: "actionDate", type: "desc" }]),
       };
-      const code = filter ? STATUS_CODES[filter] : undefined;
+      const code = status ? STATUS_CODES[status] : undefined;
       if (code !== undefined) {
         // Server-side filter: { columnFilters: { action: <int> } }. The
         // `action` column is the integer status code (common.py).
         params.filter = JSON.stringify({ columnFilters: { action: code } });
       }
-      const res = await api.get<HistoryEntry[]>("/history", { signal, params });
-      // PyMedusa paginates via headers (X-Pagination-Count is the total row
-      // count across all pages). After server-side filtering this reflects
-      // the items total. Fall back to the page length if missing.
+      const res = await api.get<HistoryEntry[]>(path, { signal, params });
       const total = parseInt(
         (res.headers["x-pagination-count"] as string | undefined) ??
           String(res.data.length),
@@ -63,14 +103,23 @@ export default function History() {
       );
       return { items: res.data, total, page, limit: PAGE_SIZE };
     },
-    // Keep showing the previous page while a new page loads, so the table
-    // doesn't flash empty during pagination.
     placeholderData: keepPreviousData,
   });
 
-  const items = data?.items ?? [];
+  let items = data?.items ?? [];
+  // Every HistoryEntry already carries showTitle, so the chip's display name
+  // comes for free from the rows we just loaded — no extra fetch needed.
+  // Falls back to the slug if the show has no entries (empty result).
+  const showTitle = showSlug ? (items[0]?.showTitle ?? showSlug) : null;
+  // Season-only filter has no server-side equivalent, so apply locally over
+  // the show-filtered page. (Pagination counts may look off in this mode —
+  // acceptable trade-off; if it becomes annoying we can server-filter.)
+  if (showSlug && season !== null && episode === null) {
+    items = items.filter((h) => h.season === season);
+  }
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasFilterChips = showSlug || season !== null || episode !== null;
 
   return (
     <div className="space-y-4">
@@ -78,13 +127,8 @@ export default function History() {
         <h1 className="text-2xl font-bold">History</h1>
         <select
           className="select select-sm"
-          value={filter}
-          onChange={(e) => {
-            // Filtered totals may be smaller — drop back to page 1 so we
-            // don't land beyond the new totalPages.
-            setFilter(e.target.value);
-            setPage(1);
-          }}
+          value={status}
+          onChange={(e) => updateParams({ status: e.target.value || null })}
         >
           <option value="">All statuses</option>
           {FILTERABLE_STATUSES.map((s) => (
@@ -94,6 +138,57 @@ export default function History() {
           ))}
         </select>
       </div>
+
+      {hasFilterChips && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-base-content/60">Filtered by:</span>
+          {showSlug && (
+            <span className="badge badge-soft gap-1 pr-1">
+              Show: {showTitle}
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs btn-square"
+                aria-label="Clear show filter"
+                onClick={() =>
+                  updateParams({
+                    show: null,
+                    season: null,
+                    episode: null,
+                  })
+                }
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {season !== null && (
+            <span className="badge badge-soft gap-1 pr-1">
+              Season {season}
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs btn-square"
+                aria-label="Clear season filter"
+                onClick={() => updateParams({ season: null, episode: null })}
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {episode !== null && (
+            <span className="badge badge-soft gap-1 pr-1">
+              Episode {episode}
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs btn-square"
+                aria-label="Clear episode filter"
+                onClick={() => updateParams({ episode: null })}
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex justify-center py-20">
@@ -126,8 +221,8 @@ export default function History() {
 
       {!isLoading && items.length === 0 && (
         <div className="text-center py-12 text-base-content/50">
-          {filter
-            ? `No "${filter}" history entries.`
+          {status || hasFilterChips
+            ? "No history entries match these filters."
             : "No history entries."}
         </div>
       )}
@@ -140,14 +235,18 @@ export default function History() {
           <div className="join">
             <button
               className="btn btn-sm join-item"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() =>
+                updateParams({ page: String(Math.max(1, page - 1)) })
+              }
               disabled={page === 1 || isFetching}
             >
               <ChevronLeft size={14} /> Prev
             </button>
             <button
               className="btn btn-sm join-item"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() =>
+                updateParams({ page: String(Math.min(totalPages, page + 1)) })
+              }
               disabled={page >= totalPages || isFetching}
             >
               Next <ChevronRight size={14} />
@@ -176,7 +275,7 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
         {entry.showSlug ? (
           <Link
             to={`/show/${entry.showSlug}`}
-            className="hover:underline truncate inline-block max-w-[14rem]"
+            className="hover:underline truncate inline-block max-w-56"
             title={entry.showTitle}
           >
             {entry.showTitle}
@@ -189,7 +288,7 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
         S{String(entry.season).padStart(2, "0")}E
         {String(entry.episode).padStart(2, "0")}
       </td>
-      <td>
+      <td className="whitespace-nowrap">
         <span className="badge badge-xs">{qualityName(entry.quality)}</span>
       </td>
       <td className="text-xs">

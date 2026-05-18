@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search } from 'lucide-react'
+import { Search, History } from 'lucide-react'
 import api from '../lib/api'
 import type { Episode, EpisodeStatus } from '../types/medusa'
 import { EPISODE_STATUS_CODE } from '../types/medusa'
@@ -44,6 +45,14 @@ export default function SeasonAccordion({ seriesSlug, season, episodes }: Props)
         <span className="text-sm font-normal text-base-content/50">
           {episodes.length} episodes · {downloaded} downloaded
         </span>
+        <Link
+          to={`/history?show=${seriesSlug}&season=${season}`}
+          className="btn btn-ghost btn-xs gap-1 ml-auto"
+          title="History for this season"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <History size={12} /> History
+        </Link>
       </div>
       <div className="collapse-content p-0">
         <div className="overflow-x-auto">
@@ -79,6 +88,13 @@ export default function SeasonAccordion({ seriesSlug, season, episodes }: Props)
                       >
                         <Search size={14} />
                       </button>
+                      <Link
+                        to={`/history?show=${seriesSlug}&season=${season}&episode=${ep.episode}`}
+                        className="btn btn-ghost btn-xs btn-square"
+                        title="History for this episode"
+                      >
+                        <History size={14} />
+                      </Link>
                       <div className="dropdown dropdown-end">
                         <button tabIndex={0} className="btn btn-ghost btn-xs">
                           ⋯
