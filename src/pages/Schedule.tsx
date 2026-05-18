@@ -37,7 +37,7 @@ export default function Schedule() {
                 <Link
                   key={i}
                   to={`/show/${e.seriesId}`}
-                  className="card card-compact bg-base-100 border border-base-300 p-3 flex flex-row items-center gap-4"
+                  className="bg-base-100 border border-base-300 rounded-box p-3 flex flex-row items-center gap-4"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-sm">{e.seriesTitle}</div>

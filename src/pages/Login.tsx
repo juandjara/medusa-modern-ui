@@ -28,31 +28,31 @@ export default function Login() {
             setSubmitting(false)
           }
         }}
-        className="card bg-base-100 shadow-xl w-full max-w-sm p-6 space-y-4"
+        className="bg-base-100 rounded-box shadow-xl w-full max-w-sm p-6 space-y-4"
       >
         <h1 className="text-2xl font-bold text-center">🧬 Medusa</h1>
 
-        <label className="form-control">
-          <span className="label-text">Username</span>
+        <fieldset className="fieldset">
+          <legend className="fieldset-legend">Username</legend>
           <input
-            className="input input-bordered"
+            className="input w-full"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoFocus
             required
           />
-        </label>
+        </fieldset>
 
-        <label className="form-control">
-          <span className="label-text">Password</span>
+        <fieldset className="fieldset">
+          <legend className="fieldset-legend">Password</legend>
           <input
             type="password"
-            className="input input-bordered"
+            className="input w-full"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-        </label>
+        </fieldset>
 
         {error && <div className="alert alert-soft alert-error text-sm py-2">{error}</div>}
 

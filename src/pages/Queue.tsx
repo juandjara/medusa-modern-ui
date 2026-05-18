@@ -23,7 +23,6 @@ import {
 const SYSTEM_KEY = ["config", "system"] as const;
 const LIVE_QUEUE_KEY = ["live-queue"] as const;
 
-
 export default function Queue() {
   const queryClient = useQueryClient();
 
@@ -228,7 +227,7 @@ function SearchQueueRow({ item }: { item: LiveQueueItem }) {
           <span className="badge badge-warning badge-sm">force</span>
         )}
       </div>
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 mb-3">
+      <div className="flex items-center gap-3 p-3 rounded-box bg-primary/10 mb-3">
         <div className="min-w-0 flex-1">
           <p className="mb-1">
             {showTitle ? (
@@ -270,7 +269,7 @@ function ShowQueueRow({ item }: { item: ShowQueueItem }) {
   return (
     <li className="mt-5">
       <p className="mb-1 badge badge-neutral badge-sm">{item.queueType}</p>
-      <div className="flex items-center gap-2 flex-wrap p-3 rounded-lg bg-primary/10">
+      <div className="flex items-center gap-2 flex-wrap p-3 rounded-box bg-primary/10">
         <div className="min-w-0 flex-1">
           {item.showSlug ? (
             <Link
@@ -330,7 +329,7 @@ function PostProcessRow({ item }: { item: PostProcessQueueItem }) {
           <span className="badge badge-warning badge-sm">force</span>
         )}
       </div>
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10">
+      <div className="flex items-center gap-3 p-3 rounded-box bg-primary/10">
         <div className="min-w-0 flex-1">
           <div
             className="text-sm font-medium truncate"

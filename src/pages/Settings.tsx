@@ -45,20 +45,20 @@ function GeneralForm({ initial }: { initial: GeneralConfig }) {
 
   return (
     <div className="space-y-4">
-      <label className="form-control">
-        <span className="label-text">Download Directory</span>
+      <fieldset className="fieldset">
+        <legend className="fieldset-legend">Download Directory</legend>
         <input
-          className="input input-bordered input-sm"
+          className="input input-sm w-full"
           value={values.tvDownloadDir}
           onChange={(e) =>
             setValues((v) => ({ ...v, tvDownloadDir: e.target.value }))
           }
         />
-      </label>
-      <label className="form-control">
-        <span className="label-text">Indexer</span>
+      </fieldset>
+      <fieldset className="fieldset">
+        <legend className="fieldset-legend">Indexer</legend>
         <select
-          className="select select-bordered select-sm"
+          className="select select-sm w-full"
           value={values.indexer}
           onChange={(e) =>
             setValues((v) => ({
@@ -71,7 +71,7 @@ function GeneralForm({ initial }: { initial: GeneralConfig }) {
           <option>TMDB</option>
           <option>TVMaze</option>
         </select>
-      </label>
+      </fieldset>
       <button
         className="btn btn-primary btn-sm"
         onClick={() => save.mutate(values)}

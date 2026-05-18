@@ -39,7 +39,7 @@ export default function ShowList() {
               className="absolute z-10 left-3 top-1/2 -translate-y-1/2 text-base-content/40"
             />
             <input
-              className="input input-bordered input-sm w-full sm:w-64 pl-9"
+              className="input input-sm w-full sm:w-64 pl-9"
               placeholder="Filter shows…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -56,7 +56,7 @@ export default function ShowList() {
           <Link
             key={show.id.slug}
             to={`/show/${show.id.slug}`}
-            className="card card-compact bg-base-100 shadow-sm hover:shadow-md transition-shadow"
+            className="card card-sm bg-base-100 shadow-sm hover:shadow-md transition-shadow"
           >
             <figure className="aspect-[2/3] bg-base-300">
               <img

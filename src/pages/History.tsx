@@ -77,7 +77,7 @@ export default function History() {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">History</h1>
         <select
-          className="select select-bordered select-sm"
+          className="select select-sm"
           value={filter}
           onChange={(e) => {
             // Filtered totals may be smaller — drop back to page 1 so we
