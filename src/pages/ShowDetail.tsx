@@ -1,80 +1,84 @@
-import { useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, AlertTriangle, RefreshCw, Pause } from 'lucide-react'
-import api, { getAssetUrl } from '../lib/api'
-import type { Episode, Series } from '../types/medusa'
-import SeasonAccordion from '../components/SeasonAccordion'
-import ShowActionsMenu from '../components/ShowActionsMenu'
+import { useMemo } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, AlertTriangle, RefreshCw, Pause } from "lucide-react";
+import api, { getAssetUrl } from "../lib/api";
+import {
+  seriesStatusBadgeClass,
+  type Episode,
+  type Series,
+} from "../types/medusa";
+import SeasonAccordion from "../components/SeasonAccordion";
+import ShowActionsMenu from "../components/ShowActionsMenu";
 import {
   useSeriesMassUpdate,
   usePauseSeries,
   ACTION_LABELS,
-} from '../lib/series-actions'
+} from "../lib/series-actions";
 
 export default function ShowDetail() {
-  const { slug = '' } = useParams<{ slug: string }>()
+  const { slug = "" } = useParams<{ slug: string }>();
 
   const show = useQuery({
-    queryKey: ['series', slug, 'detailed'],
+    queryKey: ["series", slug, "detailed"],
     queryFn: ({ signal }) =>
       api
         .get<Series>(`/series/${slug}`, { signal, params: { detailed: true } })
         .then((r) => r.data),
     enabled: !!slug,
-  })
+  });
 
   // Page through /episodes until we've drained the dataset. The endpoint caps
   // limit at 1000; we keep paging while pages come back full. Safety cap at 20
   // pages = 20k episodes — far above anything real.
   const episodes = useQuery({
-    queryKey: ['series', slug, 'episodes'],
+    queryKey: ["series", slug, "episodes"],
     queryFn: async ({ signal }) => {
-      const all: Episode[] = []
-      const PAGE_SIZE = 1000
+      const all: Episode[] = [];
+      const PAGE_SIZE = 1000;
       for (let page = 1; page <= 20; page += 1) {
         const res = await api.get<Episode[]>(`/series/${slug}/episodes`, {
           signal,
           params: { limit: PAGE_SIZE, page },
-        })
-        all.push(...res.data)
-        if (res.data.length < PAGE_SIZE) break
+        });
+        all.push(...res.data);
+        if (res.data.length < PAGE_SIZE) break;
       }
-      return all
+      return all;
     },
     enabled: !!slug,
-  })
+  });
 
-  const actions = useSeriesMassUpdate(slug)
-  const pause = usePauseSeries(slug)
+  const actions = useSeriesMassUpdate(slug);
+  const pause = usePauseSeries(slug);
 
   const seasons = useMemo(() => {
-    const map = new Map<number, Episode[]>()
+    const map = new Map<number, Episode[]>();
     for (const ep of episodes.data ?? []) {
-      const list = map.get(ep.season) ?? []
-      list.push(ep)
-      map.set(ep.season, list)
+      const list = map.get(ep.season) ?? [];
+      list.push(ep);
+      map.set(ep.season, list);
     }
     return [...map.entries()]
       .sort(([a], [b]) => b - a)
       .map(([season, eps]) => ({
         season,
         episodes: eps.sort((a, b) => b.episode - a.episode),
-      }))
-  }, [episodes.data])
+      }));
+  }, [episodes.data]);
 
   if (show.isLoading || !show.data)
     return (
       <div className="flex justify-center py-20">
         <span className="loading loading-spinner loading-lg" />
       </div>
-    )
+    );
 
-  const s = show.data
-  const reportedSeasons = s.seasonCount?.length ?? null
-  const renderedSeasons = seasons.length
+  const s = show.data;
+  const reportedSeasons = s.seasonCount?.length ?? null;
+  const renderedSeasons = seasons.length;
   const hasSeasonMismatch =
-    reportedSeasons !== null && reportedSeasons !== renderedSeasons
+    reportedSeasons !== null && reportedSeasons !== renderedSeasons;
 
   return (
     <div className="space-y-6">
@@ -113,34 +117,48 @@ export default function ShowDetail() {
       {s.config.paused && (
         <div className="alert alert-soft alert-warning text-sm">
           <Pause size={16} />
-          <div>This show is paused. PyMedusa won't search for new episodes until you resume it.</div>
+          <div>
+            This show is paused. PyMedusa won't search for new episodes until
+            you resume it.
+          </div>
         </div>
       )}
 
       <header className="flex flex-col sm:flex-row gap-6">
-        <div className="w-40 aspect-[2/3] bg-base-300 rounded shrink-0 overflow-hidden">
+        <div className="w-40 aspect-2/3 bg-base-300 rounded shrink-0 overflow-hidden">
           <img
-            src={getAssetUrl(s.id.slug, 'poster')}
+            src={getAssetUrl(s.id.slug, "poster")}
             alt={s.title}
             className="object-cover w-full h-full"
             onError={(e) => {
-              e.currentTarget.style.display = 'none'
+              e.currentTarget.style.display = "none";
             }}
           />
         </div>
         <div className="space-y-2 min-w-0">
           <h1 className="text-2xl font-bold">{s.title}</h1>
-          <div className="flex flex-wrap gap-2">
-            <span className="badge">{s.status}</span>
-            {s.network && <span className="badge badge-ghost">{s.network}</span>}
-            <span className="badge badge-ghost">{s.year.start}</span>
-            {s.showType === 'anime' && (
-              <span className="badge badge-accent">anime</span>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {s.network && (
+              <img
+                alt={s.network}
+                title={s.network}
+                className="shrink-0 h-6"
+                src={getAssetUrl(s.id.slug, "network")}
+              />
+            )}
+            <span
+              className={`badge badge-sm ${seriesStatusBadgeClass(s.status)}`}
+            >
+              {s.status}
+            </span>
+            <span className="badge badge-sm badge-soft">{s.year.start}</span>
+            {s.showType === "anime" && (
+              <span className="badge badge-sm badge-accent">anime</span>
             )}
           </div>
           {s.genres.length > 0 && (
             <div className="text-xs text-base-content/60">
-              {s.genres.join(' · ')}
+              {s.genres.join(" · ")}
             </div>
           )}
           {s.plot && (
@@ -148,7 +166,7 @@ export default function ShowDetail() {
           )}
           <div className="text-xs text-base-content/50 pt-1 flex flex-wrap gap-x-4 gap-y-1">
             <span>
-              {renderedSeasons} season{renderedSeasons === 1 ? '' : 's'} ·{' '}
+              {renderedSeasons} season{renderedSeasons === 1 ? "" : "s"} ·{" "}
               {episodes.data?.length ?? 0} episodes
             </span>
             {s.lastUpdate && <span>Metadata synced: {s.lastUpdate}</span>}
@@ -190,5 +208,5 @@ export default function ShowDetail() {
         </div>
       )}
     </div>
-  )
+  );
 }

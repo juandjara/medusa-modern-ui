@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import api, { getAssetUrl } from "../lib/api";
-import type { Series } from "../types/medusa";
+import { seriesStatusBadgeClass, type Series } from "../types/medusa";
 
 function useSeries() {
   return useQuery({
@@ -58,7 +58,7 @@ export default function ShowList() {
             to={`/show/${show.id.slug}`}
             className="card card-sm bg-base-100 shadow-sm hover:shadow-md transition-shadow"
           >
-            <figure className="aspect-[2/3] bg-base-300">
+            <figure className="aspect-2/3 bg-base-300">
               <img
                 src={getAssetUrl(show.id.slug, "posterThumb")}
                 alt={show.title}
@@ -71,13 +71,20 @@ export default function ShowList() {
             </figure>
             <div className="card-body p-3">
               <h3 className="card-title text-sm line-clamp-1">{show.title}</h3>
-              <div className="flex flex-wrap gap-1">
-                <span className="badge badge-xs">{show.status}</span>
+              <div className="flex items-center flex-wrap gap-1">
                 {show.network && (
-                  <span className="badge badge-xs badge-ghost">
-                    {show.network}
-                  </span>
+                  <img
+                    alt={show.network}
+                    title={show.network}
+                    className="shrink-0 w-10"
+                    src={getAssetUrl(show.id.slug, "network")}
+                  />
                 )}
+                <span
+                  className={`badge badge-xs ${seriesStatusBadgeClass(show.status)}`}
+                >
+                  {show.status}
+                </span>
               </div>
             </div>
           </Link>
