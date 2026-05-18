@@ -56,7 +56,7 @@ export default function ShowList() {
           <Link
             key={show.id.slug}
             to={`/show/${show.id.slug}`}
-            className="card card-sm bg-base-100 shadow-sm hover:shadow-md transition-shadow"
+            className="card card-sm bg-base-100 border-2 border-transparent hover:border-accent transition-colors"
           >
             <figure className="aspect-2/3 bg-base-300">
               <img
