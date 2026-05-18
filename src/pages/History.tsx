@@ -9,11 +9,20 @@ import StatusBadge from "../components/StatusBadge";
 
 const PAGE_SIZE = 20;
 
-// Drives the dropdown filter. Server returns plenty of other status strings
-// (Archived, Ignored, Subtitled, Snatched (Proper)/(Best)…); these four are
-// what we'd typically filter on. Filtering is client-side over the loaded
-// page — fine until somebody wants to filter across the whole history.
-const FILTERABLE_STATUSES = ["Downloaded", "Snatched", "Failed", "Subtitled"];
+// Server-side filter values. PyMedusa's history.py filters on the integer
+// `action` column (see medusa/common.py); the string "Snatched" wouldn't
+// match against an int column, so we map labels to the underlying codes.
+// Labels match `statusName` strings emitted by the backend so the dropdown
+// reads the same as the Status column.
+const STATUS_CODES: Record<string, number> = {
+  Downloaded: 4,
+  Snatched: 2,
+  "Snatched (Proper)": 9,
+  "Snatched (Best)": 12,
+  Failed: 11,
+  Subtitled: 10,
+};
+const FILTERABLE_STATUSES = Object.keys(STATUS_CODES);
 
 interface HistoryPage {
   items: HistoryEntry[];
@@ -27,21 +36,26 @@ export default function History() {
   const [filter, setFilter] = useState("");
 
   const { data, isLoading, isFetching } = useQuery<HistoryPage>({
-    queryKey: ["history", page],
+    queryKey: ["history", page, filter],
     queryFn: async ({ signal }) => {
-      const res = await api.get<HistoryEntry[]>("/history", {
-        signal,
-        params: {
-          page,
-          limit: PAGE_SIZE,
-          // PyMedusa's history handler accepts a JSON-encoded sort spec — the
-          // field map in history.py:80 keys `actiondate`/`date` to SQL `date`.
-          // Most-recent first.
-          sort: JSON.stringify([{ field: "actionDate", type: "desc" }]),
-        },
-      });
+      const params: Record<string, string | number> = {
+        page,
+        limit: PAGE_SIZE,
+        // PyMedusa's history handler accepts a JSON-encoded sort spec — the
+        // field map in history.py:80 keys `actiondate`/`date` to SQL `date`.
+        // Most-recent first.
+        sort: JSON.stringify([{ field: "actionDate", type: "desc" }]),
+      };
+      const code = filter ? STATUS_CODES[filter] : undefined;
+      if (code !== undefined) {
+        // Server-side filter: { columnFilters: { action: <int> } }. The
+        // `action` column is the integer status code (common.py).
+        params.filter = JSON.stringify({ columnFilters: { action: code } });
+      }
+      const res = await api.get<HistoryEntry[]>("/history", { signal, params });
       // PyMedusa paginates via headers (X-Pagination-Count is the total row
-      // count across all pages). Fall back to the page length if missing.
+      // count across all pages). After server-side filtering this reflects
+      // the items total. Fall back to the page length if missing.
       const total = parseInt(
         (res.headers["x-pagination-count"] as string | undefined) ??
           String(res.data.length),
@@ -58,10 +72,6 @@ export default function History() {
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const filtered = filter
-    ? items.filter((h) => h.statusName === filter)
-    : items;
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
@@ -69,7 +79,12 @@ export default function History() {
         <select
           className="select select-bordered select-sm"
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e) => {
+            // Filtered totals may be smaller — drop back to page 1 so we
+            // don't land beyond the new totalPages.
+            setFilter(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="">All statuses</option>
           {FILTERABLE_STATUSES.map((s) => (
@@ -101,7 +116,7 @@ export default function History() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((h) => (
+              {items.map((h) => (
                 <HistoryRow key={h.id} entry={h} />
               ))}
             </tbody>
@@ -109,10 +124,10 @@ export default function History() {
         </div>
       )}
 
-      {!isLoading && filtered.length === 0 && (
+      {!isLoading && items.length === 0 && (
         <div className="text-center py-12 text-base-content/50">
           {filter
-            ? `No "${filter}" entries on this page.`
+            ? `No "${filter}" history entries.`
             : "No history entries."}
         </div>
       )}
