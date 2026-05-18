@@ -123,6 +123,36 @@ export const DEFAULT_EPISODE_STATUSES = [
   "Archived",
 ] as const
 
+// Per-show row from GET /api/v2/stats/show — see medusa/server/api/v2/stats.py.
+// indexerId is the numeric id from medusa/indexers/config.py; combining it
+// with seriesId yields the show's slug (e.g. tmdb125935).
+export interface ShowStat {
+  indexerId: number
+  seriesId: number
+  epSnatched: number
+  epDownloaded: number
+  epTotal: number
+  epAirsNext: string | null
+  epAirsPrev: string | null
+  seriesSize: number
+  airs: string | null
+  network: string | null
+}
+
+export interface ShowStatsResponse {
+  stats: ShowStat[]
+  maxDownloadCount: number
+}
+
+// Numeric → slug-prefix mapping for combining stats rows back to a show slug.
+// Mirrors medusa/indexers/config.py.
+export const INDEXER_ID_TO_SLUG: Record<number, string> = {
+  1: "tvdb",
+  3: "tvmaze",
+  4: "tmdb",
+  10: "imdb",
+}
+
 export const EPISODE_STATUS_CODE: Record<EpisodeStatus, number> = {
   Unaired: 1,
   Snatched: 2,
