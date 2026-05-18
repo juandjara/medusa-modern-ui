@@ -139,12 +139,20 @@ export default function ShowDetail() {
           <h1 className="text-2xl font-bold">{s.title}</h1>
           <div className="flex flex-wrap gap-2 mb-6">
             {s.network && (
-              <img
-                alt={s.network}
+              <span
                 title={s.network}
-                className="shrink-0 h-6"
-                src={getAssetUrl(s.id.slug, "network")}
-              />
+                className="shrink-0 inline-flex items-center bg-base-200 rounded px-1.5 py-0.5"
+              >
+                <img
+                  alt={s.network}
+                  className="h-5 w-auto max-w-20 object-contain"
+                  src={getAssetUrl(s.id.slug, "network")}
+                  onError={(e) => {
+                    const wrapper = e.currentTarget.parentElement
+                    if (wrapper) wrapper.style.display = 'none'
+                  }}
+                />
+              </span>
             )}
             <span
               className={`badge badge-sm ${seriesStatusBadgeClass(s.status)}`}
