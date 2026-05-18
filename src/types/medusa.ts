@@ -132,17 +132,27 @@ export interface SeriesDetailResponse {
   data: Series
 }
 
-// Search result shape is not in the dredd spec — fields below are guesses
-// based on the legacy UI and will need verification once /series/search is
-// confirmed live on this backend.
+// Show-search response: PyMedusa returns positional tuples, one per match,
+// from `/api/v2/internal/searchIndexersForShowName`. The handler in
+// medusa/server/api/v2/internal.py:resource_search_indexers_for_show_name
+// emits tuples as:
+//   [indexerName, indexerInternalId, showUrl, showId, seriesName,
+//    firstAired ("N/A" if unknown), network ("N/A" if missing),
+//    sanitizedName, alreadyInLibrary (false | [name, id])]
+// We map those to objects at the query-fn boundary so consumers see a
+// normal shape. No posters / overview / plot here — those only appear
+// after the show is added and the indexer fetch completes.
 export interface SearchResult {
-  indexer: string // 'tmdb' | 'tvdb' | 'imdb' | 'tvmaze' | 'tvrage'
-  indexerId: number
+  indexer: string // 'tvdb' | 'tmdb' | 'imdb' | 'tvmaze' | …
+  showId: number // id of the show in `indexer`'s namespace — used in POST /series
   title: string
-  year: number
+  firstAired: string | null // 'YYYY-MM-DD' or null when unknown
   network: string | null
-  overview: string | null
-  poster: string | null
+  showUrl: string
+  // When the show already exists in PyMedusa's library, the backend returns
+  // [indexerName, seriesId] at tuple position 8; we collapse it into the slug
+  // ("tvdb12345") so the UI can link straight to /show/{slug}.
+  alreadyAddedSlug: string | null
 }
 
 // PyMedusa quality bitmask values (medusa/common.py). Matches what existing
@@ -171,6 +181,44 @@ export const DEFAULT_QUALITY_ALLOWED = [
   QUALITY.FULLHDBLURAY,
   QUALITY.UHD_4K_WEBDL,
 ]
+
+// Curated quality presets for the Add Show form. Keys are stable identifiers
+// for state; labels are user-facing; `allowed` is the bitmask array sent in
+// the POST /series body. `any_hd_4k` is the default — it matches what every
+// existing show on the user's library has.
+export const QUALITY_PRESETS: Record<
+  string,
+  { label: string; allowed: number[] }
+> = {
+  any_hd_4k: {
+    label: 'Any HD + 4K (default)',
+    allowed: DEFAULT_QUALITY_ALLOWED,
+  },
+  any_hd: {
+    label: 'Any HD',
+    allowed: [
+      QUALITY.HDTV,
+      QUALITY.RAWHDTV,
+      QUALITY.FULLHDTV,
+      QUALITY.HDWEBDL,
+      QUALITY.FULLHDWEBDL,
+      QUALITY.HDBLURAY,
+      QUALITY.FULLHDBLURAY,
+    ],
+  },
+  fullhd_only: {
+    label: '1080p only',
+    allowed: [QUALITY.FULLHDWEBDL, QUALITY.FULLHDBLURAY],
+  },
+  uhd_only: {
+    label: '4K only',
+    allowed: [QUALITY.UHD_4K_WEBDL, QUALITY.UHD_4K_BLURAY],
+  },
+  sd: {
+    label: 'Standard Definition',
+    allowed: [QUALITY.SDTV, QUALITY.SDDVD],
+  },
+}
 
 export interface Release {
   provider: string

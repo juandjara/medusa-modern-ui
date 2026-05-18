@@ -1,32 +1,32 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Search } from 'lucide-react'
-import api, { getAssetUrl } from '../lib/api'
-import type { Series } from '../types/medusa'
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Search } from "lucide-react";
+import api, { getAssetUrl } from "../lib/api";
+import type { Series } from "../types/medusa";
 
 function useSeries() {
   return useQuery({
-    queryKey: ['series'],
+    queryKey: ["series"],
     queryFn: ({ signal }) =>
-      api.get<Series[]>('/series', { signal }).then((r) => r.data),
-  })
+      api.get<Series[]>("/series", { signal }).then((r) => r.data),
+  });
 }
 
 export default function ShowList() {
-  const { data: shows, isLoading } = useSeries()
-  const [search, setSearch] = useState('')
+  const { data: shows, isLoading } = useSeries();
+  const [search, setSearch] = useState("");
 
   const filtered = shows?.filter((s) =>
     s.title.toLowerCase().includes(search.toLowerCase()),
-  )
+  );
 
   if (isLoading)
     return (
       <div className="flex justify-center py-20">
         <span className="loading loading-spinner loading-lg" />
       </div>
-    )
+    );
 
   return (
     <div className="space-y-6">
@@ -36,7 +36,7 @@ export default function ShowList() {
           <div className="join-item flex-1 relative">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40"
+              className="absolute z-10 left-3 top-1/2 -translate-y-1/2 text-base-content/40"
             />
             <input
               className="input input-bordered input-sm w-full sm:w-64 pl-9"
@@ -60,12 +60,12 @@ export default function ShowList() {
           >
             <figure className="aspect-[2/3] bg-base-300">
               <img
-                src={getAssetUrl(show.id.slug, 'posterThumb')}
+                src={getAssetUrl(show.id.slug, "posterThumb")}
                 alt={show.title}
                 loading="lazy"
                 className="object-cover h-full w-full"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none'
+                  e.currentTarget.style.display = "none";
                 }}
               />
             </figure>
@@ -86,9 +86,9 @@ export default function ShowList() {
 
       {filtered?.length === 0 && (
         <div className="text-center py-16 text-base-content/50">
-          {search ? 'No shows match your filter.' : 'No shows added yet.'}
+          {search ? "No shows match your filter." : "No shows added yet."}
         </div>
       )}
     </div>
-  )
+  );
 }
