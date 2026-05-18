@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import {
   RefreshCw,
   RefreshCcw,
@@ -10,6 +11,8 @@ import {
   Trash2,
   Play,
   Pause,
+  History,
+  Settings as SettingsIcon,
 } from 'lucide-react'
 import type { Series } from '../types/medusa'
 import type { MassUpdateAction } from '../lib/series-actions'
@@ -116,6 +119,17 @@ export default function ShowActionsMenu({
             tabIndex={0}
             className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-lg border border-base-300 p-2 w-60 mt-1"
           >
+            <li>
+              <Link to={`/history?show=${series.id.slug}`}>
+                <History size={14} /> View history
+              </Link>
+            </li>
+            <li>
+              <Link to={`/show/${series.id.slug}/settings`}>
+                <SettingsIcon size={14} /> Edit settings
+              </Link>
+            </li>
+            <div className="divider my-1" />
             <li>
               <button
                 onClick={onTogglePause}
