@@ -1,10 +1,32 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, ExternalLink, CheckCircle2 } from "lucide-react";
+import {
+  Search,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+} from "lucide-react";
 import api from "../lib/api";
+import { useWebSocket } from "../lib/websocket";
 import type { SearchResult, SystemConfig } from "../types/medusa";
-import { QUALITY_PRESETS } from "../types/medusa";
+import { EPISODE_STATUS_CODE, QUALITY_PRESETS } from "../types/medusa";
+
+// Subset of the queue-item shape returned by POST /series. The handler in
+// medusa/server/api/v2/series.py:226 returns `queue_item_obj.to_json` directly
+// (no wrapper). We only need identifier here; everything else arrives via
+// subsequent QueueItemShow WS events.
+interface AddShowQueueItem {
+  identifier: string;
+  [k: string]: unknown;
+}
+
+// State machine for what happened after the user clicked Add Show.
+type AddCompletion =
+  | { state: "queued" }
+  | { state: "added"; slug: string }
+  | { state: "failed" };
 
 const SYSTEM_KEY = ["config", "system"] as const;
 const DEFAULT_QUALITY_PRESET = "any_hd_4k";
@@ -46,7 +68,7 @@ const LANGUAGE_OPTIONS = [
 // is a positional tuple; we normalize into SearchResult at the queryFn
 // boundary so the UI code reads as ordinary objects.
 type SearchResultTuple = [
-  string, // 0  indexer name (e.g. 'tvdb')
+  string, // 0  indexer DISPLAY NAME (e.g. 'TVDBv2', 'TMDB')
   number, // 1  indexer internal id (unused by us)
   string, // 2  show URL on the indexer's website
   number, // 3  show id in indexer's namespace
@@ -57,12 +79,26 @@ type SearchResultTuple = [
   false | [string, number], // 8  already-in-library marker
 ];
 
+// Backend bug-trap: tuple position 0 is `indexer_api.name` (the human-readable
+// display name like 'TVDBv2', 'TVmaze', 'TMDB', 'IMDb'). But the slug parser
+// in medusa/indexers/utils.py:slug_to_indexer_id matches against the indexer's
+// `identifier` field (lowercase: 'tvdb', 'tvmaze', 'tmdb', 'imdb'). Sending the
+// display name in the POST /series body builds a slug like 'TVDBv212345' that
+// the parser rejects with 'Invalid series identifier'. Map name → identifier
+// here so the rest of the code can treat `result.indexer` as the slug prefix.
+const INDEXER_NAME_TO_SLUG: Record<string, string> = {
+  TVDBv2: "tvdb",
+  TVmaze: "tvmaze",
+  TMDB: "tmdb",
+  IMDb: "imdb",
+};
+
 function rowToResult(row: SearchResultTuple): SearchResult {
   const aired = row[5];
   const network = row[6];
   const inLib = row[8];
   return {
-    indexer: row[0],
+    indexer: INDEXER_NAME_TO_SLUG[row[0]] ?? row[0].toLowerCase(),
     showId: row[3],
     // The backend's indexer_api.config['show_url'].format(show_id) is a no-op
     // — the configured URLs (medusa/indexers/config.py) end with a trailing
@@ -100,6 +136,12 @@ export default function AddShow() {
     rootDir: null,
     anime: false,
   });
+  const [completion, setCompletion] = useState<AddCompletion>({
+    state: "queued",
+  });
+  // Latest step text from QueueItemShow.data.step — surfaced under the
+  // spinner so the user sees actual progress instead of an opaque wait.
+  const [currentStep, setCurrentStep] = useState<string | null>(null);
 
   // Pulls the same /config/system payload the Queue + System pages use, so
   // navigating here after either is a cache hit. `diskSpace.rootDir` lists
@@ -141,32 +183,216 @@ export default function AddShow() {
     mutationFn: () => {
       if (!selected) throw new Error("No show selected");
       const preset = QUALITY_PRESETS[options.qualityPreset];
-      return api.post("/series", {
-        id: { [selected.indexer]: selected.showId },
-        options: {
-          status: options.status,
-          quality: { allowed: preset.allowed, preferred: [] },
-          anime: options.anime,
-          // Sensible defaults for fields we don't expose; users can edit
-          // these later from per-show settings.
-          seasonFolders: true,
-          scene: false,
-          subtitles: false,
-          rootDir: effectiveRootDir || undefined,
-        },
-      });
+      return api
+        .post<AddShowQueueItem>("/series", {
+          id: { [selected.indexer]: selected.showId },
+          options: {
+            // Backend's Series.configure does `statusStrings[options['default_status']]`
+            // where statusStrings is keyed by INTEGER codes (medusa/common.py),
+            // so 'Skipped'/'Wanted' must be sent as their numeric values.
+            status: EPISODE_STATUS_CODE[options.status],
+            quality: { allowed: preset.allowed, preferred: [] },
+            anime: options.anime,
+            // Sensible defaults for fields we don't expose; users can edit
+            // these later from per-show settings.
+            seasonFolders: true,
+            scene: false,
+            subtitles: false,
+            rootDir: effectiveRootDir || undefined,
+          },
+        })
+        .then((r) => r.data);
+    },
+    onMutate: () => {
+      // Reset completion state at the start of every attempt so the success
+      // card always opens in 'queued' state before WS events flip it.
+      setCompletion({ state: "queued" });
+      setCurrentStep(null);
     },
     onSuccess: () => {
+      // Confirmation card stays mounted while we wait for completion; the
+      // library auto-refreshes via Layout's global `showAdded` WS handler.
       queryClient.invalidateQueries({ queryKey: ["series"] });
-      navigate("/");
     },
   });
 
+  // PyMedusa quirks for ADD specifically (observed empirically):
+  //   - `QueueItemShow.data.show` is always `{}` — the slug is never in there.
+  //   - `inProgress` stays `true` even on the terminal event for ADD; only
+  //     `success` transitions from `null` → `true`/`false`. So we detect
+  //     completion via `success !== null` rather than `!inProgress`.
+  //   - `step` is an array of progress lines that grows over time; the last
+  //     entry is the current step.
+  //   - The canonical "show is now in the library" signal is `showAdded`,
+  //     which carries the full Series payload with `id.slug`.
+  // We use QueueItemShow only for progress + failure, and showAdded for
+  // success (with the slug for "View show").
+  const queueItemId = addShow.data?.identifier;
+  // Predicted slug for the in-flight add. PyMedusa composes slugs as
+  // `${indexer}${showId}` (see medusa/indexers/utils.py), and our SearchResult
+  // already normalizes `indexer` to the lowercase identifier form.
+  const expectedSlug = selected
+    ? `${selected.indexer}${selected.showId}`
+    : null;
+  useWebSocket({
+    QueueItemShow: (raw) => {
+      if (!queueItemId) return;
+      const item = raw as {
+        identifier?: string;
+        success?: boolean | null;
+        step?: string[];
+      };
+      if (item.identifier !== queueItemId) return;
+      if (item.step && item.step.length > 0) {
+        setCurrentStep(item.step[item.step.length - 1]);
+      }
+      if (item.success === false) {
+        setCompletion({ state: "failed" });
+      }
+      // Success path is handled by showAdded below — it's the only event
+      // that carries the slug we need for "View show".
+    },
+    showAdded: (raw) => {
+      if (!expectedSlug) return;
+      const show = raw as { id?: { slug?: string } };
+      if (show.id?.slug !== expectedSlug) return;
+      setCompletion({ state: "added", slug: show.id.slug });
+    },
+  });
+
+  // Post-add confirmation. Three sub-states driven by QueueItemShow events
+  // arriving for our queue item identifier: 'queued' (in-flight indexer fetch),
+  // 'added' (success, show is now in the library), 'failed' (indexer fetch
+  // or save errored).
+  if (addShow.isSuccess && selected) {
+    const resetToSearch = () => {
+      addShow.reset();
+      setCompletion({ state: "queued" });
+      setSelected(null);
+      setQuery("");
+    };
+    const retry = () => {
+      // Stay on the configure step but clear the prior failed attempt.
+      addShow.reset();
+      setCompletion({ state: "queued" });
+    };
+
+    return (
+      <div className="max-w-lg mx-auto pt-8 space-y-6">
+        <h1 className="text-2xl font-bold">Add Show</h1>
+
+        {completion.state === "queued" && (
+          <div className="card bg-info/10 border border-info/30 p-6 text-center space-y-3">
+            <span className="mt-8 loading loading-spinner loading-lg text-info mx-auto" />
+            <div className="space-y-1">
+              <div className="text-lg font-semibold">
+                Adding {selected.title}…
+              </div>
+              {currentStep ? (
+                <p className="text-sm text-base-content/70 font-mono">
+                  {currentStep}
+                </p>
+              ) : (
+                <p className="text-sm text-base-content/70">
+                  Fetching metadata from {selected.indexer.toUpperCase()}.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {completion.state === "added" && (
+          <div className="card bg-success/10 border border-success/30 p-6 text-center space-y-3">
+            <CheckCircle2 size={48} className="mx-auto text-success" />
+            <div className="space-y-1">
+              <div className="text-lg font-semibold">
+                Added {selected.title}
+              </div>
+              <p className="text-sm text-base-content/70">
+                The show is now in your library.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {completion.state === "failed" && (
+          <div className="card bg-error/10 border border-error/30 p-6 text-center space-y-3">
+            <AlertCircle size={48} className="mx-auto text-error" />
+            <div className="space-y-1">
+              <div className="text-lg font-semibold">
+                Couldn't add {selected.title}
+              </div>
+              <p className="text-sm text-base-content/70">
+                The indexer fetch or save step failed. Check PyMedusa's logs for
+                details, then try again.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          {completion.state === "failed" ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost flex-1"
+                onClick={resetToSearch}
+              >
+                Back to search
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex-1"
+                onClick={retry}
+              >
+                Try again
+              </button>
+            </>
+          ) : completion.state === "added" ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost flex-1"
+                onClick={resetToSearch}
+              >
+                Add another show
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex-1 gap-1"
+                onClick={() => navigate(`/show/${completion.slug}`)}
+              >
+                View show <ArrowRight size={14} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost flex-1"
+                onClick={resetToSearch}
+              >
+                Add another show
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex-1"
+                onClick={() => navigate("/")}
+              >
+                Back to library
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!selected) {
     return (
-      <div className="max-w-xl mx-auto space-y-6 pt-8">
-        <h1 className="text-2xl font-bold">Add Show</h1>
-        <label className="input">
+      <div className="max-w-xl mx-auto pt-8">
+        <h1 className="text-2xl font-bold mb-8">Add Show</h1>
+        <label className="input w-full">
           <Search size={18} />
           <input
             type="search"
@@ -177,7 +403,7 @@ export default function AddShow() {
           />
         </label>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 mt-2">
           <fieldset className="fieldset flex-1">
             <legend className="fieldset-legend">Indexer</legend>
             <select
@@ -209,7 +435,7 @@ export default function AddShow() {
         </div>
 
         {search.isLoading && (
-          <span className="loading loading-spinner block mx-auto" />
+          <span className="mt-8 loading loading-spinner block mx-auto" />
         )}
 
         {search.isError && (
@@ -218,7 +444,7 @@ export default function AddShow() {
           </div>
         )}
 
-        <div className="grid gap-2">
+        <div className="grid gap-2 mt-8">
           {search.data?.map((s) => (
             <SearchResultCard
               key={`${s.indexer}-${s.showId}`}
@@ -248,7 +474,7 @@ export default function AddShow() {
   return (
     <div className="max-w-lg mx-auto space-y-6 pt-8">
       <h1 className="text-2xl font-bold">Configure Show</h1>
-      <div className="bg-base-100 border border-base-300 rounded-box p-4 space-y-1">
+      <div className="bg-base-100 border-2 border-base-300 rounded-box p-4 space-y-1">
         <div className="font-semibold flex items-center gap-2">
           {selected.title}
           {selectedYear && (
@@ -266,7 +492,7 @@ export default function AddShow() {
             rel="noreferrer"
             className="text-xs hover:underline inline-flex items-center gap-1"
           >
-            View on {selected.indexer} <ExternalLink size={12} />
+            View on {selected.indexer.toUpperCase()} <ExternalLink size={12} />
           </a>
         </div>
       </div>
@@ -340,7 +566,7 @@ export default function AddShow() {
         <label className="label cursor-pointer justify-start gap-3 p-0">
           <input
             type="checkbox"
-            className="toggle toggle-sm"
+            className="toggle toggle-sm toggle-accent"
             checked={options.anime}
             onChange={(e) =>
               setOptions((s) => ({ ...s, anime: e.target.checked }))
@@ -400,10 +626,10 @@ function SearchResultCard({
   // Card root is a div so we can place an external <a> next to the primary
   // <button> without invalid anchor-in-button nesting.
   return (
-    <div className="bg-base-100 rounded-box flex items-center gap-2 pr-2 border border-base-300 hover:border-accent transition-colors">
+    <div className="bg-base-100 rounded-box flex items-center gap-2 pr-2 border-2 border-base-300 hover:border-accent transition-colors">
       <button
         type="button"
-        className="flex items-center gap-3 text-left flex-1 min-w-0 p-3"
+        className="flex items-center gap-3 text-left flex-1 min-w-0 p-3 cursor-pointer"
         onClick={onPrimary}
       >
         <div className="min-w-0 flex-1">
@@ -416,7 +642,9 @@ function SearchResultCard({
             )}
           </div>
           <div className="text-xs text-base-content/50 flex items-center gap-2 mt-0.5">
-            <span className="badge badge-ghost badge-xs">{result.indexer}</span>
+            <span className="badge badge-ghost badge-xs">
+              {result.indexer.toUpperCase()}
+            </span>
             {result.network && <span>{result.network}</span>}
           </div>
         </div>
@@ -435,8 +663,8 @@ function SearchResultCard({
         target="_blank"
         rel="noreferrer"
         className="btn btn-ghost btn-xs btn-square shrink-0"
-        title={`View on ${result.indexer}`}
-        aria-label={`View on ${result.indexer}`}
+        title={`View on ${result.indexer.toUpperCase()}`}
+        aria-label={`View on ${result.indexer.toUpperCase()}`}
         onClick={(e) => e.stopPropagation()}
       >
         <ExternalLink size={12} />

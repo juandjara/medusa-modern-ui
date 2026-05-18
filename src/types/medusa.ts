@@ -105,10 +105,13 @@ export type EpisodeStatus =
   | "Archived"
   | "Ignored"
   | "Snatched (Proper)"
+  | "Subtitled"
   | "Failed"
   | "Snatched (Best)";
 
-// Integer codes for PATCH /series/{slug}/episodes — status is sent as a number.
+// Integer codes for PATCH /series/{slug}/episodes — status is sent as a
+// number. Values mirror medusa/common.py; note Subtitled=10 sits between
+// Snatched (Proper)=9 and Failed=11.
 export const EPISODE_STATUS_CODE: Record<EpisodeStatus, number> = {
   Unaired: 1,
   Snatched: 2,
@@ -118,7 +121,8 @@ export const EPISODE_STATUS_CODE: Record<EpisodeStatus, number> = {
   Archived: 6,
   Ignored: 7,
   "Snatched (Proper)": 9,
-  Failed: 10,
+  Subtitled: 10,
+  Failed: 11,
   "Snatched (Best)": 12,
 };
 
