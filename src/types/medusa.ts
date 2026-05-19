@@ -281,14 +281,34 @@ export interface Release {
   releaseGroup: string | null;
 }
 
+// Shape per medusa/server/api/v2/schedule.py. Response is grouped under the
+// section keys ('missed' | 'today' | 'soon' | 'later'); each entry has the
+// fields below.
 export interface ScheduleEntry {
-  season: number;
-  episode: number;
-  airDate: string | null;
-  name: string;
-  seriesTitle: string;
-  seriesId: number;
+  airdate: string // 'YYYY-MM-DD'
+  airs: string // schedule string like 'Tuesday 0:00AM'
+  localAirTime: string // ISO datetime in viewer's local zone (server-computed)
+  epName: string
+  epPlot: string
+  season: number
+  episode: number
+  episodeSlug: string // 's03e08'
+  indexerId: number
+  indexer: string
+  network: string | null
+  paused: boolean
+  quality: number
+  showSlug: string
+  showName: string
+  showStatus: string
+  tvdbid: number | null
+  weekday: number
+  runtime: number
 }
+
+export type ScheduleSection = "missed" | "today" | "soon" | "later"
+
+export type ScheduleResponse = Record<ScheduleSection, ScheduleEntry[]>
 
 // Shape per medusa/server/api/v2/history.py rows. `status` is the integer
 // from medusa/common.py; `statusName` is the server-formatted label, so we
