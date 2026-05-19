@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import api from "../lib/api";
 import { useWebSocket } from "../lib/websocket";
-import { formatRelative } from "../lib/time";
+import { formatRelative, parseMedusaIso } from "../lib/time";
 import {
   categorizeLiveItem,
   searchTypeLabel,
@@ -58,14 +58,14 @@ export default function Queue() {
   const showQueue = useMemo(
     () =>
       [...(data?.showQueue ?? [])].sort(
-        (a, b) => Date.parse(b.added) - Date.parse(a.added),
+        (a, b) => parseMedusaIso(b.added) - parseMedusaIso(a.added),
       ),
     [data?.showQueue],
   );
   const postProcessQueue = useMemo(
     () =>
       [...(data?.postProcessQueue ?? [])].sort(
-        (a, b) => Date.parse(b.queueTime) - Date.parse(a.queueTime),
+        (a, b) => parseMedusaIso(b.queueTime) - parseMedusaIso(a.queueTime),
       ),
     [data?.postProcessQueue],
   );
@@ -81,7 +81,9 @@ export default function Queue() {
             categorizeLiveItem(i.name) === "search" ||
             categorizeLiveItem(i.name) === "snatch",
         )
-        .sort((a, b) => Date.parse(b.queueTime) - Date.parse(a.queueTime)),
+        .sort(
+          (a, b) => parseMedusaIso(b.queueTime) - parseMedusaIso(a.queueTime),
+        ),
     [liveItems],
   );
   const downloadHandler = useMemo(
