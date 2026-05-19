@@ -4,11 +4,28 @@
 const RTF = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 
 /**
+ * Parse a PyMedusa-emitted datetime string. The server uses
+ * `str(datetime.utcnow())` in many places, which produces a *naive* UTC
+ * string ("2024-01-01 12:34:56.789"). JS's built-in Date.parse interprets
+ * a naive ISO string as **local** time per ES2017 — so without
+ * intervention, a queue item created "just now" appears N hours off by
+ * the viewer's UTC offset.
+ *
+ * Normalisation: swap the space for T, then append `Z` if no timezone
+ * designator (Z or ±HH:MM) is present.
+ */
+export function parseMedusaIso(s: string): number {
+  let v = s.replace(" ", "T");
+  if (!/(Z|[+-]\d{2}:?\d{2})$/.test(v)) v += "Z";
+  return Date.parse(v);
+}
+
+/**
  * Format an ISO timestamp as a relative phrase ("5 minutes ago", "in 2 days").
  * Returns the input verbatim if it can't be parsed.
  */
 export function formatRelative(iso: string): string {
-  const t = Date.parse(iso);
+  const t = parseMedusaIso(iso);
   if (Number.isNaN(t)) return iso;
   const diff = (t - Date.now()) / 1000;
   const abs = Math.abs(diff);
