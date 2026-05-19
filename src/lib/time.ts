@@ -37,6 +37,22 @@ export function parseActionDate(n: number): Date | null {
 }
 
 /**
+ * Format a byte count as a compact human-readable string ("12.4 GB",
+ * "850 MB"). Uses binary units (1024). Returns "0 B" for nullish input.
+ */
+export function formatBytes(bytes: number | null | undefined): string {
+  if (!bytes || bytes < 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  let value = bytes;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i += 1;
+  }
+  return `${value < 10 && i > 0 ? value.toFixed(1) : Math.round(value)} ${units[i]}`;
+}
+
+/**
  * Format a duration in seconds as a compact human string: "30s", "15m",
  * "2h 30m", "1d 4h".
  */

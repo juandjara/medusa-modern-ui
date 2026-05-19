@@ -10,12 +10,15 @@ import {
   Clock,
 } from "lucide-react";
 import api, { getAssetUrl } from "../lib/api";
+import { formatBytes } from "../lib/time";
 import {
+  INDEXER_ID_TO_SLUG,
   qualityName,
   qualitySummary,
   seriesStatusBadgeClass,
   type Episode,
   type Series,
+  type ShowStatsResponse,
 } from "../types/medusa";
 import SeasonAccordion from "../components/SeasonAccordion";
 import ShowActionsMenu from "../components/ShowActionsMenu";
@@ -58,6 +61,24 @@ export default function ShowDetail() {
     enabled: !!slug,
   });
 
+  // Shares the ['stats', 'show'] cache with ShowList — usually warm.
+  // Falls back to a fetch when navigating directly to ShowDetail.
+  const showStats = useQuery({
+    queryKey: ["stats", "show"],
+    queryFn: ({ signal }) =>
+      api.get<ShowStatsResponse>("/stats/show", { signal }).then((r) => r.data),
+    staleTime: 60_000,
+  });
+
+  const stat = useMemo(() => {
+    const rows = showStats.data?.stats;
+    if (!rows) return undefined;
+    return rows.find((r) => {
+      const prefix = INDEXER_ID_TO_SLUG[r.indexerId];
+      return prefix && `${prefix}${r.seriesId}` === slug;
+    });
+  }, [showStats.data, slug]);
+
   const actions = useSeriesMassUpdate(slug);
   const pause = usePauseSeries(slug);
 
@@ -86,8 +107,13 @@ export default function ShowDetail() {
   const s = show.data;
   const reportedSeasons = s.seasonCount?.length ?? null;
   const renderedSeasons = seasons.length;
+  // Only evaluate the mismatch once episodes have actually loaded. Otherwise
+  // `seasons` starts at 0 and the warning flashes briefly on every visit
+  // before the episode fetch resolves.
   const hasSeasonMismatch =
-    reportedSeasons !== null && reportedSeasons !== renderedSeasons;
+    episodes.isSuccess &&
+    reportedSeasons !== null &&
+    reportedSeasons !== renderedSeasons;
 
   return (
     <div className="space-y-6">
@@ -210,36 +236,79 @@ export default function ShowDetail() {
             {s.plot && (
               <p className="text-sm text-base-content/70 max-w-2xl">{s.plot}</p>
             )}
-            <div className="text-xs text-base-content/50 pt-1 flex flex-wrap gap-x-3 gap-y-1">
-              <span>
-                {renderedSeasons} season{renderedSeasons === 1 ? "" : "s"} ·{" "}
-                {episodes.data?.length ?? 0} episodes
-              </span>
-              {s.lastUpdate && (
-                <span className="inline-flex items-center gap-1">
-                  <Clock size={12} /> Metadata synced: {s.lastUpdate}
+            {/* Meta is broken into three logical groups so the eye can scan
+                each in one go: library shape, schedule, system. Each row only
+                renders if it has at least one item, so ended/orphaned shows
+                don't get empty rows. */}
+            <div className="text-xs text-base-content/50 pt-1 space-y-1">
+              <div className="flex flex-wrap gap-x-1 gap-y-1">
+                <span>
+                  {renderedSeasons} season{renderedSeasons === 1 ? "" : "s"} ·{" "}
+                  {episodes.data?.length ?? 0} episodes
                 </span>
-              )}
-              {s.config.location && (
-                <span
-                  className={`inline-flex items-center gap-1 font-mono break-all ${
-                    s.config.locationValid === false
-                      ? "text-warning"
-                      : "text-base-content/50"
-                  }`}
-                  title={
-                    s.config.locationValid === false
-                      ? "Folder not found on disk — post-processing and renaming will fail until this is restored."
-                      : "Show folder on disk"
-                  }
-                >
-                  {s.config.locationValid === false ? (
-                    <AlertTriangle size={12} className="shrink-0" />
-                  ) : (
-                    <HardDrive size={12} className="shrink-0" />
+                {stat && stat.epTotal > 0 && (
+                  <span>
+                    {"· "}
+                    {stat.epDownloaded} / {stat.epTotal} downloaded
+                  </span>
+                )}
+                {stat && stat.epSnatched > 0 && (
+                  <span>
+                    {"· "}
+                    {stat.epSnatched} snatched (in progress)
+                  </span>
+                )}
+                {s.size !== undefined && s.size > 0 && (
+                  <span>{formatBytes(s.size)} on disk</span>
+                )}
+              </div>
+
+              {s.status === "Continuing" && (s.airs || s.nextAirDate) && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {s.airs && <span>Airs {s.airs}</span>}
+                  {s.nextAirDate && (
+                    <span>Next: {formatAirDate(s.nextAirDate)}</span>
                   )}
-                  {s.config.location}
-                </span>
+                </div>
+              )}
+
+              {s.status !== "Continuing" && s.prevAirDate && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  <span>
+                    Last aired: {formatAirDate(s.prevAirDate, true)}
+                  </span>
+                </div>
+              )}
+
+              {(s.lastUpdate || s.config.location) && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {s.lastUpdate && (
+                    <span className="inline-flex items-center gap-1">
+                      <Clock size={12} /> Metadata synced: {s.lastUpdate}
+                    </span>
+                  )}
+                  {s.config.location && (
+                    <span
+                      className={`inline-flex items-center gap-1 font-mono break-all ${
+                        s.config.locationValid === false
+                          ? "text-warning"
+                          : "text-base-content/50"
+                      }`}
+                      title={
+                        s.config.locationValid === false
+                          ? "Folder not found on disk — post-processing and renaming will fail until this is restored."
+                          : "Show folder on disk"
+                      }
+                    >
+                      {s.config.locationValid === false ? (
+                        <AlertTriangle size={12} className="shrink-0" />
+                      ) : (
+                        <HardDrive size={12} className="shrink-0" />
+                      )}
+                      {s.config.location}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -281,4 +350,18 @@ export default function ShowDetail() {
       )}
     </div>
   );
+}
+
+// Air dates arrive as ISO datetimes via PyMedusa's parse_date_time. Render
+// short and locale-friendly. Past dates from different years need the year
+// included to avoid ambiguity (a recent rewatch vs. a 2014 ending), so
+// `includeYear` toggles that on for prevAirDate-style usage.
+function formatAirDate(iso: string, includeYear = false): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    ...(includeYear ? { year: "numeric" } : {}),
+  });
 }

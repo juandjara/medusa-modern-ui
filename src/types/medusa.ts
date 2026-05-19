@@ -52,6 +52,8 @@ export interface Series {
   nextAirDate: string | null;
   lastUpdate: string | null;
   runtime: number;
+  // Total bytes on disk — only present when fetched with ?detailed=true.
+  size?: number;
   genres: string[];
   plot: string | null;
   cache: {
