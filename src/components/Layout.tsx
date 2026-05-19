@@ -11,9 +11,11 @@ import {
   LogOut,
   Menu,
   X,
+  ScrollText,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useWebSocket } from "../lib/websocket";
+import { useLogCounts } from "../lib/logs";
 import LiveStatus from "./LiveStatus";
 import type { LiveQueueItem } from "../types/medusa";
 
@@ -44,11 +46,19 @@ function shouldTrackInLiveQueue(item: LiveQueueItem): boolean {
 // gets a chance to see the final state before they vanish.
 const LIVE_QUEUE_EXPIRE_MS = 30_000;
 
-const navItems = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+  showLogBadge?: boolean;
+};
+
+const navItems: NavItem[] = [
   { to: "/", label: "Shows", icon: Tv },
   { to: "/schedule", label: "Schedule", icon: Calendar },
   { to: "/history", label: "History", icon: History },
   { to: "/queue", label: "Queue", icon: Download },
+  { to: "/logs", label: "Logs", icon: ScrollText, showLogBadge: true },
   { to: "/system", label: "System", icon: Gauge },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
@@ -57,6 +67,9 @@ export default function Layout() {
   const { logout } = useAuth();
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Hook-in once at the Layout level so we get a single polling subscriber
+  // for the sidebar badge. Shared cache with the Logs page.
+  const logCounts = useLogCounts();
 
   // Global WS subscriber. PyMedusa emits one QueueItemShow per state change
   // (queued → in-progress → finished); we only invalidate on completion so we
@@ -95,11 +108,17 @@ export default function Layout() {
         },
       );
 
-      // Schedule cleanup once the item has finished. Re-check on fire so a
-      // reactivated item (same identifier, new in-progress event) doesn't
-      // get removed by a stale timer.
-      const finished = item.inProgress === false && item.success !== null;
-      if (finished) {
+      // Only auto-clean *successful* finished items. Failures are kept in
+      // the cache until the user dismisses them on the Queue page — the
+      // queue is the natural place to notice that a long-running task
+      // failed, and a vanishing item there means the failure goes unseen
+      // (the user noticed `/api/v2/search/manual` failures only via the
+      // legacy /errorlogs view because the queue item disappeared). The
+      // dismiss control on Queue.tsx writes back to LIVE_QUEUE_KEY.
+      // Re-check the cache on fire so a reactivated item (same identifier,
+      // new in-progress event) doesn't get removed by a stale timer.
+      const finishedOk = item.inProgress === false && item.success === true;
+      if (finishedOk) {
         window.setTimeout(() => {
           queryClient.setQueryData<LiveQueueItem[]>(
             LIVE_QUEUE_KEY,
@@ -110,7 +129,7 @@ export default function Layout() {
               if (!current) return prev;
               if (
                 current.inProgress === false &&
-                current.success !== null
+                current.success === true
               ) {
                 return prev.filter((i) => i.identifier !== item.identifier);
               }
@@ -167,20 +186,13 @@ export default function Layout() {
           </div>
 
           <ul className="menu gap-1 w-full">
-            {navItems.map(({ to, label, icon: Icon }) => (
-              <li key={to}>
-                <NavLink
-                  to={to}
-                  end={to === "/"}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    isActive ? "menu-active font-semibold" : ""
-                  }
-                >
-                  <Icon size={18} />
-                  {label}
-                </NavLink>
-              </li>
+            {navItems.map((item) => (
+              <NavItemRow
+                key={item.to}
+                item={item}
+                logCounts={logCounts}
+                onNavigate={() => setMobileOpen(false)}
+              />
             ))}
           </ul>
 
@@ -197,5 +209,40 @@ export default function Layout() {
         </aside>
       </div>
     </div>
+  );
+}
+
+function NavItemRow({
+  item,
+  logCounts,
+  onNavigate,
+}: {
+  item: NavItem;
+  logCounts: { warnings: number; errors: number };
+  onNavigate: () => void;
+}) {
+  const { to, label, icon: Icon, showLogBadge } = item;
+  const { warnings, errors } = logCounts;
+  const showBadge = !!showLogBadge && warnings + errors > 0;
+  const badgeClass = errors > 0 ? "badge-error" : "badge-warning";
+  return (
+    <li>
+      <NavLink
+        to={to}
+        end={to === "/"}
+        onClick={onNavigate}
+        className={({ isActive }) =>
+          isActive ? "menu-active font-semibold" : ""
+        }
+      >
+        <Icon size={18} />
+        <span className="flex-1">{label}</span>
+        {showBadge && (
+          <span className={`badge badge-xs ${badgeClass}`}>
+            {errors > 0 ? errors : warnings}
+          </span>
+        )}
+      </NavLink>
+    </li>
   );
 }

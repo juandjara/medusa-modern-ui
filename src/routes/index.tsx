@@ -14,6 +14,7 @@ const ShowDetail = lazy(() => import("../pages/ShowDetail"));
 const ShowSettings = lazy(() => import("../pages/ShowSettings"));
 const Settings = lazy(() => import("../pages/Settings"));
 const System = lazy(() => import("../pages/System"));
+const Logs = lazy(() => import("../pages/Logs"));
 
 function Root() {
   return (
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
           { path: "schedule", element: <Schedule /> },
           { path: "history", element: <History /> },
           { path: "queue", element: <Queue /> },
+          { path: "logs", element: <Logs /> },
           { path: "system", element: <System /> },
           { path: "settings", element: <Settings /> },
           { path: "*", element: <Navigate to="/" replace /> },
