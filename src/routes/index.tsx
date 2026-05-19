@@ -15,6 +15,7 @@ const ShowSettings = lazy(() => import("../pages/ShowSettings"));
 const Settings = lazy(() => import("../pages/Settings"));
 const System = lazy(() => import("../pages/System"));
 const Logs = lazy(() => import("../pages/Logs"));
+const ProwlarrSettings = lazy(() => import("../pages/ProwlarrSettings"));
 
 function Root() {
   return (
@@ -47,6 +48,10 @@ export const router = createBrowserRouter([
           { path: "logs", element: <Logs /> },
           { path: "system", element: <System /> },
           { path: "settings", element: <Settings /> },
+          {
+            path: "settings/providers/prowlarr",
+            element: <ProwlarrSettings />,
+          },
           { path: "*", element: <Navigate to="/" replace /> },
         ],
       },
