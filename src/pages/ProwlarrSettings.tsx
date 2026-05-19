@@ -299,7 +299,7 @@ export default function ProwlarrSettings() {
           )}
 
           {indexers && indexers.length > 0 && (
-            <div className="overflow-x-auto rounded-box border border-base-300">
+            <div className="overflow-x-auto rounded-box border-2 border-base-300">
               <table className="table table-sm">
                 <thead>
                   <tr>
