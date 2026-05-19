@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import { RefreshCw, TriangleAlert, Info } from "lucide-react";
-import { useReporterLogs, parseReporterLine, type ParsedLog } from "../lib/logs";
+import {
+  useReporterLogs,
+  parseReporterLine,
+  type ParsedLog,
+} from "../lib/logs";
 import { parseMedusaIso } from "../lib/time";
 
 type Filter = "all" | "errors" | "warnings";
@@ -51,17 +55,14 @@ export default function Logs() {
           }}
           disabled={isFetching}
         >
-          <RefreshCw
-            size={14}
-            className={isFetching ? "animate-spin" : ""}
-          />
+          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
 
       <div className="text-sm text-base-content/60">
-        Issues reported during this PyMedusa session. Cleared on server
-        restart. Polls every 30 seconds.
+        Issues reported during this PyMedusa session. Cleared on server restart.
+        Polls every 30 seconds.
       </div>
 
       <div role="tablist" className="tabs tabs-box w-fit">
@@ -158,13 +159,11 @@ function LogRow({ row }: { row: Row }) {
         {row.commit && (
           <>
             <span className="text-base-content/50">·</span>
-            <span className="font-mono text-base-content/40">
-              {row.commit}
-            </span>
+            <span className="font-mono text-base-content/40">{row.commit}</span>
           </>
         )}
       </div>
-      <div className="text-sm break-words">{row.message}</div>
+      <div className="text-sm wrap-break-word">{row.message}</div>
       {row.traceback.length > 0 && (
         <details className="mt-2">
           <summary className="text-xs cursor-pointer text-base-content/60">
