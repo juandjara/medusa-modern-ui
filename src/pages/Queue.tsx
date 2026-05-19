@@ -7,6 +7,7 @@ import {
   FileCog2,
   Search as SearchIcon,
   HardDrive,
+  X as XIcon,
 } from "lucide-react";
 import api from "../lib/api";
 import { useWebSocket } from "../lib/websocket";
@@ -97,6 +98,15 @@ export default function Queue() {
   const totalItems =
     showQueue.length + postProcessQueue.length + searchQueue.length;
 
+  // Manually remove a live-queue item from the cache. We use this for failed
+  // search/snatch items, which now linger so the user can notice them; the
+  // dismiss × clears them once acknowledged.
+  const dismissLiveItem = (identifier: string) => {
+    queryClient.setQueryData<LiveQueueItem[]>(LIVE_QUEUE_KEY, (prev = []) =>
+      prev.filter((i) => i.identifier !== identifier),
+    );
+  };
+
   return (
     <div className="space-y-10">
       <div className="flex items-center justify-between">
@@ -169,7 +179,11 @@ export default function Queue() {
           </h2>
           <ul>
             {searchQueue.map((item) => (
-              <SearchQueueRow key={item.identifier} item={item} />
+              <SearchQueueRow
+                key={item.identifier}
+                item={item}
+                onDismiss={() => dismissLiveItem(item.identifier)}
+              />
             ))}
           </ul>
         </section>
@@ -194,19 +208,26 @@ export default function Queue() {
   );
 }
 
-function SearchQueueRow({ item }: { item: LiveQueueItem }) {
+function SearchQueueRow({
+  item,
+  onDismiss,
+}: {
+  item: LiveQueueItem;
+  onDismiss: () => void;
+}) {
+  const failed = item.success === false;
   const stateLabel = item.inProgress
     ? "In progress"
     : item.success === true
       ? "Done"
-      : item.success === false
+      : failed
         ? "Failed"
         : "Queued";
   const stateClass = item.inProgress
     ? "badge-warning"
     : item.success === true
       ? "badge-success"
-      : item.success === false
+      : failed
         ? "badge-error"
         : "badge-ghost";
 
@@ -233,7 +254,9 @@ function SearchQueueRow({ item }: { item: LiveQueueItem }) {
         className={`flex items-center gap-3 p-3 rounded-box mb-3 ${
           item.inProgress
             ? "bg-primary/10"
-            : "bg-base-100 border border-base-300"
+            : failed
+              ? "bg-error/10 border border-error/40"
+              : "bg-base-100 border border-base-300"
         }`}
       >
         <div className="min-w-0 flex-1">
@@ -263,8 +286,27 @@ function SearchQueueRow({ item }: { item: LiveQueueItem }) {
             Queued {formatRelative(item.queueTime)}
             {item.startTime && <> · started {formatRelative(item.startTime)}</>}
           </div>
+          {failed && (
+            <div className="text-xs text-error/80 mt-1">
+              Search failed —{" "}
+              <Link to="/logs" className="underline">
+                check logs
+              </Link>{" "}
+              for details.
+            </div>
+          )}
         </div>
         <span className={`badge badge-sm ${stateClass}`}>{stateLabel}</span>
+        {failed && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="btn btn-ghost btn-xs btn-square"
+            title="Dismiss"
+          >
+            <XIcon size={14} />
+          </button>
+        )}
       </div>
     </li>
   );
