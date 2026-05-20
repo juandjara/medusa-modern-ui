@@ -13,6 +13,7 @@ import api from "../lib/api";
 import Field from "../components/forms/Field";
 import Toggle from "../components/forms/Toggle";
 import SaveBar from "../components/forms/SaveBar";
+import FolderPicker from "../components/forms/FolderPicker";
 
 interface NamingConfig {
   pattern: string;
@@ -265,11 +266,9 @@ function GeneralSection({ get, set }: { get: Getter; set: Setter }) {
           </span>
         }
       >
-        <input
-          className="input input-sm w-full"
+        <FolderPicker
           value={get<string>("showDownloadDir") ?? ""}
-          onChange={(e) => set("showDownloadDir", e.target.value)}
-          spellCheck={false}
+          onChange={(v) => set("showDownloadDir", v)}
         />
       </Field>
 
@@ -277,11 +276,9 @@ function GeneralSection({ get, set }: { get: Getter; set: Setter }) {
         label="Default client path"
         hint="Maps the path the download client reports back to a path Medusa can read. Use when the client runs in a container or on a different host."
       >
-        <input
-          className="input input-sm w-full"
+        <FolderPicker
           value={get<string>("defaultClientPath") ?? ""}
-          onChange={(e) => set("defaultClientPath", e.target.value)}
-          spellCheck={false}
+          onChange={(v) => set("defaultClientPath", v)}
         />
       </Field>
 

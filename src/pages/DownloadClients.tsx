@@ -9,6 +9,7 @@ import Toggle from "../components/forms/Toggle";
 import SecretInput from "../components/forms/SecretInput";
 import TestRow from "../components/forms/TestRow";
 import SaveBar from "../components/forms/SaveBar";
+import FolderPicker from "../components/forms/FolderPicker";
 
 interface NzbgetConfig {
   host: string;
@@ -350,11 +351,9 @@ function NzbSection({ get, set }: { get: Getter; set: Setter }) {
                 label="Folder location"
                 hint=".nzb files are written here for an external tool to find and use."
               >
-                <input
-                  className="input input-sm w-full"
+                <FolderPicker
                   value={get<string>("nzb.dir") ?? ""}
-                  onChange={(e) => set("nzb.dir", e.target.value)}
-                  spellCheck={false}
+                  onChange={(v) => set("nzb.dir", v)}
                 />
               </Field>
             )}
@@ -667,11 +666,9 @@ function TorrentSection({ get, set }: { get: Getter; set: Setter }) {
                   label="Folder location"
                   hint=".torrent files are written here for an external tool to find and use."
                 >
-                  <input
-                    className="input input-sm w-full"
+                  <FolderPicker
                     value={get<string>("torrents.dir") ?? ""}
-                    onChange={(e) => set("torrents.dir", e.target.value)}
-                    spellCheck={false}
+                    onChange={(v) => set("torrents.dir", v)}
                   />
                 </Field>
                 <Toggle
@@ -772,24 +769,20 @@ function TorrentSection({ get, set }: { get: Getter; set: Setter }) {
                     )}
                     {caps.path && (
                       <Field label="Download path" hint={pathHint(method)}>
-                        <input
-                          className="input input-sm w-full"
+                        <FolderPicker
                           value={get<string>("torrents.path") ?? ""}
-                          onChange={(e) => set("torrents.path", e.target.value)}
+                          onChange={(v) => set("torrents.path", v)}
                         />
                       </Field>
                     )}
                     {caps.seedLocation && (
                       <Field
                         label="Post-import seed location"
-                        hint={`Where ${caps.title} moves torrents after post-processing. If your post-processor uses hard/soft links, set this to a path the client won't re-scan — prevents the same file being processed in a loop. Equivalent to "Set Torrent location" / "Move Torrent" in the client.`}
+                        hint={`Where to tell ${caps.title} to move torrents after post-processing. If your post-processor uses hard/soft links, set this to a path the client won't re-scan — prevents the same file being processed in a loop. This calls a "Set Torrent location" in the client.`}
                       >
-                        <input
-                          className="input input-sm w-full"
+                        <FolderPicker
                           value={get<string>("torrents.seedLocation") ?? ""}
-                          onChange={(e) =>
-                            set("torrents.seedLocation", e.target.value)
-                          }
+                          onChange={(v) => set("torrents.seedLocation", v)}
                         />
                       </Field>
                     )}
@@ -861,4 +854,3 @@ function TorrentSection({ get, set }: { get: Getter; set: Setter }) {
     </section>
   );
 }
-
