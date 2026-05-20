@@ -264,14 +264,17 @@ export default function ShowDetail() {
                   {s.nextAirDate && (
                     <span>Next: {formatAirDate(s.nextAirDate)}</span>
                   )}
+                  {!s.nextAirDate && s.prevAirDate && (
+                    <span>
+                      Last aired: {formatAirDate(s.prevAirDate, true)}
+                    </span>
+                  )}
                 </div>
               )}
 
               {s.status !== "Continuing" && s.prevAirDate && (
                 <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  <span>
-                    Last aired: {formatAirDate(s.prevAirDate, true)}
-                  </span>
+                  <span>Last aired: {formatAirDate(s.prevAirDate, true)}</span>
                 </div>
               )}
 
