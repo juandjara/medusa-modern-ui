@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import api from "./api";
 
 // No WS event for new log entries — poll. 30s balances chatter vs latency.
@@ -32,6 +33,30 @@ export function useLogCounts() {
     errors: errors.data?.length ?? 0,
     isLoading: warnings.isLoading || errors.isLoading,
   };
+}
+
+// Python's logging levels — required by the legacy clearerrors endpoint.
+const PY_LOG_LEVEL = { WARNING: 30, ERROR: 40 } as const;
+
+// No v2 DELETE endpoint exists for the reporter; the legacy /errorlogs route
+// is still the only way to clear in-memory Warning/Error viewers.
+export function useClearReporter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (level: "WARNING" | "ERROR") => {
+      await axios.get("/errorlogs/clearerrors/", {
+        params: { level: PY_LOG_LEVEL[level] },
+        // Endpoint responds 302 to /errorlogs/viewlog/; treat any 2xx/3xx as ok.
+        maxRedirects: 0,
+        validateStatus: (s) => s < 400,
+      });
+      return level;
+    },
+    onSuccess: (level) => {
+      qc.setQueryData(LOGS_KEY(level), []);
+      qc.invalidateQueries({ queryKey: LOGS_KEY(level) });
+    },
+  });
 }
 
 export interface ParsedLog {
@@ -76,4 +101,89 @@ export function parseReporterLine(raw: string): ParsedLog {
     traceback: rest,
     raw,
   };
+}
+
+// Shape of LogLine.to_json() from /api/v2/log (regular activity feed).
+export interface ActivityLog {
+  timestamp: string;
+  level: string;
+  commit: string | null;
+  thread: string;
+  threadId?: number;
+  extra?: string;
+  message: string;
+  traceback?: string[];
+}
+
+export type LogPeriod = "all" | "one_day" | "three_days" | "one_week";
+
+// Mirrors valid_thread_names in medusa/server/api/v2/log.py — backend rejects
+// any other value with 400.
+export const LOG_THREAD_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "All threads" },
+  { value: "MAIN", label: "Main" },
+  { value: "BACKLOG", label: "Backlog" },
+  { value: "DAILYSEARCHER", label: "Daily Searcher" },
+  { value: "SEARCHQUEUE", label: "Search Queue (all)" },
+  { value: "SEARCHQUEUE-BACKLOG", label: "Search Queue: Backlog" },
+  { value: "SEARCHQUEUE-DAILY-SEARCH", label: "Search Queue: Daily" },
+  { value: "SEARCHQUEUE-FORCED", label: "Search Queue: Forced" },
+  { value: "SEARCHQUEUE-MANUAL", label: "Search Queue: Manual" },
+  { value: "SEARCHQUEUE-RETRY", label: "Search Queue: Retry/Failed" },
+  { value: "SEARCHQUEUE-RSS", label: "Search Queue: RSS" },
+  { value: "SHOWQUEUE", label: "Show Queue (all)" },
+  { value: "SHOWQUEUE-REFRESH", label: "Show Queue: Refresh" },
+  { value: "SHOWQUEUE-SEASON-UPDATE", label: "Show Queue: Season Update" },
+  { value: "SHOWQUEUE-UPDATE", label: "Show Queue: Update" },
+  { value: "POSTPROCESSOR", label: "Post-Processor" },
+  { value: "FINDPROPERS", label: "Find Propers" },
+  { value: "FINDSUBTITLES", label: "Find Subtitles" },
+  { value: "SHOWUPDATER", label: "Show Updater" },
+  { value: "EPISODEUPDATER", label: "Episode Updater" },
+  { value: "DOWNLOADHANDLER", label: "Download Handler" },
+  { value: "CHECKVERSION", label: "Check Version" },
+  { value: "TRAKTCHECKER", label: "Trakt Checker" },
+  { value: "TORNADO", label: "Tornado" },
+  { value: "THREAD", label: "Thread" },
+  { value: "EVENT", label: "Event" },
+  { value: "ERROR", label: "Error" },
+];
+
+export interface ActivityLogParams {
+  level?: string;
+  thread?: string;
+  period?: LogPeriod;
+  query?: string;
+  limit?: number;
+}
+
+// One page is enough for an interactive view; the user filters/searches.
+export function useActivityLogs(params: ActivityLogParams, enabled = true) {
+  const {
+    level = "INFO",
+    thread = "",
+    period = "one_day",
+    query = "",
+    limit = 500,
+  } = params;
+  return useQuery({
+    queryKey: [
+      "logs",
+      "activity",
+      level,
+      thread,
+      period,
+      query,
+      limit,
+    ] as const,
+    queryFn: ({ signal }) =>
+      api
+        .get<ActivityLog[]>("/log", {
+          signal,
+          params: { level, thread, period, query, limit },
+        })
+        .then((r) => r.data),
+    enabled,
+    staleTime: 10_000,
+  });
 }

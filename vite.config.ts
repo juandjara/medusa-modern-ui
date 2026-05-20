@@ -13,6 +13,7 @@ export default defineConfig({
       "/login": { target: SERVER_URL, changeOrigin: true },
       "/images": { target: SERVER_URL, changeOrigin: true },
       "/home": { target: SERVER_URL, changeOrigin: true },
+      "/errorlogs": { target: SERVER_URL, changeOrigin: true },
       "/ws": {
         target: SERVER_URL.replace("http", "ws"),
         ws: true,
