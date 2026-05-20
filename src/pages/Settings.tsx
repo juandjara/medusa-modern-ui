@@ -53,6 +53,29 @@ export default function Settings() {
           </li>
         </ul>
       </div>
+
+      <div className="bg-base-100 border border-base-300 rounded-box">
+        <div className="px-4 py-3 font-semibold border-b border-base-300">
+          Download clients
+        </div>
+        <ul>
+          <li>
+            <Link
+              to="/settings/download-clients"
+              className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors"
+            >
+              <div>
+                <div className="font-medium">NZB and Torrent</div>
+                <div className="text-xs text-base-content/60">
+                  Configure SABnzbd, NZBget, qBittorrent, Transmission, and
+                  others — including blackhole folders.
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-base-content/40" />
+            </Link>
+          </li>
+        </ul>
+      </div>
     </div>
   )
 }
