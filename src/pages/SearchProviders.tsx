@@ -28,12 +28,14 @@ import {
   TriangleAlert,
   Check,
   TestTube2,
-  EyeIcon,
-  EyeOffIcon,
 } from "lucide-react";
 import api from "../lib/api";
 import type { ProviderSummary, ProviderConfig } from "../types/medusa";
 import { CategoryEditor } from "./CustomProviders";
+import Field from "../components/forms/Field";
+import Toggle from "../components/forms/Toggle";
+import SecretInput from "../components/forms/SecretInput";
+import SaveBar from "../components/forms/SaveBar";
 
 interface ConfigMain {
   brokenProviders?: string[];
@@ -171,35 +173,15 @@ export default function SearchProviders() {
         </p>
       </header>
 
-      <div className="flex items-center gap-2 sticky top-0 bg-base-200 py-2 z-10">
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          onClick={() => saveOrder.mutate()}
-          disabled={!dirty || saveOrder.isPending}
-        >
-          {saveOrder.isPending ? (
-            <span className="loading loading-spinner loading-xs" />
-          ) : (
-            "Save order"
-          )}
-        </button>
-        {dirty && (
-          <span className="text-xs text-warning inline-flex items-center gap-1">
-            <TriangleAlert size={12} /> Unsaved order / enabled changes
-          </span>
-        )}
-        {saveOrder.isSuccess && !dirty && (
-          <span className="text-xs text-success inline-flex items-center gap-1">
-            <Check size={12} /> Saved
-          </span>
-        )}
-        {saveOrder.isError && (
-          <span className="text-xs text-error inline-flex items-center gap-1">
-            <TriangleAlert size={12} /> Save failed
-          </span>
-        )}
-      </div>
+      <SaveBar
+        dirty={dirty}
+        pending={saveOrder.isPending}
+        success={saveOrder.isSuccess}
+        error={saveOrder.isError}
+        onSave={() => saveOrder.mutate()}
+        label="Save order"
+        dirtyLabel="Unsaved order / enabled changes"
+      />
 
       {visible.length === 0 ? (
         <div className="text-center py-16 text-base-content/50">
@@ -438,7 +420,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
   return (
     <div className="space-y-6">
       {/* Search modes */}
-      <SmallField
+      <Field size="sm"
         label="Backlog search mode"
         hint="When backlog-searching you can either ask for season packs only, or build a season from individual episodes."
       >
@@ -450,9 +432,9 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
           <option value="eponly">Episodes only</option>
           <option value="sponly">Season packs only</option>
         </select>
-      </SmallField>
+      </Field>
 
-      <ToggleField
+      <Toggle
         label="Enable fallback"
         hint="If a season search returns nothing, retry using the opposite mode (season ↔ episodes)."
         checked={!!effective.search.fallback}
@@ -460,7 +442,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
       />
 
       <div className="flex flex-wrap items-start gap-6">
-        <ToggleField
+        <Toggle
           label="Enable daily searches"
           hint="Lets this provider participate in scheduled daily searches."
           checked={effective.search.daily.enabled}
@@ -468,7 +450,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
             setSearch("daily", { ...effective.search.daily, enabled: v })
           }
         />
-        <ToggleField
+        <Toggle
           label="Enable backlog searches"
           hint="Lets this provider participate in backlog searches."
           checked={effective.search.backlog.enabled}
@@ -476,7 +458,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
           disabled={provider.supportsBacklog === false}
           disabledHint="Provider doesn't support backlog."
         />
-        <ToggleField
+        <Toggle
           label="Enable manual searches"
           hint="Lets this provider appear in the Manual Search modal."
           checked={effective.search.manual.enabled}
@@ -485,7 +467,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
       </div>
 
       <div className="flex flex-wrap items-start gap-6">
-        <ToggleField
+        <Toggle
           label="Enable search delay"
           hint={
             <>
@@ -507,7 +489,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
           }
         />
         {effective.search.delay.enabled && (
-          <SmallField
+          <Field size="sm"
             label="Delay (hours)"
             hint="Hours to wait, compared to the first result for the episode."
           >
@@ -524,13 +506,13 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
                 })
               }
             />
-          </SmallField>
+          </Field>
         )}
       </div>
 
       {/* Auth & URL */}
       {(isNewznabLike || provider.config.customUrl !== undefined) && (
-        <SmallField
+        <Field size="sm"
           label={isNewznabLike ? "URL" : "Custom URL"}
           hint={
             isNewznabLike
@@ -550,20 +532,20 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
             placeholder="Leave blank to use the default URL."
             spellCheck={false}
           />
-        </SmallField>
+        </Field>
       )}
 
       {provider.config.username !== undefined && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SmallField label="Username">
+          <Field size="sm" label="Username">
             <input
               className="input input-sm w-full"
               value={effective.username ?? ""}
               onChange={(e) => setField("username", e.target.value)}
               autoComplete="off"
             />
-          </SmallField>
-          <SmallField label="Password">
+          </Field>
+          <Field size="sm" label="Password">
             <input
               type="password"
               className="input input-sm w-full"
@@ -571,15 +553,17 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
               onChange={(e) => setField("password", e.target.value)}
               autoComplete="new-password"
             />
-          </SmallField>
+          </Field>
         </div>
       )}
 
       {provider.config.apikey !== undefined && (
-        <ApiKeyField
-          value={effective.apikey ?? ""}
-          onChange={(v) => setField("apikey", v)}
-        />
+        <Field size="sm" label="API key">
+          <SecretInput
+            value={effective.apikey ?? ""}
+            onChange={(v) => setField("apikey", v)}
+          />
+        </Field>
       )}
 
       {isNewznabLike && (
@@ -594,7 +578,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
       {isTorrent && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-base-300/60">
           {provider.config.minseed !== undefined && (
-            <SmallField label="Min seeders">
+            <Field size="sm" label="Min seeders">
               <input
                 type="number"
                 min={0}
@@ -602,10 +586,10 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
                 value={effective.minseed ?? 0}
                 onChange={(e) => setField("minseed", Number(e.target.value))}
               />
-            </SmallField>
+            </Field>
           )}
           {provider.config.minleech !== undefined && (
-            <SmallField label="Min leechers">
+            <Field size="sm" label="Min leechers">
               <input
                 type="number"
                 min={0}
@@ -613,10 +597,10 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
                 value={effective.minleech ?? 0}
                 onChange={(e) => setField("minleech", Number(e.target.value))}
               />
-            </SmallField>
+            </Field>
           )}
           {provider.config.ratio !== undefined && (
-            <SmallField
+            <Field size="sm"
               label="Seed ratio"
               className="col-span-2"
               hint={
@@ -642,10 +626,10 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
                 }
                 onChange={(e) => setField("ratio", Number(e.target.value))}
               />
-            </SmallField>
+            </Field>
           )}
           {provider.config.confirmed !== undefined && (
-            <ToggleField
+            <Toggle
               label="Confirmed downloads"
               hint="Only download torrents from trusted / verified uploaders."
               checked={!!effective.confirmed}
@@ -653,7 +637,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
             />
           )}
           {provider.config.ranked !== undefined && (
-            <ToggleField
+            <Toggle
               label="Ranked torrents"
               hint="Only download ranked (trusted) releases."
               checked={!!effective.ranked}
@@ -661,7 +645,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
             />
           )}
           {provider.config.sorting !== undefined && (
-            <SmallField label="Sort results by">
+            <Field size="sm" label="Sort results by">
               <select
                 className="select select-sm w-full"
                 value={effective.sorting ?? "last"}
@@ -671,7 +655,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
                 <option value="seeders">Seeders</option>
                 <option value="leechers">Leechers</option>
               </select>
-            </SmallField>
+            </Field>
           )}
         </div>
       )}
@@ -684,7 +668,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
         provider.config.pid !== undefined) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-base-300/60">
           {provider.config.passkey !== undefined && (
-            <SmallField label="Passkey">
+            <Field size="sm" label="Passkey">
               <input
                 type="password"
                 className="input input-sm w-full"
@@ -692,43 +676,43 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
                 onChange={(e) => setField("passkey", e.target.value)}
                 autoComplete="off"
               />
-            </SmallField>
+            </Field>
           )}
           {provider.config.digest !== undefined && (
-            <SmallField label="Digest">
+            <Field size="sm" label="Digest">
               <input
                 className="input input-sm w-full"
                 value={effective.digest ?? ""}
                 onChange={(e) => setField("digest", e.target.value)}
               />
-            </SmallField>
+            </Field>
           )}
           {provider.config.hash !== undefined && (
-            <SmallField label="Hash">
+            <Field size="sm" label="Hash">
               <input
                 className="input input-sm w-full"
                 value={effective.hash ?? ""}
                 onChange={(e) => setField("hash", e.target.value)}
               />
-            </SmallField>
+            </Field>
           )}
           {provider.config.pin !== undefined && (
-            <SmallField label="PIN">
+            <Field size="sm" label="PIN">
               <input
                 className="input input-sm w-full"
                 value={effective.pin ?? ""}
                 onChange={(e) => setField("pin", e.target.value)}
               />
-            </SmallField>
+            </Field>
           )}
           {provider.config.pid !== undefined && (
-            <SmallField label="PID">
+            <Field size="sm" label="PID">
               <input
                 className="input input-sm w-full"
                 value={effective.pid ?? ""}
                 onChange={(e) => setField("pid", e.target.value)}
               />
-            </SmallField>
+            </Field>
           )}
         </div>
       )}
@@ -736,7 +720,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
       {/* Cookies */}
       {provider.config.cookies?.required &&
         provider.config.cookies.required.length > 0 && (
-          <SmallField
+          <Field size="sm"
             label="Cookies"
             hint={
               <>
@@ -779,7 +763,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
               spellCheck={false}
               autoComplete="off"
             />
-          </SmallField>
+          </Field>
         )}
 
       <div className="flex items-center gap-2 pt-2">
@@ -824,98 +808,6 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
         )}
       </div>
     </div>
-  );
-}
-
-function ApiKeyField({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const [reveal, setReveal] = useState(false);
-  return (
-    <SmallField label="API key">
-      <div className="join w-full">
-        <input
-          type={reveal ? "text" : "password"}
-          className="input input-sm join-item flex-1"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          autoComplete="off"
-          spellCheck={false}
-        />
-        <button
-          type="button"
-          className="btn btn-sm join-item"
-          onClick={() => setReveal((v) => !v)}
-        >
-          {reveal ? <EyeOffIcon size={12} /> : <EyeIcon size={12} />}
-        </button>
-      </div>
-    </SmallField>
-  );
-}
-
-function SmallField({
-  label,
-  hint,
-  children,
-  className = "",
-}: {
-  label: string;
-  hint?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <fieldset className={`fieldset ${className}`}>
-      <legend className="fieldset-legend text-xs">{label}</legend>
-      {children}
-      {hint && <div className="text-xs text-base-content/50 mt-1">{hint}</div>}
-    </fieldset>
-  );
-}
-
-function ToggleField({
-  label,
-  hint,
-  checked,
-  onChange,
-  disabled,
-  disabledHint,
-}: {
-  label: string;
-  hint?: React.ReactNode;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-  disabledHint?: string;
-}) {
-  return (
-    <label
-      className={`flex items-start gap-3 max-w-md ${
-        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-      }`}
-      title={disabled ? disabledHint : undefined}
-    >
-      <input
-        type="checkbox"
-        className="toggle toggle-sm mt-0.5"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        disabled={disabled}
-      />
-      <span>
-        <span className="label-text text-sm block">{label}</span>
-        {hint && (
-          <span className="text-xs text-base-content/50 block mt-0.5">
-            {hint}
-          </span>
-        )}
-      </span>
-    </label>
   );
 }
 

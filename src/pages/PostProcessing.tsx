@@ -10,6 +10,9 @@ import {
   Wrench,
 } from "lucide-react";
 import api from "../lib/api";
+import Field from "../components/forms/Field";
+import Toggle from "../components/forms/Toggle";
+import SaveBar from "../components/forms/SaveBar";
 
 interface NamingConfig {
   pattern: string;
@@ -213,35 +216,13 @@ export default function PostProcessing() {
         </p>
       </header>
 
-      <div className="flex items-center gap-2 sticky top-0 bg-base-200 py-2 z-10">
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          onClick={() => save.mutate()}
-          disabled={!dirty || save.isPending}
-        >
-          {save.isPending ? (
-            <span className="loading loading-spinner loading-xs" />
-          ) : (
-            "Save changes"
-          )}
-        </button>
-        {dirty && (
-          <span className="text-xs text-warning inline-flex items-center gap-1">
-            <TriangleAlert size={12} /> Unsaved changes
-          </span>
-        )}
-        {save.isSuccess && !dirty && (
-          <span className="text-xs text-success inline-flex items-center gap-1">
-            <Check size={12} /> Saved
-          </span>
-        )}
-        {save.isError && (
-          <span className="text-xs text-error inline-flex items-center gap-1">
-            <TriangleAlert size={12} /> Save failed
-          </span>
-        )}
-      </div>
+      <SaveBar
+        dirty={dirty}
+        pending={save.isPending}
+        success={save.isSuccess}
+        error={save.isError}
+        onSave={() => save.mutate()}
+      />
 
       <TriggerSection
         get={get}
@@ -969,55 +950,6 @@ function Section({
         {children}
       </div>
     </section>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <fieldset className="fieldset">
-      <legend className="fieldset-legend">{label}</legend>
-      {children}
-      {hint && <p className="text-xs text-base-content/50 mt-1">{hint}</p>}
-    </fieldset>
-  );
-}
-
-function Toggle({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="cursor-pointer flex items-start gap-2 max-w-2xl">
-      <input
-        type="checkbox"
-        className="toggle toggle-sm mt-0.5"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span>
-        <span className="label-text text-sm block">{label}</span>
-        {hint && (
-          <span className="text-xs text-base-content/50 block mt-0.5">
-            {hint}
-          </span>
-        )}
-      </span>
-    </label>
   );
 }
 

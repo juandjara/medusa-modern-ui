@@ -312,7 +312,9 @@ function ActivityView() {
 
 function ActivityLine({ line }: { line: ActivityLog }) {
   const ts = line.timestamp.replace("T", " ").replace("Z", "");
-  const thread = line.threadId ? `${line.thread}-${line.threadId}` : line.thread;
+  const thread = line.threadId
+    ? `${line.thread}-${line.threadId}`
+    : line.thread;
   const levelClass =
     line.level === "ERROR"
       ? "text-error"
@@ -322,7 +324,7 @@ function ActivityLine({ line }: { line: ActivityLog }) {
           ? "text-base-content/40"
           : "text-base-content/70";
   return (
-    <div className="whitespace-pre-wrap break-words">
+    <div className="whitespace-pre-wrap wrap-break-word">
       <span className="text-base-content/50">{ts} </span>
       <span className={`font-semibold ${levelClass}`}>{line.level} </span>
       <span className="text-base-content/60">{thread}</span>

@@ -10,6 +10,7 @@ import {
   detectQualityPreset,
   type Series,
 } from "../types/medusa";
+import Toggle from "../components/forms/Toggle";
 
 export default function ShowSettings() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -89,7 +90,10 @@ function SettingsForm({ show }: { show: Series }) {
   return (
     <div className="max-w-lg mx-auto pt-8 space-y-6">
       <div className="flex items-center justify-between">
-        <Link to={`/show/${show.id.slug}`} className="btn btn-ghost btn-sm gap-1">
+        <Link
+          to={`/show/${show.id.slug}`}
+          className="btn btn-ghost btn-sm gap-1"
+        >
           <ChevronLeft size={16} /> {show.title}
         </Link>
       </div>
@@ -131,9 +135,7 @@ function SettingsForm({ show }: { show: Series }) {
           }
         >
           {isCustomQuality && (
-            <option value="__custom__">
-              Custom — keep current selection
-            </option>
+            <option value="__custom__">Custom — keep current selection</option>
           )}
           {Object.entries(QUALITY_PRESETS).map(([key, preset]) => (
             <option key={key} value={key}>
@@ -149,44 +151,46 @@ function SettingsForm({ show }: { show: Series }) {
         )}
       </fieldset>
 
-      <fieldset className="fieldset w-full space-y-2">
-        <legend className="fieldset-legend">Behavior</legend>
-        <Toggle
-          label="Anime"
-          description="Absolute episode numbering; matches AniDB / AniList aliases."
-          checked={form.anime}
-          onChange={(v) => setForm((s) => ({ ...s, anime: v }))}
-        />
-        <Toggle
-          label="Scene numbering"
-          description="Use scene-release season/episode numbers instead of indexer numbers."
-          checked={form.scene}
-          onChange={(v) => setForm((s) => ({ ...s, scene: v }))}
-        />
-        <Toggle
-          label="Subtitles"
-          description="Search for and download subtitles for episodes."
-          checked={form.subtitlesEnabled}
-          onChange={(v) => setForm((s) => ({ ...s, subtitlesEnabled: v }))}
-        />
-        <Toggle
-          label="Season folders"
-          description="Organize episodes into Season N subfolders."
-          checked={form.seasonFolders}
-          onChange={(v) => setForm((s) => ({ ...s, seasonFolders: v }))}
-        />
-        <Toggle
-          label="DVD order"
-          description="Use the DVD-order season/episode numbering."
-          checked={form.dvdOrder}
-          onChange={(v) => setForm((s) => ({ ...s, dvdOrder: v }))}
-        />
-        <Toggle
-          label="Air by date"
-          description="For shows that air daily, treat date as the episode identifier."
-          checked={form.airByDate}
-          onChange={(v) => setForm((s) => ({ ...s, airByDate: v }))}
-        />
+      <fieldset className="fieldset w-full">
+        <legend className="fieldset-legend mb-1">Behavior</legend>
+        <div className="space-y-3">
+          <Toggle
+            label="Anime"
+            hint="Absolute episode numbering; matches AniDB / AniList aliases."
+            checked={form.anime}
+            onChange={(v) => setForm((s) => ({ ...s, anime: v }))}
+          />
+          <Toggle
+            label="Scene numbering"
+            hint="Use scene-release season/episode numbers instead of indexer numbers."
+            checked={form.scene}
+            onChange={(v) => setForm((s) => ({ ...s, scene: v }))}
+          />
+          <Toggle
+            label="Subtitles"
+            hint="Search for and download subtitles for episodes."
+            checked={form.subtitlesEnabled}
+            onChange={(v) => setForm((s) => ({ ...s, subtitlesEnabled: v }))}
+          />
+          <Toggle
+            label="Season folders"
+            hint="Organize episodes into Season N subfolders."
+            checked={form.seasonFolders}
+            onChange={(v) => setForm((s) => ({ ...s, seasonFolders: v }))}
+          />
+          <Toggle
+            label="DVD order"
+            hint="Use the DVD-order season/episode numbering."
+            checked={form.dvdOrder}
+            onChange={(v) => setForm((s) => ({ ...s, dvdOrder: v }))}
+          />
+          <Toggle
+            label="Air by date"
+            hint="For shows that air daily, treat date as the episode identifier."
+            checked={form.airByDate}
+            onChange={(v) => setForm((s) => ({ ...s, airByDate: v }))}
+          />
+        </div>
       </fieldset>
 
       {editSeries.isError && (
@@ -195,9 +199,7 @@ function SettingsForm({ show }: { show: Series }) {
         </div>
       )}
       {editSeries.isSuccess && (
-        <div className="alert alert-soft alert-success text-sm">
-          Saved.
-        </div>
+        <div className="alert alert-soft alert-success text-sm">Saved.</div>
       )}
 
       <div className="flex gap-2">
@@ -226,31 +228,31 @@ function SettingsForm({ show }: { show: Series }) {
   );
 }
 
-function Toggle({
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="label cursor-pointer justify-start gap-3 p-0">
-      <input
-        type="checkbox"
-        className="toggle toggle-sm"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span>
-        <span className="font-medium text-base-content">{label}</span>
-        <span className="block text-xs text-base-content/60 whitespace-normal">
-          {description}
-        </span>
-      </span>
-    </label>
-  );
-}
+// function Toggle({
+//   label,
+//   description,
+//   checked,
+//   onChange,
+// }: {
+//   label: string;
+//   description: string;
+//   checked: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <label className="flex items-start gap-2 cursor-pointer justify-start">
+//       <input
+//         type="checkbox"
+//         className="toggle toggle-sm mt-0.5"
+//         checked={checked}
+//         onChange={(e) => onChange(e.target.checked)}
+//       />
+//       <span>
+//         <span className="font-medium text-base-content">{label}</span>
+//         <span className="block text-xs text-base-content/60 whitespace-normal">
+//           {description}
+//         </span>
+//       </span>
+//     </label>
+//   );
+// }

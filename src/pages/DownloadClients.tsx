@@ -2,14 +2,13 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import {
-  ChevronLeft,
-  Check,
-  TriangleAlert,
-  EyeIcon,
-  EyeOffIcon,
-} from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import api from "../lib/api";
+import Field from "../components/forms/Field";
+import Toggle from "../components/forms/Toggle";
+import SecretInput from "../components/forms/SecretInput";
+import TestRow from "../components/forms/TestRow";
+import SaveBar from "../components/forms/SaveBar";
 
 interface NzbgetConfig {
   host: string;
@@ -293,35 +292,13 @@ export default function DownloadClients() {
         </p>
       </header>
 
-      <div className="flex items-center gap-2 sticky top-0 bg-base-200 py-2 z-10">
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          onClick={() => saveMutation.mutate()}
-          disabled={!dirty || saveMutation.isPending}
-        >
-          {saveMutation.isPending ? (
-            <span className="loading loading-spinner loading-xs" />
-          ) : (
-            "Save changes"
-          )}
-        </button>
-        {dirty && (
-          <span className="text-xs text-warning inline-flex items-center gap-1">
-            <TriangleAlert size={12} /> Unsaved changes
-          </span>
-        )}
-        {saveMutation.isSuccess && !dirty && (
-          <span className="text-xs text-success inline-flex items-center gap-1">
-            <Check size={12} /> Saved
-          </span>
-        )}
-        {saveMutation.isError && (
-          <span className="text-xs text-error inline-flex items-center gap-1">
-            <TriangleAlert size={12} /> Save failed
-          </span>
-        )}
-      </div>
+      <SaveBar
+        dirty={dirty}
+        pending={saveMutation.isPending}
+        success={saveMutation.isSuccess}
+        error={saveMutation.isError}
+        onSave={() => saveMutation.mutate()}
+      />
 
       <NzbSection get={get} set={set} />
       <TorrentSection get={get} set={set} />
@@ -392,7 +369,6 @@ function NzbSection({ get, set }: { get: Getter; set: Setter }) {
 }
 
 function SabnzbdFields({ get, set }: { get: Getter; set: Setter }) {
-  const [reveal, setReveal] = useState(false);
   const host = get<string>("nzb.sabnzbd.host") ?? "";
   const username = get<string>("nzb.sabnzbd.username") ?? "";
   const password = get<string>("nzb.sabnzbd.password") ?? "";
@@ -444,22 +420,10 @@ function SabnzbdFields({ get, set }: { get: Getter; set: Setter }) {
         />
       </Field>
       <Field label="API key" hint="SABnzbd → Config → General → API Key">
-        <div className="join w-full">
-          <input
-            type={reveal ? "text" : "password"}
-            className="input input-sm join-item flex-1"
-            value={apiKey}
-            onChange={(e) => set("nzb.sabnzbd.apiKey", e.target.value)}
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            className="btn btn-sm join-item"
-            onClick={() => setReveal((v) => !v)}
-          >
-            {reveal ? <EyeOffIcon size={12} /> : <EyeIcon size={12} />}
-          </button>
-        </div>
+        <SecretInput
+          value={apiKey}
+          onChange={(v) => set("nzb.sabnzbd.apiKey", v)}
+        />
       </Field>
 
       <CategoryFields prefix="nzb.sabnzbd" get={get} set={set} />
@@ -898,90 +862,3 @@ function TorrentSection({ get, set }: { get: Getter; set: Setter }) {
   );
 }
 
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <fieldset className="fieldset">
-      <legend className="fieldset-legend">{label}</legend>
-      {children}
-      {hint && <p className="text-xs text-base-content/50 mt-1">{hint}</p>}
-    </fieldset>
-  );
-}
-
-function Toggle({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="cursor-pointer flex items-start gap-2 max-w-xs">
-      <input
-        type="checkbox"
-        className="toggle toggle-sm mt-0.5"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span>
-        <span className="label-text text-sm block">{label}</span>
-        {hint && (
-          <span className="text-xs text-base-content/50 block mt-0.5">
-            {hint}
-          </span>
-        )}
-      </span>
-    </label>
-  );
-}
-
-function TestRow({
-  result,
-  ok,
-  pending,
-  onClick,
-}: {
-  result: string | null;
-  ok: boolean;
-  pending: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-3 pt-2 flex-wrap">
-      <button
-        type="button"
-        className="btn btn-sm"
-        onClick={onClick}
-        disabled={pending}
-      >
-        {pending ? (
-          <span className="loading loading-spinner loading-xs" />
-        ) : (
-          "Test connection"
-        )}
-      </button>
-      {result && (
-        <span
-          className={`text-sm inline-flex items-center gap-1 ${
-            ok ? "text-success" : "text-error"
-          }`}
-        >
-          {ok ? <Check size={14} /> : <TriangleAlert size={14} />}
-          {result}
-        </span>
-      )}
-    </div>
-  );
-}

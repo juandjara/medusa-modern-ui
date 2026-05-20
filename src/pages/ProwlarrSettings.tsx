@@ -8,11 +8,10 @@ import {
   RefreshCw,
   TriangleAlert,
   Trash2,
-  EyeOffIcon,
-  EyeIcon,
 } from "lucide-react";
 import api from "../lib/api";
 import type { ProviderSummary, ProwlarrIndexer } from "../types/medusa";
+import SecretInput from "../components/forms/SecretInput";
 
 interface ConfigMain {
   providers?: {
@@ -41,7 +40,6 @@ export default function ProwlarrSettings() {
   // string. Avoids a useEffect to sync server data into local state.
   const [draftUrl, setDraftUrl] = useState<string | null>(null);
   const [draftApikey, setDraftApikey] = useState<string | null>(null);
-  const [revealApikey, setRevealApikey] = useState(false);
 
   const url = draftUrl ?? savedUrl;
   const apikey = draftApikey ?? savedApikey;
@@ -162,28 +160,7 @@ export default function ProwlarrSettings() {
 
           <fieldset className="fieldset">
             <legend className="fieldset-legend">API key</legend>
-            <div className="join w-full">
-              <input
-                type={revealApikey ? "text" : "password"}
-                className="input input-sm join-item flex-1"
-                value={apikey}
-                onChange={(e) => setDraftApikey(e.target.value)}
-                spellCheck={false}
-                autoComplete="off"
-              />
-              <button
-                type="button"
-                className="btn btn-sm join-item"
-                onClick={() => setRevealApikey((v) => !v)}
-              >
-                {revealApikey ? (
-                  <EyeOffIcon size={12} />
-                ) : (
-                  <EyeIcon size={12} />
-                )}
-                {revealApikey ? "Hide" : "Show"}
-              </button>
-            </div>
+            <SecretInput value={apikey} onChange={setDraftApikey} withLabel />
           </fieldset>
 
           <div className="mt-2 flex items-center gap-2 flex-wrap pt-2">
