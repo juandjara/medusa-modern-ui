@@ -17,6 +17,7 @@ const System = lazy(() => import("../pages/System"));
 const Logs = lazy(() => import("../pages/Logs"));
 const ProwlarrSettings = lazy(() => import("../pages/ProwlarrSettings"));
 const DownloadClients = lazy(() => import("../pages/DownloadClients"));
+const SearchProviders = lazy(() => import("../pages/SearchProviders"));
 
 function Root() {
   return (
@@ -56,6 +57,10 @@ export const router = createBrowserRouter([
           {
             path: "settings/download-clients",
             element: <DownloadClients />,
+          },
+          {
+            path: "settings/providers",
+            element: <SearchProviders />,
           },
           { path: "*", element: <Navigate to="/" replace /> },
         ],

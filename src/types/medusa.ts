@@ -249,6 +249,45 @@ export const QUALITY_PRESETS: Record<
   },
 };
 
+// Full shape from medusa/providers/generic_provider.py:to_json. Optional
+// blocks only exist on certain provider types — `cookies` is everywhere,
+// `apikey`/`minseed`/etc. are gated by `hasattr` on the Python side.
+export interface ProviderConfig {
+  enabled: boolean;
+  url?: string;
+  customUrl?: string | null;
+  username?: string | null;
+  password?: string | null;
+  apikey?: string | null;
+  search: {
+    mode?: string; // 'eponly' | 'sponly'
+    fallback?: boolean | number;
+    separator?: string;
+    seasonTemplates?: unknown;
+    manual: { enabled: boolean };
+    backlog: { enabled: boolean };
+    daily: { enabled: boolean; maxRecentItems?: number; stopAt?: number };
+    delay: { enabled: boolean; duration: number };
+  };
+  cookies?: { enabled?: boolean; values?: string; required?: string[] };
+  // Torrent-only:
+  minseed?: number;
+  minleech?: number;
+  ratio?: number | string;
+  clientRatio?: number;
+  passkey?: string | null;
+  digest?: string | null;
+  hash?: string | null;
+  pin?: string | null;
+  pid?: string | null;
+  confirmed?: boolean;
+  ranked?: boolean;
+  sorting?: string;
+  // Newznab-only:
+  catIds?: string[];
+  params?: Record<string, unknown>;
+}
+
 // `manager` / `idManager` are only present when the provider's __init__ set
 // them — Newznab/Torznab always do (manager defaults to null), other built-in
 // providers don't. `manager === 'prowlarr'` marks Prowlarr-imported indexers.
@@ -256,18 +295,22 @@ export interface ProviderSummary {
   id: string;
   name: string;
   imageName: string;
-  type: string;
-  subType: string;
+  type: string; // 'nzb' | 'torrent'
+  subType: string; // 'newznab' | 'torznab' | 'torrentrss' | 'generic' | …
   public: boolean;
   manager?: string | null;
   idManager?: string;
-  config: {
-    enabled: boolean;
-    search: {
-      manual: { enabled: boolean };
-      backlog: { enabled: boolean };
-    };
-  };
+  animeOnly?: boolean;
+  needsAuth?: boolean;
+  supportsBacklog?: boolean;
+  supportsAbsoluteNumbering?: boolean;
+  default?: boolean;
+  url?: string;
+  urls?: string[];
+  btCacheUrls?: string[];
+  properStrings?: string[];
+  headers?: Record<string, string>;
+  config: ProviderConfig;
 }
 
 export interface ProwlarrIndexer {

@@ -39,6 +39,21 @@ export default function Settings() {
         <ul>
           <li>
             <Link
+              to="/settings/providers"
+              className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors border-b border-base-300"
+            >
+              <div>
+                <div className="font-medium">Providers</div>
+                <div className="text-xs text-base-content/60">
+                  Set search order, enable/disable, and configure per-provider
+                  options.
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-base-content/40" />
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/settings/providers/prowlarr"
               className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors"
             >
