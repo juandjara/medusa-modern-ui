@@ -9,6 +9,7 @@ import {
   Pause,
   Wrench,
   Trash2,
+  Info,
 } from "lucide-react";
 import api from "../lib/api";
 import { formatDuration, formatRelative } from "../lib/time";
@@ -27,6 +28,24 @@ import type {
 } from "../types/medusa";
 
 const SYSTEM_KEY = ["config", "system"] as const;
+
+// Client-side rename of the scheduler labels coming from the server. The
+// upstream names ("Post Process" / "Post Process Queue") are easy to confuse;
+// these break out the *role* each scheduler plays in the PP pipeline.
+const SCHEDULER_LABELS: Record<string, string> = {
+  postProcess: "Post-process · Scheduled scanner",
+  postProcessQueue: "Post-process · Queue worker",
+  downloadHandler: "Download handler",
+};
+
+const SCHEDULER_DESCRIPTIONS: Record<string, string> = {
+  postProcess:
+    "Walks the configured download directory on a timer. Active only when 'Scheduled scan' is the trigger; queues anything it finds onto the Queue worker.",
+  postProcessQueue:
+    "Always-on worker that turns queued paths into processed files (move/rename/DB/history). Consumes work from the Scheduled scanner, the Download handler, and POST /api/v2/postprocess.",
+  downloadHandler:
+    "Polls the torrent/NZB client for completed downloads. Active only when 'Download handler' is the trigger; queues finished items onto the Queue worker.",
+};
 
 export default function System() {
   const refreshScenes = useRefreshSceneExceptions();
@@ -298,7 +317,19 @@ function SchedulerRow({ item }: { item: SchedulerItem }) {
 
   return (
     <tr>
-      <td className="font-medium whitespace-nowrap">{item.name}</td>
+      <td className="font-medium whitespace-nowrap">
+        <span className="inline-flex items-center gap-1">
+          {SCHEDULER_LABELS[item.key] ?? item.name}
+          {SCHEDULER_DESCRIPTIONS[item.key] && (
+            <span
+              className="tooltip tooltip-right tooltip-info"
+              data-tip={SCHEDULER_DESCRIPTIONS[item.key]}
+            >
+              <Info size={12} className="text-base-content/40" />
+            </span>
+          )}
+        </span>
+      </td>
       <td>
         <span className={`badge badge-sm ${stateClass}`}>{stateLabel}</span>
       </td>
