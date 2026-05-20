@@ -19,6 +19,7 @@ const ProwlarrSettings = lazy(() => import("../pages/ProwlarrSettings"));
 const DownloadClients = lazy(() => import("../pages/DownloadClients"));
 const SearchProviders = lazy(() => import("../pages/SearchProviders"));
 const CustomProviders = lazy(() => import("../pages/CustomProviders"));
+const PostProcessing = lazy(() => import("../pages/PostProcessing"));
 
 function Root() {
   return (
@@ -66,6 +67,10 @@ export const router = createBrowserRouter([
           {
             path: "settings/providers/custom",
             element: <CustomProviders />,
+          },
+          {
+            path: "settings/postprocessing",
+            element: <PostProcessing />,
           },
           { path: "*", element: <Navigate to="/" replace /> },
         ],
