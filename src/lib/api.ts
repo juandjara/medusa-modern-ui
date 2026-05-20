@@ -3,11 +3,8 @@ import axios from "axios";
 export const AUTH_EXPIRED_EVENT = "medusa:auth-expired";
 const API_KEY_STORAGE_KEY = "medusa_api_key";
 
-// PyMedusa exposes per-user asset endpoints under /api/v2/series/{slug}/asset/{variant}.
-// Browsers can't send Authorization headers from <img src>, so the backend
-// accepts the legacy `api_key` via query string. We extract the key from the
-// JWT payload (`apiKey` claim, set in medusa/server/api/v2/auth.py:300) rather
-// than requiring it as a separate env var.
+// <img src> can't send Authorization headers, so asset endpoints fall back
+// to an api_key query string. We pull it from the JWT's `apiKey` claim.
 export type AssetVariant =
   | "poster"
   | "posterThumb"
@@ -16,13 +13,7 @@ export type AssetVariant =
   | "fanart"
   | "network";
 
-// Decode the base64url payload of a JWT without verifying the signature.
-// The server signs and verifies; we only need to read claims.
-//
-// JWTs use base64url (RFC 7515 §2) — `-`/`_` swapped for `+`/`/` and padding
-// stripped. The native Uint8Array.fromBase64() with alphabet:'base64url'
-// handles both differences directly, so we don't need to remap chars or
-// re-pad before decoding.
+// Server verifies signatures; we only read claims.
 function decodeJwtPayload(jwt: string): { apiKey?: string } | null {
   const payload = jwt.split(".")[1];
   if (!payload) return null;
@@ -34,9 +25,6 @@ function decodeJwtPayload(jwt: string): { apiKey?: string } | null {
   }
 }
 
-// Returns the user's api_key, caching it in sessionStorage on first call.
-// Self-heals for sessions that pre-date the JWT-extraction logic — those
-// already have a token but no cached key.
 function getApiKey(): string {
   const cached = sessionStorage.getItem(API_KEY_STORAGE_KEY);
   if (cached) return cached;
@@ -84,12 +72,8 @@ api.interceptors.response.use(
   },
 );
 
-// Logs in via two parallel mechanisms:
-//   1. GET /token (Basic auth) → returns JWT for /api/v2/* requests.
-//   2. POST /login (form-encoded) → sets the SECURE_TOKEN secure cookie that
-//      Tornado's WebSocket handler (`@authenticated`) checks. The WS handler
-//      doesn't read the JWT, so without this second call the socket would
-//      fail to upgrade as soon as web auth is enabled on the backend.
+// /token returns the JWT for /api/v2/* requests; /login sets the
+// SECURE_TOKEN cookie the WebSocket handler requires.
 export async function fetchToken(
   username: string,
   password: string,

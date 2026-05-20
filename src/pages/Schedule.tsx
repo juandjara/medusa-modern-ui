@@ -7,9 +7,7 @@ import type {
   ScheduleSection,
 } from "../types/medusa";
 
-// PyMedusa's schedule sections, in the order users want to see them.
-// `missed` first surfaces overdue episodes so they're not buried under
-// "later" rows; "today" follows; then chronological from there.
+// Missed first so overdue episodes aren't buried; chronological after.
 const SECTIONS: { key: ScheduleSection; label: string }[] = [
   { key: "missed", label: "Missed" },
   { key: "today", label: "Today" },
@@ -24,7 +22,7 @@ export default function Schedule() {
       api
         .get<ScheduleResponse>("/schedule", {
           signal,
-          // PyMedusa's get_arguments('category[]') wants the bracketed key.
+          // Backend expects the literal `category[]` key, not `category`.
           params: {
             "category[]": ["missed", "today", "soon", "later"],
             sort: "asc",
@@ -94,8 +92,7 @@ function ScheduleRow({
   const date = new Date(entry.localAirTime);
   const valid = !Number.isNaN(date.getTime());
 
-  // Big-date block uses locale-aware short labels. Falls back to the raw
-  // airdate string when the localAirTime ISO can't be parsed.
+  // Falls back to the raw airdate string if localAirTime can't parse.
   const month = valid
     ? date.toLocaleDateString(undefined, { month: "short" }).toUpperCase()
     : "—";
@@ -110,8 +107,7 @@ function ScheduleRow({
       })
     : entry.airs;
 
-  // Missed rows pick up a subtle warning border so they catch the eye in the
-  // scroll list — same data layout, different left edge.
+  // Missed rows get a warning-tinted left border so they stand out.
   const accentClass =
     section === "missed"
       ? "border-warning/60"

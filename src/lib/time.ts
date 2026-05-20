@@ -1,26 +1,15 @@
 const RTF = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 
-/**
- * Parse a PyMedusa-emitted datetime string. The server uses
- * `str(datetime.utcnow())` in many places, which produces a *naive* UTC
- * string ("2024-01-01 12:34:56.789"). JS's built-in Date.parse interprets
- * a naive ISO string as **local** time per ES2017 — so without
- * intervention, a queue item created "just now" appears N hours off by
- * the viewer's UTC offset.
- *
- * Normalisation: swap the space for T, then append `Z` if no timezone
- * designator (Z or ±HH:MM) is present.
- */
+// PyMedusa uses `str(datetime.utcnow())` — a naive UTC string. JS's
+// Date.parse reads that as *local* time per ES2017, so without this
+// normalisation a "just now" event displays N hours off by the viewer's
+// UTC offset.
 export function parseMedusaIso(s: string): number {
   let v = s.replace(" ", "T");
   if (!/(Z|[+-]\d{2}:?\d{2})$/.test(v)) v += "Z";
   return Date.parse(v);
 }
 
-/**
- * Format an ISO timestamp as a relative phrase ("5 minutes ago", "in 2 days").
- * Returns the input verbatim if it can't be parsed.
- */
 export function formatRelative(iso: string): string {
   const t = parseMedusaIso(iso);
   if (Number.isNaN(t)) return iso;
@@ -32,10 +21,8 @@ export function formatRelative(iso: string): string {
   return RTF.format(Math.round(diff / 86400), "day");
 }
 
-/**
- * Parse PyMedusa's history `actionDate` format — a `YYYYMMDDHHMMSS` integer
- * baked by sbdatetime.encode — into a JS Date. Returns null on bad input.
- */
+// PyMedusa history's `actionDate` is a YYYYMMDDHHMMSS integer
+// (sbdatetime.encode). Returns null on bad input.
 export function parseActionDate(n: number): Date | null {
   const s = String(n).padStart(14, "0");
   if (s.length !== 14) return null;
@@ -50,10 +37,7 @@ export function parseActionDate(n: number): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-/**
- * Format a byte count as a compact human-readable string ("12.4 GB",
- * "850 MB"). Uses binary units (1024). Returns "0 B" for nullish input.
- */
+// Binary units (1024).
 export function formatBytes(bytes: number | null | undefined): string {
   if (!bytes || bytes < 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -66,10 +50,6 @@ export function formatBytes(bytes: number | null | undefined): string {
   return `${value < 10 && i > 0 ? value.toFixed(1) : Math.round(value)} ${units[i]}`;
 }
 
-/**
- * Format a duration in seconds as a compact human string: "30s", "15m",
- * "2h 30m", "1d 4h".
- */
 export function formatDuration(totalSeconds: number): string {
   if (totalSeconds < 60) return `${totalSeconds}s`;
   if (totalSeconds < 3600) return `${Math.round(totalSeconds / 60)}m`;

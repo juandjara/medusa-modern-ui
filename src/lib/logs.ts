@@ -1,16 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "./api";
 
-// PyMedusa's `WarningViewer` / `ErrorViewer` are in-memory dedup'd lists that
-// only grow until the user clears them. There's no WS event for new entries,
-// so we poll. 30s feels right for a sidebar badge: rare enough not to be
-// chatty, frequent enough to catch a failure soon after it happens.
+// No WS event for new log entries — poll. 30s balances chatter vs latency.
 const POLL_MS = 30_000;
 
-// `/api/v2/log/reporter?level=...` returns a list of *strings* — the
-// LogLine objects are serialised via their `__str__` (raw log line +
-// traceback joined with newlines), not their `to_json()`. We parse
-// in-process for display; see parseReporterLine below.
+// `/log/reporter` returns a list of strings — each LogLine serialises via its
+// `__str__` (raw line + traceback joined by '\n'), not `to_json()`.
 const LOGS_KEY = (level: "WARNING" | "ERROR") =>
   ["logs", "reporter", level] as const;
 
@@ -28,8 +23,7 @@ export function useReporterLogs(level: "WARNING" | "ERROR", enabled = true) {
   });
 }
 
-// Combined counts for the sidebar badge. Both queries share their cache with
-// the Logs page so opening that page is instant.
+// Sidebar badge counts; cache is shared with the Logs page.
 export function useLogCounts() {
   const warnings = useReporterLogs("WARNING");
   const errors = useReporterLogs("ERROR");
@@ -51,9 +45,8 @@ export interface ParsedLog {
   raw: string; // Original string for fallback display
 }
 
-// Mirrors medusa/logger/__init__.py:LogLine.log_re. Lenient: any leg
-// that doesn't match drops us into the fallback below.
-//   2026-05-19 18:14:10[,123] LEVEL THREAD[-id] [:: [extra] ] :: [hash] message
+// Mirrors medusa/logger/__init__.py:LogLine.log_re. Non-matches fall through
+// to the raw-string fallback in parseReporterLine.
 const LOG_RE =
   /^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:,\d{3})?)\s+([A-Z]+)\s+(.+?)(?:\s+::\s+\[(.+?)\])?\s+::\s+\[([a-f0-9]{0,7})\]\s+(.*)$/;
 

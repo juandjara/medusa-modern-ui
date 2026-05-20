@@ -16,10 +16,7 @@ export default function Logs() {
   const warnings = useReporterLogs("WARNING");
   const [filter, setFilter] = useState<Filter>("all");
 
-  // Combine + sort by timestamp desc so the most recent issue is on top.
-  // PyMedusa's `Viewer.errors` already sorts each list this way, but we have
-  // to interleave the two endpoints here. Unparseable strings end up with
-  // empty timestamps; treat those as oldest so they don't jump to the top.
+  // Interleave + sort desc; unparseable entries sort oldest.
   const combined = useMemo<Row[]>(() => {
     const items: Row[] = [];
     for (const s of errors.data ?? [])

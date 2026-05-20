@@ -26,8 +26,7 @@ type AddCompletion =
 const SYSTEM_KEY = ["config", "system"] as const;
 const DEFAULT_QUALITY_PRESET = "any_hd";
 
-// IDs from medusa/indexers/config.py. INDEXER_TVRAGE (2) is deprecated and
-// omitted. 0 is the sentinel for "search every enabled indexer".
+// 0 = search every enabled indexer; 2 (TVRage) is deprecated upstream.
 const INDEXER_OPTIONS = [
   { id: 0, label: "All indexers" },
   { id: 1, label: "TVDB" },
@@ -36,10 +35,7 @@ const INDEXER_OPTIONS = [
   { id: 10, label: "IMDB" },
 ];
 
-// Curated set of 2-letter language codes. The backend looks them up in
-// indexerApi().config['langabbv_to_id'] — any standard ISO 639-1 code that's
-// in that dict will work; unknown codes 500 the request. Empty string =
-// use PyMedusa's configured INDEXER_DEFAULT_LANGUAGE.
+// ISO 639-1 codes; unknown codes 500 the request. Empty = server default.
 const LANGUAGE_OPTIONS = [
   { code: "", label: "Default" },
   { code: "en", label: "English" },
@@ -71,13 +67,9 @@ type SearchResultTuple = [
   false | [string, number], // 8  already-in-library marker
 ];
 
-// Backend bug-trap: tuple position 0 is `indexer_api.name` (the human-readable
-// display name like 'TVDBv2', 'TVmaze', 'TMDB', 'IMDb'). But the slug parser
-// in medusa/indexers/utils.py:slug_to_indexer_id matches against the indexer's
-// `identifier` field (lowercase: 'tvdb', 'tvmaze', 'tmdb', 'imdb'). Sending the
-// display name in the POST /series body builds a slug like 'TVDBv212345' that
-// the parser rejects with 'Invalid series identifier'. Map name → identifier
-// here so the rest of the code can treat `result.indexer` as the slug prefix.
+// Tuple position 0 is the display name ('TVDBv2'), but the backend's slug
+// parser only matches the lowercase identifier ('tvdb'). Map here so the
+// POST /series body builds a valid slug.
 const INDEXER_NAME_TO_SLUG: Record<string, string> = {
   TVDBv2: "tvdb",
   TVmaze: "tvmaze",
@@ -92,10 +84,8 @@ function rowToResult(row: SearchResultTuple): SearchResult {
   return {
     indexer: INDEXER_NAME_TO_SLUG[row[0]] ?? row[0].toLowerCase(),
     showId: row[3],
-    // The backend's indexer_api.config['show_url'].format(show_id) is a no-op
-    // — the configured URLs (medusa/indexers/config.py) end with a trailing
-    // slash and have no {} placeholder, so .format() returns the prefix
-    // unchanged. We append the show id ourselves to get a working link.
+    // row[2] is just the URL prefix (no {} placeholder, .format() returns
+    // it unchanged); append the show id ourselves to get a working link.
     showUrl: `${row[2]}${row[3]}`,
     title: row[4],
     firstAired: aired && aired !== "N/A" ? aired : null,
@@ -131,13 +121,11 @@ export default function AddShow() {
   const [completion, setCompletion] = useState<AddCompletion>({
     state: "queued",
   });
-  // Latest step text from QueueItemShow.data.step — surfaced under the
-  // spinner so the user sees actual progress instead of an opaque wait.
+  // Latest entry from QueueItemShow.data.step (an array); shown under the
+  // spinner so the wait isn't opaque.
   const [currentStep, setCurrentStep] = useState<string | null>(null);
 
-  // Pulls the same /config/system payload the Queue + System pages use, so
-  // navigating here after either is a cache hit. `diskSpace.rootDir` lists
-  // every configured root directory.
+  // Shares the /config/system cache with Queue + System pages.
   const system = useQuery<SystemConfig>({
     queryKey: SYSTEM_KEY,
     queryFn: ({ signal }) =>
@@ -145,13 +133,8 @@ export default function AddShow() {
     staleTime: 60_000,
   });
   const rootDirs = system.data?.diskSpace?.rootDir ?? [];
-  // Effective root dir: user pick, else first configured, else empty.
   const effectiveRootDir = options.rootDir ?? rootDirs[0]?.location ?? "";
 
-  // GET /api/v2/internal/searchIndexersForShowName?query=...
-  //   - Required: query
-  //   - Optional: indexerId (0 = search all), language (2-letter)
-  // Response: { results: SearchResultTuple[], languageId: number }
   const search = useQuery({
     queryKey: ["search-shows", query, indexerId, language],
     queryFn: ({ signal }) => {
@@ -167,10 +150,8 @@ export default function AddShow() {
     enabled: query.length >= 3,
   });
 
-  // POST /series body per medusa/server/api/v2/series.py:181 —
-  //   { id: { <indexer>: <showId> }, options: { status, quality, ... } }
-  // Response is the queue item (show is added async after indexer fetch),
-  // so we navigate back to the list rather than to /show/{slug}.
+  // Response is a queue item (the show is added async after the indexer
+  // fetch), so we navigate back to the list rather than to /show/{slug}.
   const addShow = useMutation({
     mutationFn: () => {
       if (!selected) throw new Error("No show selected");
@@ -179,14 +160,11 @@ export default function AddShow() {
         .post<AddShowQueueItem>("/series", {
           id: { [selected.indexer]: selected.showId },
           options: {
-            // Backend's Series.configure does `statusStrings[options['default_status']]`
-            // where statusStrings is keyed by INTEGER codes (medusa/common.py),
-            // so 'Skipped'/'Wanted' must be sent as their numeric values.
+            // Backend's statusStrings is keyed by int; must convert.
             status: EPISODE_STATUS_CODE[options.status],
             quality: { allowed: preset.allowed, preferred: [] },
             anime: options.anime,
-            // Sensible defaults for fields we don't expose; users can edit
-            // these later from per-show settings.
+            // Defaults — editable later from per-show settings.
             seasonFolders: true,
             scene: false,
             subtitles: false,
@@ -196,33 +174,21 @@ export default function AddShow() {
         .then((r) => r.data);
     },
     onMutate: () => {
-      // Reset completion state at the start of every attempt so the success
-      // card always opens in 'queued' state before WS events flip it.
       setCompletion({ state: "queued" });
       setCurrentStep(null);
     },
     onSuccess: () => {
-      // Confirmation card stays mounted while we wait for completion; the
-      // library auto-refreshes via Layout's global `showAdded` WS handler.
       queryClient.invalidateQueries({ queryKey: ["series"] });
     },
   });
 
-  // PyMedusa quirks for ADD specifically (observed empirically):
-  //   - `QueueItemShow.data.show` is always `{}` — the slug is never in there.
-  //   - `inProgress` stays `true` even on the terminal event for ADD; only
-  //     `success` transitions from `null` → `true`/`false`. So we detect
-  //     completion via `success !== null` rather than `!inProgress`.
-  //   - `step` is an array of progress lines that grows over time; the last
-  //     entry is the current step.
-  //   - The canonical "show is now in the library" signal is `showAdded`,
-  //     which carries the full Series payload with `id.slug`.
-  // We use QueueItemShow only for progress + failure, and showAdded for
-  // success (with the slug for "View show").
+  // Backend quirks specific to ADD (empirical): `show` is always `{}` in
+  // QueueItemShow, `inProgress` stays true even on the terminal event, and
+  // the canonical "added" signal is the separate `showAdded` event. So we
+  // listen to QueueItemShow only for progress + failure, and showAdded for
+  // the success+slug.
   const queueItemId = addShow.data?.identifier;
-  // Predicted slug for the in-flight add. PyMedusa composes slugs as
-  // `${indexer}${showId}` (see medusa/indexers/utils.py), and our SearchResult
-  // already normalizes `indexer` to the lowercase identifier form.
+  // PyMedusa composes slugs as `${indexer}${showId}` (indexers/utils.py).
   const expectedSlug = selected
     ? `${selected.indexer}${selected.showId}`
     : null;
@@ -241,8 +207,7 @@ export default function AddShow() {
       if (item.success === false) {
         setCompletion({ state: "failed" });
       }
-      // Success path is handled by showAdded below — it's the only event
-      // that carries the slug we need for "View show".
+      // Success handled below via showAdded — only event with the slug.
     },
     showAdded: (raw) => {
       if (!expectedSlug) return;
@@ -252,10 +217,6 @@ export default function AddShow() {
     },
   });
 
-  // Post-add confirmation. Three sub-states driven by QueueItemShow events
-  // arriving for our queue item identifier: 'queued' (in-flight indexer fetch),
-  // 'added' (success, show is now in the library), 'failed' (indexer fetch
-  // or save errored).
   if (addShow.isSuccess && selected) {
     const resetToSearch = () => {
       addShow.reset();
@@ -264,7 +225,6 @@ export default function AddShow() {
       setQuery("");
     };
     const retry = () => {
-      // Stay on the configure step but clear the prior failed attempt.
       addShow.reset();
       setCompletion({ state: "queued" });
     };

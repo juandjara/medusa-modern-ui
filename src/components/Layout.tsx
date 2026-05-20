@@ -19,9 +19,7 @@ import { useLogCounts } from "../lib/logs";
 import LiveStatus from "./LiveStatus";
 import type { LiveQueueItem } from "../types/medusa";
 
-// Shape of QueueItemShow.data, per medusa/queues/show_queue.py + generic_queue.py.
-// We only read a couple of fields defensively — the rest of the payload varies
-// by action and isn't needed for cache invalidation.
+// Defensive read; payload varies by action.
 interface QueueItemShowData {
   inProgress?: boolean;
   success?: boolean | null;
@@ -34,16 +32,12 @@ interface ShowEnvelope {
 
 const LIVE_QUEUE_KEY = ["live-queue"] as const;
 
-// Items that already appear in /config/system shouldn't be duplicated in the
-// live-queue cache. Post-process items go through the system fetch path; the
-// show-queue items emit QueueItemShow (separate event), so we don't see them
-// here anyway.
+// Post-process items already come through /config/system; don't double-track.
 function shouldTrackInLiveQueue(item: LiveQueueItem): boolean {
   return item.name !== "Post Process";
 }
 
-// How long to keep finished items visible after they complete, so the user
-// gets a chance to see the final state before they vanish.
+// Successful items linger this long so the user can see the final state.
 const LIVE_QUEUE_EXPIRE_MS = 30_000;
 
 type NavItem = {
@@ -67,14 +61,11 @@ export default function Layout() {
   const { logout } = useAuth();
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
-  // Hook-in once at the Layout level so we get a single polling subscriber
-  // for the sidebar badge. Shared cache with the Logs page.
+  // One subscriber at Layout level; shared cache with the Logs page.
   const logCounts = useLogCounts();
 
-  // Global WS subscriber. PyMedusa emits one QueueItemShow per state change
-  // (queued → in-progress → finished); we only invalidate on completion so we
-  // don't thrash the cache mid-action. showAdded / showRemoved invalidate the
-  // full list — the new or deleted slug may not be known to the cache yet.
+  // Invalidate on completion only (avoid thrashing mid-action). showAdded /
+  // showRemoved invalidate the full list since the slug may be unknown.
   useWebSocket({
     QueueItemShow: (raw) => {
       const item = raw as QueueItemShowData;
@@ -91,10 +82,8 @@ export default function Layout() {
     showRemoved: () => {
       queryClient.invalidateQueries({ queryKey: ["series"] });
     },
-    // Upsert into live-queue cache. Drives the Search Queue section + the
-    // Download Handler banner on the Queue page. Items not exposed via
-    // /config/system (search, snatch, download handler heartbeat) only exist
-    // here as long as the user has the app open.
+    // Search / snatch / download-handler items live here as long as the
+    // app is open — no HTTP endpoint exposes them.
     QueueItemUpdate: (raw) => {
       const item = raw as LiveQueueItem;
       if (!item.identifier || !item.name) return;
@@ -108,21 +97,11 @@ export default function Layout() {
         },
       );
 
-      // Only auto-clean *successful* finished items. Failures are kept in
-      // the cache until the user dismisses them on the Queue page — the
-      // queue is the natural place to notice that a long-running task
-      // failed, and a vanishing item there means the failure goes unseen
-      // (the user noticed `/api/v2/search/manual` failures only via the
-      // legacy /errorlogs view because the queue item disappeared). The
-      // dismiss control on Queue.tsx writes back to LIVE_QUEUE_KEY.
-      //
-      // We gate on `success === true` only — PyMedusa keeps `inProgress`
-      // true through a successful completion, so requiring inProgress=false
-      // would mean successful items never get cleaned up at all.
-      //
-      // Re-check the cache on fire so a reactivated item (same identifier,
-      // new in-progress event with success=null) doesn't get removed by a
-      // stale timer.
+      // Auto-clean successful items only — failures linger until the user
+      // dismisses them from the Queue page. Gate on `success === true`
+      // alone: PyMedusa keeps `inProgress` true through completion, so
+      // checking it would mean nothing ever gets cleaned. Re-check on
+      // timer fire to avoid clearing a reactivated item.
       if (item.success === true) {
         window.setTimeout(() => {
           queryClient.setQueryData<LiveQueueItem[]>(

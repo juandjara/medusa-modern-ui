@@ -8,11 +8,7 @@ import StatusBadge from "../components/StatusBadge";
 
 const PAGE_SIZE = 20;
 
-// Server-side filter values. PyMedusa's history.py filters on the integer
-// `action` column (see medusa/common.py); the string "Snatched" wouldn't
-// match against an int column, so we map labels to the underlying codes.
-// Labels match `statusName` strings emitted by the backend so the dropdown
-// reads the same as the Status column.
+// Maps statusName labels to the integer `action` column the backend filters on.
 const STATUS_CODES: Record<string, number> = {
   Downloaded: 4,
   Snatched: 2,
@@ -30,12 +26,9 @@ interface HistoryPage {
   limit: number;
 }
 
-// Build the v2 history endpoint based on the active filters. PyMedusa exposes:
-//   GET /history                                   — all rows
-//   GET /history/{slug}                             — filtered to one show
-//   GET /history/{slug}/episode/{sNNeNN}            — exact episode
-// We pick the most specific endpoint we can. Season alone (no episode) has
-// no server-side support, so we fetch /history/{slug} and filter client-side.
+// Picks the most specific v2 endpoint: /history → /history/{slug} →
+// /history/{slug}/episode/{sNNeNN}. Season-only filtering has no server-side
+// equivalent — fetch /history/{slug} and filter locally.
 function buildHistoryPath(
   showSlug: string | null,
   season: number | null,
@@ -52,8 +45,7 @@ function buildHistoryPath(
 export default function History() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // All filter / paging state lives in the URL — reads are derived, writes
-  // call setSearchParams.
+  // URL is the source of truth for filter / paging state.
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const status = searchParams.get("status") ?? "";
   const showSlug = searchParams.get("show");
@@ -62,8 +54,7 @@ export default function History() {
   const season = seasonParam !== null ? parseInt(seasonParam, 10) : null;
   const episode = episodeParam !== null ? parseInt(episodeParam, 10) : null;
 
-  // Patch URL params; reset to page 1 whenever any non-page param changes
-  // (filtered totals can shrink — landing past totalPages would be broken).
+  // Reset to page 1 on filter change (filtered total may shrink past current).
   const updateParams = (patch: Record<string, string | null>) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -84,9 +75,7 @@ export default function History() {
       const params: Record<string, string | number> = {
         page,
         limit: PAGE_SIZE,
-        // PyMedusa's history handler accepts a JSON-encoded sort spec — the
-        // field map in history.py:80 keys `actiondate`/`date` to SQL `date`.
-        // Most-recent first.
+        // Backend accepts a JSON-encoded sort spec; field map in history.py:80.
         sort: JSON.stringify([{ field: "actionDate", type: "desc" }]),
       };
       const code = status ? STATUS_CODES[status] : undefined;
@@ -107,13 +96,8 @@ export default function History() {
   });
 
   let items = data?.items ?? [];
-  // Every HistoryEntry already carries showTitle, so the chip's display name
-  // comes for free from the rows we just loaded — no extra fetch needed.
-  // Falls back to the slug if the show has no entries (empty result).
   const showTitle = showSlug ? (items[0]?.showTitle ?? showSlug) : null;
-  // Season-only filter has no server-side equivalent, so apply locally over
-  // the show-filtered page. (Pagination counts may look off in this mode —
-  // acceptable trade-off; if it becomes annoying we can server-filter.)
+  // Season-only filter has no server equivalent — pagination may look off.
   if (showSlug && season !== null && episode === null) {
     items = items.filter((h) => h.season === season);
   }

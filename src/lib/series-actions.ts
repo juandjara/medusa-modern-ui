@@ -13,10 +13,7 @@ export type MassUpdateAction =
   | 'remove'    // remove from Medusa (keeps files)
   | 'delete'    // remove from Medusa AND delete files
 
-// Fallback timer that clears the local "queued" banner and triggers a refetch
-// when the WebSocket QueueItemShow event hasn't beaten us to it. With WS
-// working this is effectively a no-op (cache is already fresh); 3s keeps the
-// banner from lingering visually.
+// Backstop for when WS isn't fast enough; otherwise effectively a no-op.
 const FALLBACK_INVALIDATE_DELAY_MS = 3_000
 
 const ACTION_CONFIG: Record<
@@ -47,9 +44,7 @@ export function useSeriesMassUpdate(slug: string) {
   const navigate = useNavigate()
   const [queued, setQueued] = useState<MassUpdateAction | null>(null)
 
-  // Clear the banner the moment PyMedusa says the action finished, instead of
-  // waiting for the 3s fallback timer. The timer still runs as a backstop in
-  // case WS is offline.
+  // WS clears the banner immediately; the 3s timer is a backstop.
   useWebSocket({
     QueueItemShow: (raw) => {
       const item = raw as {
@@ -94,8 +89,7 @@ export function useSeriesMassUpdate(slug: string) {
   }
 }
 
-// Per-show settings patches use JSON-pointer-style keys per the v2 source
-// (medusa/server/api/v2/series.py:228). Body is flat: { 'config.paused': true }.
+// v2 series patches take flat JSON-pointer keys, e.g. { 'config.paused': true }.
 export function usePauseSeries(slug: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -107,10 +101,7 @@ export function usePauseSeries(slug: string) {
   })
 }
 
-// General per-show edit. Accepts a partial JSON-pointer body — caller passes
-// the exact keys from the patches dict in series.py:146 (config.anime,
-// config.qualities.allowed, etc.). Invalidates ['series', slug] so any other
-// page reading the show picks up the changes immediately.
+// Caller supplies the JSON-pointer keys directly (see series.py:146).
 export function useEditSeries(slug: string) {
   const queryClient = useQueryClient()
   return useMutation({

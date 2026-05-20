@@ -258,8 +258,7 @@ function SchedulerRow({ item }: { item: SchedulerItem }) {
   const hasTrigger = SCHEDULER_HAS_TRIGGER[item.key] === true;
   const isBacklog = item.key === "backlog";
 
-  // Treat paused as a distinct visual state; otherwise fall back to the usual
-  // enabled / running / idle / stopped hierarchy.
+  // Paused is a separate state from disabled/running/idle/stopped.
   const stateLabel = notInitialized
     ? "Not initialized"
     : isPaused

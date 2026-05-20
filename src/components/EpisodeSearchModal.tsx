@@ -47,8 +47,7 @@ export default function EpisodeSearchModal({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const queryClient = useQueryClient();
 
-  // 1) Discover providers usable for manual search. Long-lived cache — the
-  // provider list rarely changes during a session.
+  // 1) Manual-search-capable providers; cache is long-lived.
   const providersQ = useQuery({
     queryKey: ["providers"],
     queryFn: ({ signal }) =>
@@ -65,9 +64,8 @@ export default function EpisodeSearchModal({
     [providersQ.data],
   );
 
-  // 2) Per-provider cached results. Fanned out via useQueries so each
-  // provider has its own cache key and request lifecycle — one slow provider
-  // doesn't block the others.
+  // 2) Per-provider cached results — fanned out so one slow provider doesn't
+  // block the others.
   const resultQueries = useQueries({
     queries: manualProviders.map((p) => ({
       queryKey: [
@@ -93,8 +91,7 @@ export default function EpisodeSearchModal({
           );
           return res.data;
         } catch (err) {
-          // 404 = "Provider cache results not found" per providers.py. That's
-          // a fine, expected state for an episode no one has searched yet.
+          // 404 = no cache yet for this episode; not an error.
           if (axios.isAxiosError(err) && err.response?.status === 404)
             return [];
           throw err;
@@ -121,9 +118,7 @@ export default function EpisodeSearchModal({
     providersQ.isLoading || resultQueries.some((q) => q.isLoading);
   const resultsFetching = resultQueries.some((q) => q.isFetching);
 
-  // Refetch every per-provider results query for this specific episode.
-  // useCallback (not useEffectEvent) so it's safe to invoke from button
-  // clicks as well as from effects below.
+  // useCallback (not useEffectEvent) so button clicks can call it too.
   const refetchAllResults = useCallback(() => {
     queryClient.invalidateQueries({
       queryKey: ["provider-results"],
@@ -134,10 +129,9 @@ export default function EpisodeSearchModal({
     });
   }, [queryClient, seriesSlug, season, episode]);
 
-  // 3) Re-run mutation. Kicks a fresh manual search via PUT /search/manual;
-  // backend just queues the work and completion arrives over WS as a
-  // QueueItemUpdate. The internal name stays `forceSearch` to match
-  // PyMedusa's `forced_search_queue_scheduler` term.
+  // 3) Re-run mutation. Variable name `forceSearch` matches PyMedusa's
+  // `forced_search_queue_scheduler`; UI label is "Re-run search". Completion
+  // arrives via the QueueItemUpdate WS event, not the HTTP response.
   const forceSearch = useMutation({
     mutationFn: () =>
       api.put("/search/manual", {
@@ -146,16 +140,8 @@ export default function EpisodeSearchModal({
       }),
   });
 
-  // 4) Snatch mutation. The legacy `/home/pickManualSearch` route lives
-  // outside /api/v2 — auth is the SECURE_TOKEN cookie set during login,
-  // not the JWT — so we call it with a raw axios.get.
-  //
-  // Per-row status (pending / success / error) is derived from the
-  // mutation's own state below — a single useMutation only remembers its
-  // most recent call, so indicators on previously-snatched rows clear
-  // when the user snatches another. The cached results refetch (via the
-  // WS `completionKey` effect) eventually updates each row's release data
-  // with the snatched outcome, so the visible state isn't lost.
+  // 4) Snatch. Legacy `/home/pickManualSearch` is outside /api/v2 — uses
+  // the SECURE_TOKEN cookie, not the JWT, so we hit it with raw axios.
   const snatch = useMutation({
     mutationFn: async (release: CachedRelease) => {
       const res = await axios.get<{ result?: string }>(
@@ -174,9 +160,7 @@ export default function EpisodeSearchModal({
     },
   });
 
-  // 5) WS-driven completion signals. We don't subscribe directly — Layout's
-  // global handler upserts QueueItemUpdate items into the LIVE_QUEUE_KEY
-  // cache. Reading the cache via useQuery gives us reactive completion.
+  // 5) WS completion via Layout's live-queue cache (read-only here).
   const { data: liveItems = [] } = useQuery<LiveQueueItem[]>({
     queryKey: LIVE_QUEUE_KEY,
     queryFn: () =>
@@ -203,22 +187,15 @@ export default function EpisodeSearchModal({
     i.name.startsWith("MANUAL-"),
   );
 
-  // A live MANUAL- queue item is "active" until `success` flips from null
-  // to a boolean. `inProgress` isn't a reliable signal here — PyMedusa
-  // keeps it true through a successful completion in practice.
+  // "Active" = success still null. `inProgress` is unreliable — PyMedusa
+  // keeps it true through a successful completion.
   const liveSearchActive =
     !!liveManualSearch && liveManualSearch.success == null;
   const searching = forceSearch.isPending || liveSearchActive;
 
-  // Build a stable key from items that have completed in a way that means
-  // our cached results should be refreshed. PyMedusa flips `success` from
-  // null to a boolean when the queue item finishes, but doesn't reliably
-  // flip `inProgress` back to false on successful completion — so we gate
-  // on `success` only.
-  //
-  // For MANUAL- we refresh on any outcome (success or failure, so the user
-  // sees an empty list and the error log). For SNATCH- we only refresh on
-  // success — a failed snatch doesn't change the cached release data.
+  // Stable key from finished items so refetch fires once per completion,
+  // not per WS upsert. MANUAL- refreshes on any outcome (failure leaves an
+  // empty list + a log entry); SNATCH- only on success.
   const completionKey = useMemo(
     () =>
       relevantItems
@@ -236,11 +213,8 @@ export default function EpisodeSearchModal({
     refetchAllResults();
   }, [completionKey, refetchAllResults]);
 
-  // Auto-run the manual search when every provider's cache came back
-  // empty. Matches upstream Vue: opening the modal on an episode no one
-  // has searched yet shouldn't require the user to click "Re-run search".
-  // Fires at most once per modal open — the ref resets on unmount because
-  // SeasonAccordion conditionally renders the modal.
+  // Auto-run a search when every provider's cache came back empty. Fires
+  // at most once per open; the ref resets on unmount.
   const forceSearchMutate = forceSearch.mutate;
   const autoSearchedRef = useRef(false);
   useEffect(() => {
@@ -386,9 +360,8 @@ export default function EpisodeSearchModal({
                 </tr>
               )}
               {results.map((r) => {
-                // Per-row state derived from the snatch mutation's variables.
-                // Only the most recent snatch shows a state; earlier rows
-                // fall back to "idle" once another row is snatched.
+                // Only the latest snatch shows a per-row indicator; earlier
+                // rows fall back to idle.
                 const isLatest = snatch.variables?.identifier === r.identifier;
                 const pending = isLatest && snatch.isPending;
                 const success = isLatest && snatch.isSuccess;

@@ -36,8 +36,7 @@ export default function ShowSettings() {
 
 interface FormState {
   defaultEpisodeStatus: string;
-  // `null` = Custom — don't touch qualities on save. Any other value is a key
-  // into QUALITY_PRESETS and OVERWRITES the show's allowed list.
+  // null = Custom (don't overwrite). Other values are QUALITY_PRESETS keys.
   qualityPreset: string | null;
   anime: boolean;
   scene: boolean;
@@ -64,8 +63,7 @@ function formFromShow(show: Series): FormState {
 function SettingsForm({ show }: { show: Series }) {
   const navigate = useNavigate();
   const editSeries = useEditSeries(show.id.slug);
-  // Lazy initial state from the show — separate from the server cache so
-  // edits-in-progress aren't reset by background refetches.
+  // Local form state survives background refetches of the server cache.
   const [form, setForm] = useState<FormState>(() => formFromShow(show));
 
   const isCustomQuality = form.qualityPreset === null;
@@ -80,9 +78,6 @@ function SettingsForm({ show }: { show: Series }) {
       "config.dvdOrder": form.dvdOrder,
       "config.airByDate": form.airByDate,
     };
-    // Only overwrite qualities when the user picked a real preset. Leaving
-    // qualityPreset === null (Custom) leaves the existing allowed/preferred
-    // arrays untouched on the backend.
     if (form.qualityPreset !== null) {
       const preset = QUALITY_PRESETS[form.qualityPreset];
       body["config.qualities.allowed"] = preset.allowed;

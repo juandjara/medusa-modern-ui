@@ -19,9 +19,6 @@ function useSeries() {
   });
 }
 
-// Per-show stats (downloaded / total / size / next-airs). Independent of the
-// series list — slow to refresh on its own cadence is fine for a progress
-// indicator.
 function useShowStats() {
   return useQuery({
     queryKey: ["stats", "show"],
@@ -36,8 +33,6 @@ export default function ShowList() {
   const { data: statsData } = useShowStats();
   const [search, setSearch] = useState("");
 
-  // slug → stat lookup. Stats rows key off (indexerId, seriesId); we
-  // reconstruct the slug the same way PyMedusa does.
   const statsBySlug = useMemo(() => {
     const map: Record<string, ShowStat> = {};
     for (const stat of statsData?.stats ?? []) {
@@ -155,12 +150,7 @@ export default function ShowList() {
   );
 }
 
-// Rendered as a separator strip between the poster and the card body, so it
-// also conveys download progress at a glance without taking text-row space.
-// Counts + percentage live in the hover tooltip.
 function ShowProgress({ stat }: { stat: ShowStat | undefined }) {
-  // Skip when stats haven't loaded yet (or PyMedusa has no record for this
-  // show — e.g. one that was just added and hasn't been scanned).
   if (!stat || stat.epTotal === 0) return null;
   const pct = Math.min(
     100,

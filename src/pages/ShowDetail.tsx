@@ -40,9 +40,7 @@ export default function ShowDetail() {
     enabled: !!slug,
   });
 
-  // Page through /episodes until we've drained the dataset. The endpoint caps
-  // limit at 1000; we keep paging while pages come back full. Safety cap at 20
-  // pages = 20k episodes — far above anything real.
+  // Endpoint caps at 1000 per page; safety cap at 20 pages.
   const episodes = useQuery({
     queryKey: ["series", slug, "episodes"],
     queryFn: async ({ signal }) => {
@@ -61,8 +59,7 @@ export default function ShowDetail() {
     enabled: !!slug,
   });
 
-  // Shares the ['stats', 'show'] cache with ShowList — usually warm.
-  // Falls back to a fetch when navigating directly to ShowDetail.
+  // Shared cache with ShowList; falls back to a fetch on direct nav.
   const showStats = useQuery({
     queryKey: ["stats", "show"],
     queryFn: ({ signal }) =>
@@ -107,9 +104,7 @@ export default function ShowDetail() {
   const s = show.data;
   const reportedSeasons = s.seasonCount?.length ?? null;
   const renderedSeasons = seasons.length;
-  // Only evaluate the mismatch once episodes have actually loaded. Otherwise
-  // `seasons` starts at 0 and the warning flashes briefly on every visit
-  // before the episode fetch resolves.
+  // Guard against the false-positive flash before episodes load.
   const hasSeasonMismatch =
     episodes.isSuccess &&
     reportedSeasons !== null &&
@@ -352,10 +347,7 @@ export default function ShowDetail() {
   );
 }
 
-// Air dates arrive as ISO datetimes via PyMedusa's parse_date_time. Render
-// short and locale-friendly. Past dates from different years need the year
-// included to avoid ambiguity (a recent rewatch vs. a 2014 ending), so
-// `includeYear` toggles that on for prevAirDate-style usage.
+// `includeYear` disambiguates past dates from older seasons.
 function formatAirDate(iso: string, includeYear = false): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;

@@ -33,9 +33,7 @@ export default function Queue() {
       api.get<SystemConfig>("/config/system", { signal }).then((r) => r.data),
   });
 
-  // Live-queue cache is WS-populated from Layout. We use a useQuery purely to
-  // get a reactive subscription to it — queryFn returns the existing value
-  // (or empty) and we never refetch.
+  // useQuery as a reactive subscription to Layout's WS-populated cache.
   const { data: liveItems = [] } = useQuery<LiveQueueItem[]>({
     queryKey: LIVE_QUEUE_KEY,
     queryFn: () =>
@@ -43,9 +41,8 @@ export default function Queue() {
     staleTime: Infinity,
   });
 
-  // QueueItemShow + QueueItemUpdate are also handled by Layout (for series
-  // invalidation and live-queue cache writes); here we only need to keep the
-  // /config/system query fresh.
+  // Layout handles series invalidation + live-queue writes; here we just
+  // keep /config/system fresh.
   useWebSocket({
     QueueItemShow: () => {
       queryClient.invalidateQueries({ queryKey: SYSTEM_KEY });
@@ -55,7 +52,6 @@ export default function Queue() {
     },
   });
 
-  // Most recent first — sort by when each item entered its queue.
   const showQueue = useMemo(
     () =>
       [...(data?.showQueue ?? [])].sort(
@@ -71,9 +67,6 @@ export default function Queue() {
     [data?.postProcessQueue],
   );
 
-  // Split the WS-driven live queue into the sections we render. Search items
-  // get their own list; the download handler is a single heartbeat we show
-  // separately at the top.
   const searchQueue = useMemo(
     () =>
       liveItems
@@ -98,9 +91,7 @@ export default function Queue() {
   const totalItems =
     showQueue.length + postProcessQueue.length + searchQueue.length;
 
-  // Manually remove a live-queue item from the cache. We use this for failed
-  // search/snatch items, which now linger so the user can notice them; the
-  // dismiss × clears them once acknowledged.
+  // Failed items linger in the cache until the user dismisses them here.
   const dismissLiveItem = (identifier: string) => {
     queryClient.setQueryData<LiveQueueItem[]>(LIVE_QUEUE_KEY, (prev = []) =>
       prev.filter((i) => i.identifier !== identifier),

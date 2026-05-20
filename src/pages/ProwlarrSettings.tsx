@@ -26,8 +26,7 @@ interface ConfigMain {
 export default function ProwlarrSettings() {
   const queryClient = useQueryClient();
 
-  // Persisted config. Fetched once on mount; the Save mutation invalidates
-  // it. No polling — settings panels aren't kept open.
+  // Settings panels aren't kept open; fetch-on-mount, no polling.
   const configQ = useQuery({
     queryKey: ["config", "main"],
     queryFn: ({ signal }) =>
@@ -38,9 +37,8 @@ export default function ProwlarrSettings() {
   const savedUrl = saved?.url ?? "";
   const savedApikey = saved?.apikey ?? "";
 
-  // Form state. `null` means "use the saved value"; switches to a string
-  // the first time the user edits. Nullable-initial pattern keeps us from
-  // needing a useEffect to sync server data into local state.
+  // Nullable-initial pattern: `null` = use saved value, edits switch to
+  // string. Avoids a useEffect to sync server data into local state.
   const [draftUrl, setDraftUrl] = useState<string | null>(null);
   const [draftApikey, setDraftApikey] = useState<string | null>(null);
   const [revealApikey, setRevealApikey] = useState(false);
@@ -50,8 +48,7 @@ export default function ProwlarrSettings() {
   const dirty = url !== savedUrl || apikey !== savedApikey;
   const canConnect = url.trim().length > 0 && apikey.trim().length > 0;
 
-  // List of all configured providers — we filter to manager === 'prowlarr'
-  // for the "imported" set. Shared cache with EpisodeSearchModal.
+  // Shared cache with EpisodeSearchModal; filter on `manager` below.
   const providersQ = useQuery({
     queryKey: ["providers"],
     queryFn: ({ signal }) =>
@@ -74,19 +71,16 @@ export default function ProwlarrSettings() {
         providers: { prowlarr: { url, apikey } },
       }),
     onSuccess: () => {
-      // Reset local drafts back to "use saved value" so dirty=false.
+      // Reset drafts so `dirty` flips back to false.
       setDraftUrl(null);
       setDraftApikey(null);
       queryClient.invalidateQueries({ queryKey: ["config", "main"] });
     },
   });
 
-  // Refresh indexers from Prowlarr. Uses current form values (not saved)
-  // so the user can preview before persisting. The Add action below still
-  // needs saved config because the backend reads app.PROWLARR_URL.
-  // Mutation state is the single source of truth — `.data` survives across
-  // a subsequent failing refresh, so the table stays populated while
-  // showing the error inline.
+  // Uses current form values (preview before save). Add still needs saved
+  // config because the backend reads app.PROWLARR_URL. Mutation .data
+  // survives a subsequent failing refresh — table stays populated.
   const refreshIndexers = useMutation({
     mutationFn: () =>
       api
@@ -103,8 +97,7 @@ export default function ProwlarrSettings() {
     ? extractErrorMessage(refreshIndexers.error)
     : null;
 
-  // Test connection. While a new test is pending, isSuccess/isError flip
-  // back to false on their own — no manual reset needed.
+  // While pending, isSuccess/isError flip false — no manual reset needed.
   const testConnection = useMutation({
     mutationFn: () =>
       api.post("/providers/prowlarr/operation", {
@@ -130,9 +123,7 @@ export default function ProwlarrSettings() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["providers"] }),
   });
 
-  // Auto-fetch indexers whenever the saved Prowlarr config has values —
-  // same UX as upstream Vue. Triggers once on mount with a stored config
-  // and again whenever the user saves new credentials.
+  // Auto-fetch on mount with stored config; also after Save invalidates it.
   const refreshIndexersMutate = refreshIndexers.mutate;
   useEffect(() => {
     if (savedUrl && savedApikey) refreshIndexersMutate();
