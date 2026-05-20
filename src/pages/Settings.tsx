@@ -54,6 +54,21 @@ export default function Settings() {
           </li>
           <li>
             <Link
+              to="/settings/providers/custom"
+              className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors border-b border-base-300"
+            >
+              <div>
+                <div className="font-medium">Custom providers</div>
+                <div className="text-xs text-base-content/60">
+                  Add direct Newznab / Torznab / TorrentRSS feeds without
+                  Prowlarr.
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-base-content/40" />
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/settings/providers/prowlarr"
               className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors"
             >

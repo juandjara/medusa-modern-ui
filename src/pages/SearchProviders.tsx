@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import api from "../lib/api";
 import type { ProviderSummary, ProviderConfig } from "../types/medusa";
+import { CategoryEditor } from "./CustomProviders";
 
 interface ConfigMain {
   brokenProviders?: string[];
@@ -581,6 +582,14 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
         />
       )}
 
+      {isNewznabLike && (
+        <CategoryEditor
+          provider={provider}
+          catIds={effective.catIds ?? []}
+          onChange={(next) => setField("catIds", next)}
+        />
+      )}
+
       {/* Torrent-specific */}
       {isTorrent && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-base-300/60">
@@ -609,6 +618,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
           {provider.config.ratio !== undefined && (
             <SmallField
               label="Seed ratio"
+              className="col-span-2"
               hint={
                 <>
                   Used by the automated download handler.
@@ -852,13 +862,15 @@ function SmallField({
   label,
   hint,
   children,
+  className = "",
 }: {
   label: string;
   hint?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <fieldset className="fieldset">
+    <fieldset className={`fieldset ${className}`}>
       <legend className="fieldset-legend text-xs">{label}</legend>
       {children}
       {hint && <div className="text-xs text-base-content/50 mt-1">{hint}</div>}
