@@ -1,6 +1,3 @@
-// Small time-formatting helpers shared across pages. Kept tiny — if these
-// grow significantly, consider date-fns / dayjs instead.
-
 const RTF = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 
 /**

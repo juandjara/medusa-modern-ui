@@ -14,8 +14,6 @@ import {
 import api from "../lib/api";
 import type { ProviderSummary, ProwlarrIndexer } from "../types/medusa";
 
-// Shape of the slice of `GET /api/v2/config/main` we care about. The full
-// payload is huge; we only ever read `providers.prowlarr`.
 interface ConfigMain {
   providers?: {
     prowlarr?: {

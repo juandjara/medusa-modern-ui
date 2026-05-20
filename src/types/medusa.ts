@@ -1,5 +1,4 @@
-// ── Series ──
-// Shape from PyMedusa /api/v2/series. Identifier is `id.slug` (stable, URL-safe).
+// `id.slug` is the stable, URL-safe identifier used in all v2 routes.
 export interface SeriesId {
   tmdb: number | null;
   tvdb: number | null;
@@ -68,7 +67,6 @@ export interface Series {
   seasonCount?: { season: number; episodeCount: number }[];
 }
 
-// ── Episode (PyMedusa v2: GET /series/{slug}/episodes returns Episode[]) ──
 export interface Episode {
   identifier: string; // "s03e07" — used as key in PATCH body
   id: {
@@ -169,7 +167,6 @@ export const EPISODE_STATUS_CODE: Record<EpisodeStatus, number> = {
   "Snatched (Best)": 12,
 };
 
-// ── API responses ──
 export interface SeriesListResponse {
   data: Series[];
   total: number;
@@ -296,9 +293,6 @@ export interface ProviderSummary {
   };
 }
 
-// Raw shape returned by Prowlarr's own /api/v1/indexer, proxied verbatim
-// through `POST /api/v2/providers/prowlarr/operation` with type=GETINDEXERS.
-// The Prowlarr API is the source of truth — we only read a handful of fields.
 export interface ProwlarrIndexer {
   id: number;
   name: string;
@@ -399,9 +393,6 @@ export interface HistoryEntry {
   partOfBatch: boolean;
 }
 
-// Friendly labels for the quality bitmask values declared in QUALITY above.
-// Each history row's `quality` is a single bit; map to a short display string.
-// Strings mirror medusa/common.py:Quality.qualityStrings.
 export const QUALITY_NAMES: Record<number, string> = {
   [QUALITY.UNKNOWN]: "Unknown",
   [QUALITY.SDTV]: "SDTV",
@@ -532,8 +523,6 @@ export interface DiskSpace {
   rootDir: DiskSpaceEntry[];
 }
 
-// /api/v2/config/system response. Used by both the Queue page (showQueue +
-// postProcessQueue) and the System page (everything else).
 export interface SystemConfig {
   showQueue: ShowQueueItem[];
   postProcessQueue: PostProcessQueueItem[];
@@ -600,7 +589,6 @@ export function categorizeLiveItem(name: string): LiveQueueCategory {
   return "other";
 }
 
-// Short label for the badge on a search-row.
 export function searchTypeLabel(name: string): string {
   if (name === "Daily Search") return "DAILY";
   if (name === "Proper Search") return "PROPER";

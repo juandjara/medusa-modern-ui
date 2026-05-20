@@ -25,8 +25,6 @@ interface ConfirmConfig {
   variant: 'normal' | 'danger'
 }
 
-// Actions that need confirmation before firing. Anything not listed runs
-// immediately.
 const CONFIRMS: Partial<Record<MassUpdateAction, ConfirmConfig>> = {
   rename: {
     title: 'Rename episode files?',

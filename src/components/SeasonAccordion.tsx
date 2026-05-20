@@ -27,7 +27,6 @@ export default function SeasonAccordion({
     (e) => e.status === "Downloaded" || e.status === "Archived",
   ).length;
 
-  // PATCH body is keyed by episode identifier (e.g. "s01e02"), status sent as int.
   const setStatus = useMutation({
     mutationFn: (payload: { identifiers: string[]; status: EpisodeStatus }) => {
       const body: Record<string, { status: number }> = {};

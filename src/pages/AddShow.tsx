@@ -13,16 +13,11 @@ import { useWebSocket } from "../lib/websocket";
 import type { SearchResult, SystemConfig } from "../types/medusa";
 import { EPISODE_STATUS_CODE, QUALITY_PRESETS } from "../types/medusa";
 
-// Subset of the queue-item shape returned by POST /series. The handler in
-// medusa/server/api/v2/series.py:226 returns `queue_item_obj.to_json` directly
-// (no wrapper). We only need identifier here; everything else arrives via
-// subsequent QueueItemShow WS events.
 interface AddShowQueueItem {
   identifier: string;
   [k: string]: unknown;
 }
 
-// State machine for what happened after the user clicked Add Show.
 type AddCompletion =
   | { state: "queued" }
   | { state: "added"; slug: string }
@@ -64,9 +59,6 @@ const LANGUAGE_OPTIONS = [
   { code: "tr", label: "Turkish" },
 ];
 
-// Raw row shape from /api/v2/internal/searchIndexersForShowName. Each match
-// is a positional tuple; we normalize into SearchResult at the queryFn
-// boundary so the UI code reads as ordinary objects.
 type SearchResultTuple = [
   string, // 0  indexer DISPLAY NAME (e.g. 'TVDBv2', 'TMDB')
   number, // 1  indexer internal id (unused by us)

@@ -31,8 +31,6 @@ interface Props {
   onClose: () => void;
 }
 
-// Live-queue cache populated by Layout's WS subscriber. We read it here to
-// know when a manual search or snatch finishes for this episode.
 const LIVE_QUEUE_KEY = ["live-queue"] as const;
 
 function epSlug(season: number, episode: number): string {

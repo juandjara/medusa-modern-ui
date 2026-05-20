@@ -249,27 +249,6 @@ export default function System() {
   );
 }
 
-// ============================================================================
-// Reference: still-unwired endpoints (for future work)
-// ----------------------------------------------------------------------------
-// Implemented triggers (scheduler Run/Pause, scene-exception refresh + clean)
-// live in src/lib/system-actions.ts. The following endpoints exist on the
-// backend but don't have UI yet.
-//
-// Recommended shows refresh (per source) — needs a Recommended Shows view first:
-//   POST /api/v2/recommended/{source}    source in { trakt, imdb, anidb, anilist }
-//
-// Schedulers with no user-triggerable endpoint (rows stay action-less):
-//   showUpdate, versionCheck, showQueue, searchQueue, forcedSearchQueue,
-//   postProcess, postProcessQueue, traktChecker, snatchQueue, episodeUpdater
-//
-// Other admin types on POST /api/v2/system/operation (medusa/server/api/v2/system.py):
-//   RESTART (needs pid)              SHUTDOWN (needs pid)
-//   CHECKOUT_BRANCH (needs branch)   NEED_UPDATE        UPDATE
-//   CHECKFORUPDATE                   BACKUP             BACKUPTOZIP
-//   RESTOREFROMZIP                   FORCEADH (used by Run Download Handler)
-// ============================================================================
-
 function SchedulerRow({ item }: { item: SchedulerItem }) {
   const run = useRunScheduler();
   const togglePaused = useToggleBacklogPaused();

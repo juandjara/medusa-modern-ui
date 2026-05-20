@@ -4,9 +4,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './api'
 import { useWebSocket } from './websocket'
 
-// Action keys for POST /api/v2/massupdate. Each maps to a parallel array in
-// the request body; the server runs the corresponding queue action against
-// every slug listed under that key.
 export type MassUpdateAction =
   | 'update'    // re-fetch metadata from indexer
   | 'rescan'    // rescan local files
