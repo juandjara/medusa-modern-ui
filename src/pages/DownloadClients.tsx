@@ -778,7 +778,34 @@ function TorrentSection({ get, set }: { get: Getter; set: Setter }) {
                     {caps.seedLocation && (
                       <Field
                         label="Post-import seed location"
-                        hint={`Where to tell ${caps.title} to move torrents after post-processing. If your post-processor uses hard/soft links, set this to a path the client won't re-scan — prevents the same file being processed in a loop. This calls a "Set Torrent location" in the client.`}
+                        hint={
+                          <span>
+                            Optional. After Medusa places the library copy, it
+                            asks {caps.title} to relocate the torrent's data
+                            files here (the client equivalent of "Set Torrent
+                            location" / "Move Torrent"). Two reasons to set
+                            it:
+                            <ul className="list-disc list-inside mt-1">
+                              <li>
+                                <strong>Tiering</strong> — move long-tail
+                                seeded torrents to a cheaper or quieter drive
+                                separate from the download folder.
+                              </li>
+                              <li>
+                                <strong>Scanner-loop guard</strong> — only
+                                relevant with <em>scheduled-scan</em>{" "}
+                                trigger + <em>hardlink</em> processing: point
+                                this outside the Download directory so the
+                                scanner can't keep re-finding the seeded
+                                file.
+                              </li>
+                            </ul>
+                            Leave blank if your downloads and seeded torrents
+                            live on the same drive and you use the download
+                            handler — Medusa's history table already prevents
+                            re-processing.
+                          </span>
+                        }
                       >
                         <FolderPicker
                           value={get<string>("torrents.seedLocation") ?? ""}
