@@ -268,17 +268,76 @@ export const QUALITY_PRESETS: Record<
   },
 };
 
-export interface Release {
-  provider: string;
-  title: string;
+// Subset of medusa/providers/generic_provider.py:to_json. We only read the
+// bits the search modal + Prowlarr panel need; the rest is left to the
+// future per-provider settings page.
+//
+// `manager` and `idManager` are conditionally present on the response —
+// generic_provider.py:1046–1050 only emits them when the underlying
+// attribute exists. Newznab/Torznab providers always have them (init
+// assigns unconditionally, manager defaults to null); other built-in
+// providers omit them entirely. `manager === 'prowlarr'` identifies
+// indexers imported via the Prowlarr panel.
+export interface ProviderSummary {
+  id: string;
+  name: string;
+  imageName: string;
+  type: string;
+  subType: string;
+  public: boolean;
+  manager?: string | null;
+  idManager?: string;
+  config: {
+    enabled: boolean;
+    search: {
+      manual: { enabled: boolean };
+      backlog: { enabled: boolean };
+    };
+  };
+}
+
+// Raw shape returned by Prowlarr's own /api/v1/indexer, proxied verbatim
+// through `POST /api/v2/providers/prowlarr/operation` with type=GETINDEXERS.
+// The Prowlarr API is the source of truth — we only read a handful of fields.
+export interface ProwlarrIndexer {
+  id: number;
+  name: string;
+  protocol: "usenet" | "torrent";
+  privacy?: "public" | "private" | "semiPrivate";
+  enable?: boolean;
+  language?: string;
+}
+
+// Shape emitted by `GET /api/v2/providers/{id}/results` — see
+// medusa/server/api/v2/providers.py:data_generator. One row per cached
+// release in that provider's local cache table. `identifier` is the cache
+// rowid; we hand it back to `home/pickManualSearch` to snatch.
+export interface CachedRelease {
+  identifier: string;
+  release: string;
+  season: number;
+  episodes: number[];
+  seasonPack: boolean;
+  indexer: number;
+  seriesId: number;
+  showSlug: string;
   url: string;
-  size: number;
-  seeders: number;
-  leechers: number;
-  peers: number;
-  pubdate: string;
-  quality: string;
+  time: string;
+  // PyMedusa quality bitmask (see QUALITY constants).
+  quality: number;
   releaseGroup: string | null;
+  dateAdded: string;
+  version: number;
+  // Torrent metrics: -1 means N/A (Usenet results).
+  seeders: number;
+  size: number;
+  leechers: number;
+  pubdate: string | null;
+  provider: {
+    id: string;
+    name: string;
+    imageName: string;
+  };
 }
 
 // Shape per medusa/server/api/v2/schedule.py. Response is grouped under the
@@ -551,3 +610,4 @@ export function searchTypeLabel(name: string): string {
   if (name.startsWith("SNATCH-")) return "SNATCH";
   return name.toUpperCase();
 }
+

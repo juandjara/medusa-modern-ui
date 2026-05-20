@@ -115,10 +115,15 @@ export default function Layout() {
       // (the user noticed `/api/v2/search/manual` failures only via the
       // legacy /errorlogs view because the queue item disappeared). The
       // dismiss control on Queue.tsx writes back to LIVE_QUEUE_KEY.
+      //
+      // We gate on `success === true` only — PyMedusa keeps `inProgress`
+      // true through a successful completion, so requiring inProgress=false
+      // would mean successful items never get cleaned up at all.
+      //
       // Re-check the cache on fire so a reactivated item (same identifier,
-      // new in-progress event) doesn't get removed by a stale timer.
-      const finishedOk = item.inProgress === false && item.success === true;
-      if (finishedOk) {
+      // new in-progress event with success=null) doesn't get removed by a
+      // stale timer.
+      if (item.success === true) {
         window.setTimeout(() => {
           queryClient.setQueryData<LiveQueueItem[]>(
             LIVE_QUEUE_KEY,
@@ -127,10 +132,7 @@ export default function Layout() {
                 (i) => i.identifier === item.identifier,
               );
               if (!current) return prev;
-              if (
-                current.inProgress === false &&
-                current.success === true
-              ) {
+              if (current.success === true) {
                 return prev.filter((i) => i.identifier !== item.identifier);
               }
               return prev;
