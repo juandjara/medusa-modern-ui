@@ -109,50 +109,45 @@ export type EpisodeStatus =
   | "Failed"
   | "Snatched (Best)";
 
-// Integer codes for PATCH /series/{slug}/episodes — status is sent as a
-// number. Values mirror medusa/common.py; note Subtitled=10 sits between
-// Snatched (Proper)=9 and Failed=11.
-// Valid values for config.defaultEpisodeStatus on the per-show settings form.
-// Other EpisodeStatus values exist (Snatched, Downloaded, etc.) but aren't
-// meaningful as defaults — they apply to the lifecycle of an episode, not the
-// "what to do with newly-discovered episodes" policy.
+// Valid values for config.defaultEpisodeStatus on the per-show settings form
+// - only these four are meaningful as a "what to do with newly-discovered
+// episodes" policy. Other EpisodeStatus values are lifecycle-only.
 export const DEFAULT_EPISODE_STATUSES = [
   "Wanted",
   "Skipped",
   "Ignored",
   "Archived",
-] as const
+] as const;
 
-// Per-show row from GET /api/v2/stats/show — see medusa/server/api/v2/stats.py.
-// indexerId is the numeric id from medusa/indexers/config.py; combining it
-// with seriesId yields the show's slug (e.g. tmdb125935).
+// Slug = INDEXER_ID_TO_SLUG[indexerId] + seriesId, e.g. "tmdb" + 125935.
 export interface ShowStat {
-  indexerId: number
-  seriesId: number
-  epSnatched: number
-  epDownloaded: number
-  epTotal: number
-  epAirsNext: string | null
-  epAirsPrev: string | null
-  seriesSize: number
-  airs: string | null
-  network: string | null
+  indexerId: number;
+  seriesId: number;
+  epSnatched: number;
+  epDownloaded: number;
+  epTotal: number;
+  epAirsNext: string | null;
+  epAirsPrev: string | null;
+  seriesSize: number;
+  airs: string | null;
+  network: string | null;
 }
 
 export interface ShowStatsResponse {
-  stats: ShowStat[]
-  maxDownloadCount: number
+  stats: ShowStat[];
+  maxDownloadCount: number;
 }
 
-// Numeric → slug-prefix mapping for combining stats rows back to a show slug.
 // Mirrors medusa/indexers/config.py.
 export const INDEXER_ID_TO_SLUG: Record<number, string> = {
   1: "tvdb",
   3: "tvmaze",
   4: "tmdb",
   10: "imdb",
-}
+};
 
+// Numeric codes for PATCH /series/{slug}/episodes. Mirrors medusa/common.py;
+// note the gap between 7 and 9 (no 8) and that Subtitled is 10, not Failed.
 export const EPISODE_STATUS_CODE: Record<EpisodeStatus, number> = {
   Unaired: 1,
   Snatched: 2,
@@ -176,16 +171,10 @@ export interface SeriesDetailResponse {
   data: Series;
 }
 
-// Show-search response: PyMedusa returns positional tuples, one per match,
-// from `/api/v2/internal/searchIndexersForShowName`. The handler in
-// medusa/server/api/v2/internal.py:resource_search_indexers_for_show_name
-// emits tuples as:
-//   [indexerName, indexerInternalId, showUrl, showId, seriesName,
-//    firstAired ("N/A" if unknown), network ("N/A" if missing),
-//    sanitizedName, alreadyInLibrary (false | [name, id])]
-// We map those to objects at the query-fn boundary so consumers see a
-// normal shape. No posters / overview / plot here — those only appear
-// after the show is added and the indexer fetch completes.
+// Normalised from the positional tuples returned by
+// `/api/v2/internal/searchIndexersForShowName` (see SearchResultTuple in
+// AddShow.tsx). No poster / overview here — those only land after the
+// show is added and the indexer fetch completes.
 export interface SearchResult {
   indexer: string; // 'tvdb' | 'tmdb' | 'imdb' | 'tvmaze' | …
   showId: number; // id of the show in `indexer`'s namespace — used in POST /series
@@ -199,10 +188,8 @@ export interface SearchResult {
   alreadyAddedSlug: string | null;
 }
 
-// PyMedusa quality bitmask values from medusa/common.py:Quality. Note the
-// class starts shifts at `1 << 1` (so SDTV = 2, NOT 1) — getting the indexing
-// wrong silently sends the wrong qualities to the backend and reads the wrong
-// labels back. The trailing comment is the human label from `qualityStrings`.
+// Bitmask values from medusa/common.py:Quality. Shifts start at `1 << 1`,
+// so SDTV = 2, NOT 1 — getting this wrong silently corrupts requests.
 export const QUALITY = {
   UNKNOWN: 1,
   SDTV: 2, // 'SDTV'
@@ -219,9 +206,8 @@ export const QUALITY = {
   UHD_4K_BLURAY: 4096, // '4K UHD BluRay'
 } as const;
 
-// Default profile used when a user adds a show without picking qualities.
-// Matches the [8, 32, 64, 128, 256, 512] seen on existing shows in the user's
-// library — Any HD across TV / WEB / BluRay sources, no SD, no 4K.
+// Any HD (TV / WEB / BluRay), no SD, no 4K — matches every show currently in
+// the user's library.
 export const DEFAULT_QUALITY_ALLOWED = [
   QUALITY.HDTV,
   QUALITY.FULLHDTV,
@@ -231,10 +217,8 @@ export const DEFAULT_QUALITY_ALLOWED = [
   QUALITY.FULLHDBLURAY,
 ];
 
-// Curated quality presets for the Add Show / Settings forms. Keys are stable
-// identifiers for state; labels are user-facing; `allowed` is the bitmask
-// array sent in the POST /series and PATCH /series bodies. `any_hd` matches
-// what every existing show in the user's library has — kept as the default.
+// Keys are stable form-state identifiers; `allowed` is the bitmask array
+// sent in POST/PATCH /series bodies.
 export const QUALITY_PRESETS: Record<
   string,
   { label: string; allowed: number[] }
@@ -265,16 +249,9 @@ export const QUALITY_PRESETS: Record<
   },
 };
 
-// Subset of medusa/providers/generic_provider.py:to_json. We only read the
-// bits the search modal + Prowlarr panel need; the rest is left to the
-// future per-provider settings page.
-//
-// `manager` and `idManager` are conditionally present on the response —
-// generic_provider.py:1046–1050 only emits them when the underlying
-// attribute exists. Newznab/Torznab providers always have them (init
-// assigns unconditionally, manager defaults to null); other built-in
-// providers omit them entirely. `manager === 'prowlarr'` identifies
-// indexers imported via the Prowlarr panel.
+// `manager` / `idManager` are only present when the provider's __init__ set
+// them — Newznab/Torznab always do (manager defaults to null), other built-in
+// providers don't. `manager === 'prowlarr'` marks Prowlarr-imported indexers.
 export interface ProviderSummary {
   id: string;
   name: string;
@@ -302,11 +279,8 @@ export interface ProwlarrIndexer {
   language?: string;
 }
 
-// Shape emitted by `GET /api/v2/providers/{id}/results` — see
-// medusa/server/api/v2/providers.py:data_generator. One row per cached
-// release in that provider's local cache table. `identifier` is the cache
-// rowid; we hand it back to `home/pickManualSearch` to snatch.
 export interface CachedRelease {
+  // Cache rowid; pass back to `home/pickManualSearch` to snatch.
   identifier: string;
   release: string;
   season: number;
@@ -334,38 +308,33 @@ export interface CachedRelease {
   };
 }
 
-// Shape per medusa/server/api/v2/schedule.py. Response is grouped under the
-// section keys ('missed' | 'today' | 'soon' | 'later'); each entry has the
-// fields below.
 export interface ScheduleEntry {
-  airdate: string // 'YYYY-MM-DD'
-  airs: string // schedule string like 'Tuesday 0:00AM'
-  localAirTime: string // ISO datetime in viewer's local zone (server-computed)
-  epName: string
-  epPlot: string
-  season: number
-  episode: number
-  episodeSlug: string // 's03e08'
-  indexerId: number
-  indexer: string
-  network: string | null
-  paused: boolean
-  quality: number
-  showSlug: string
-  showName: string
-  showStatus: string
-  tvdbid: number | null
-  weekday: number
-  runtime: number
+  airdate: string; // 'YYYY-MM-DD'
+  airs: string; // schedule string like 'Tuesday 0:00AM'
+  localAirTime: string; // ISO datetime in viewer's local zone (server-computed)
+  epName: string;
+  epPlot: string;
+  season: number;
+  episode: number;
+  episodeSlug: string; // 's03e08'
+  indexerId: number;
+  indexer: string;
+  network: string | null;
+  paused: boolean;
+  quality: number;
+  showSlug: string;
+  showName: string;
+  showStatus: string;
+  tvdbid: number | null;
+  weekday: number;
+  runtime: number;
 }
 
-export type ScheduleSection = "missed" | "today" | "soon" | "later"
+export type ScheduleSection = "missed" | "today" | "soon" | "later";
 
-export type ScheduleResponse = Record<ScheduleSection, ScheduleEntry[]>
+export type ScheduleResponse = Record<ScheduleSection, ScheduleEntry[]>;
 
-// Shape per medusa/server/api/v2/history.py rows. `status` is the integer
-// from medusa/common.py; `statusName` is the server-formatted label, so we
-// don't need a client-side enum map.
+// `statusName` is the server-formatted label, so no client-side enum map.
 export interface HistoryEntry {
   id: number;
   showSlug: string;
@@ -413,9 +382,7 @@ export function qualityName(value: number): string {
   return QUALITY_NAMES[value] ?? `Q-${value}`;
 }
 
-// Returns the QUALITY_PRESETS key (e.g. 'any_hd') whose `allowed` matches the
-// input exactly, or null when no preset fits. Sorted comparison so ordering
-// differences don't trip us up.
+// Sorted-array comparison so storage order doesn't matter.
 export function detectQualityPreset(allowed: number[]): string | null {
   const a = [...allowed].sort((x, y) => x - y);
   for (const [key, preset] of Object.entries(QUALITY_PRESETS)) {
@@ -425,18 +392,14 @@ export function detectQualityPreset(allowed: number[]): string | null {
   return null;
 }
 
-// Short label for a show's quality config — preset name when one fits, or
-// 'Custom' otherwise. Strips the trailing '(default)' for use in tight
-// chrome like header badges.
+// Strips the trailing '(default)' suffix so it fits in tight badge chrome.
 export function qualitySummary(allowed: number[]): string {
   const key = detectQualityPreset(allowed);
   if (key) return QUALITY_PRESETS[key].label.replace(/\s*\([^)]+\)\s*$/, "");
   return "Custom";
 }
 
-// daisyUI badge classes for series status strings emitted by PyMedusa
-// ("Continuing", "Ended", "Canceled", and the occasional "Unknown"). Returned
-// classes pair with `badge badge-xs` (or any size).
+// daisyUI classes for series status strings emitted by PyMedusa to be used in badges
 export function seriesStatusBadgeClass(status: string): string {
   const s = status.toLowerCase();
   if (s.includes("continu") || s.includes("running")) {
@@ -448,8 +411,6 @@ export function seriesStatusBadgeClass(status: string): string {
   return "badge-soft";
 }
 
-// Show queue items (refresh / update / rename / etc.) — shape from
-// _queued_show_to_json in medusa/queues/utils.py.
 export interface ShowQueueItem {
   showSlug: string | null;
   showTitle: string | null;
@@ -461,9 +422,7 @@ export interface ShowQueueItem {
   queueType: string; // 'REFRESH' | 'UPDATE' | 'RENAME' | 'ADD' | ...
 }
 
-// Post-processing queue items — base shape from generic_queue.QueueItem.to_json
-// plus the `config` block added in medusa/process_tv.py:PostProcessQueueItem
-// (and `output` once the job finishes successfully).
+// `output` is only present once the job finishes successfully.
 export interface PostProcessQueueItem {
   identifier: string;
   name: string;
@@ -490,12 +449,9 @@ export interface PostProcessQueueItem {
   [extra: string]: unknown;
 }
 
-// Scheduler entry from medusa/schedulers/utils.py:_scheduler_to_json. When a
-// scheduler isn't initialized, only key + name are present; all others optional.
-//
-// `isEnabled` is normally a bool, but `_is_enabled()` returns the literal
-// string 'Paused' for key === 'backlog' when the backlog is paused — so we
-// widen the type rather than try to coerce.
+// Uninitialised schedulers only have key + name. `isEnabled` widens to "Paused"
+// because `_is_enabled()` returns that literal for key === 'backlog' when the
+// backlog is paused — coercing it loses information.
 export interface SchedulerItem {
   key: string;
   name: string;
@@ -510,7 +466,6 @@ export interface SchedulerItem {
   queueLength?: number;
 }
 
-// Disk space block from medusa/queues/utils.py:generate_location_disk_space.
 // `freeSpace` is a pre-formatted string ('123.4 GB'); no total or percentage.
 export interface DiskSpaceEntry {
   type: string;
@@ -533,14 +488,9 @@ export interface SystemConfig {
   commitHash?: string;
 }
 
-// Items that arrive only via WebSocket QueueItemUpdate events — search
-// (daily/manual/backlog/snatch/retry/proper) and the download handler
-// heartbeat. There's no HTTP endpoint to list them; we accumulate state
-// from events as they come in.
-//
-// Shape is the union of fields we've seen across emitters in
-// medusa/search/queue.py and medusa/schedulers/download_handler.py; all
-// non-base fields are optional since the emitters extend differently.
+// Search and download-handler items only arrive via WebSocket; no HTTP
+// endpoint lists them. Non-base fields are optional because different
+// emitters (search/queue.py, download_handler.py) extend the base shape.
 export interface LiveQueueEpisodeSegment {
   identifier?: string;
   season?: number;
@@ -572,8 +522,7 @@ export type LiveQueueCategory =
   | "downloadHandler"
   | "other";
 
-// Classify a QueueItemUpdate by its `name` field. The legend below mirrors the
-// emitter source — keep in sync if PyMedusa adds new queue types.
+// Keep in sync with PyMedusa's queue-name emitters if new types are added.
 export function categorizeLiveItem(name: string): LiveQueueCategory {
   if (name === "DOWNLOADHANDLER") return "downloadHandler";
   if (name.startsWith("SNATCH-")) return "snatch";
@@ -598,4 +547,3 @@ export function searchTypeLabel(name: string): string {
   if (name.startsWith("SNATCH-")) return "SNATCH";
   return name.toUpperCase();
 }
-
