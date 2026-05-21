@@ -4,10 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
 import api from "../lib/api";
 import { useEditSeries } from "../lib/series-actions";
-import {
-  DEFAULT_EPISODE_STATUSES,
-  type Series,
-} from "../types/medusa";
+import { DEFAULT_EPISODE_STATUSES, type Series } from "../types/medusa";
 import Toggle from "../components/forms/Toggle";
 import QualityPicker from "../components/forms/QualityPicker";
 
@@ -207,32 +204,3 @@ function SettingsForm({ show }: { show: Series }) {
     </div>
   );
 }
-
-// function Toggle({
-//   label,
-//   description,
-//   checked,
-//   onChange,
-// }: {
-//   label: string;
-//   description: string;
-//   checked: boolean;
-//   onChange: (v: boolean) => void;
-// }) {
-//   return (
-//     <label className="flex items-start gap-2 cursor-pointer justify-start">
-//       <input
-//         type="checkbox"
-//         className="toggle toggle-sm mt-0.5"
-//         checked={checked}
-//         onChange={(e) => onChange(e.target.checked)}
-//       />
-//       <span>
-//         <span className="font-medium text-base-content">{label}</span>
-//         <span className="block text-xs text-base-content/60 whitespace-normal">
-//           {description}
-//         </span>
-//       </span>
-//     </label>
-//   );
-// }
