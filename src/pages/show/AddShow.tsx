@@ -518,7 +518,7 @@ export default function AddShow() {
         <label className="label cursor-pointer justify-start gap-3 p-0">
           <input
             type="checkbox"
-            className="toggle toggle-sm toggle-accent"
+            className="toggle toggle-sm"
             checked={options.anime}
             onChange={(e) =>
               setOptions((s) => ({ ...s, anime: e.target.checked }))
