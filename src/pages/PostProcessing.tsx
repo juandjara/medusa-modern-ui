@@ -16,6 +16,8 @@ import SaveBar from "../components/forms/SaveBar";
 import FolderPicker from "../components/forms/FolderPicker";
 import NamingPreview from "../components/forms/NamingPreview";
 import Section from "../components/forms/Section";
+import TagInput from "../components/forms/TagInput";
+import TagList from "../components/forms/TagList";
 
 interface NamingConfig {
   pattern: string;
@@ -301,12 +303,12 @@ function GeneralSection({ get, set }: { get: Getter; set: Setter }) {
       {get<boolean>("postponeIfSyncFiles") ? (
         <Field
           label="Sync file extensions"
-          hint="Extensions to treat as in-progress markers. Comma-separated."
+          hint="Extensions to treat as in-progress markers. Press Enter or comma to add."
         >
-          <CsvInput
+          <TagInput
             value={get<string[]>("syncFiles") ?? []}
             onChange={(v) => set("syncFiles", v)}
-            placeholder=".part, .!ut, .crdownload"
+            placeholder=".part"
           />
         </Field>
       ) : null}
@@ -412,12 +414,12 @@ function FileHandlingSection({ get, set }: { get: Getter; set: Setter }) {
       {moveAssociated && (
         <Field
           label="Keep associated file extensions"
-          hint="Whitelist of extensions to move alongside the media. Anything outside this list is deleted. Leave empty to delete every associated file. Comma-separated, no leading dots. Defaults: srt, nfo, sub, idx."
+          hint="Whitelist of extensions to move alongside the media. Anything outside this list is deleted. Leave empty to delete every associated file. No leading dots. Defaults: srt, nfo, sub, idx."
         >
-          <CsvInput
+          <TagInput
             value={get<string[]>("allowedExtensions") ?? []}
             onChange={(v) => set("allowedExtensions", v)}
-            placeholder="srt, nfo, sub, idx"
+            placeholder="srt"
           />
         </Field>
       )}
@@ -483,7 +485,7 @@ function FileHandlingSection({ get, set }: { get: Getter; set: Setter }) {
           </span>
         }
       >
-        <CsvInput
+        <TagList
           value={get<string[]>("extraScripts") ?? []}
           onChange={(v) => set("extraScripts", v)}
           placeholder="/opt/scripts/notify.py"
@@ -904,34 +906,3 @@ function FFmpegSection({ get, set }: { get: Getter; set: Setter }) {
   );
 }
 
-function CsvInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string[];
-  onChange: (v: string[]) => void;
-  placeholder?: string;
-}) {
-  // Local text buffer so commas / trailing whitespace don't get scrubbed
-  // mid-typing. Commit to the parent on blur or Enter.
-  const [text, setText] = useState(value.join(", "));
-  return (
-    <input
-      className="input input-sm w-full"
-      value={text}
-      placeholder={placeholder}
-      onChange={(e) => setText(e.target.value)}
-      onBlur={() => {
-        const next = text
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-        onChange(next);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-      }}
-    />
-  );
-}
