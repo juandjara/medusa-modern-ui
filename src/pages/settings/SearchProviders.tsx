@@ -60,23 +60,13 @@ export default function SearchProviders() {
   const mainQ = useQuery({
     queryKey: ["config", "main"],
     queryFn: ({ signal }) =>
-      api
-        .get<{ data: ConfigMain } | ConfigMain>("/config/main", { signal })
-        .then((r) => {
-          const d = r.data as { data?: ConfigMain };
-          return d.data ?? (r.data as ConfigMain);
-        }),
+      api.get<ConfigMain>("/config/main", { signal }).then((r) => r.data),
   });
 
   const clientsQ = useQuery({
     queryKey: ["config", "clients"],
     queryFn: ({ signal }) =>
-      api
-        .get<{ data: ClientsCfg } | ClientsCfg>("/config/clients", { signal })
-        .then((r) => {
-          const d = r.data as { data?: ClientsCfg };
-          return d.data ?? (r.data as ClientsCfg);
-        }),
+      api.get<ClientsCfg>("/config/clients", { signal }).then((r) => r.data),
   });
 
   const broken = mainQ.data?.brokenProviders ?? [];
@@ -420,7 +410,8 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
   return (
     <div className="space-y-6">
       {/* Search modes */}
-      <Field size="sm"
+      <Field
+        size="sm"
         label="Backlog search mode"
         hint="When backlog-searching you can either ask for season packs only, or build a season from individual episodes."
       >
@@ -489,7 +480,8 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
           }
         />
         {effective.search.delay.enabled && (
-          <Field size="sm"
+          <Field
+            size="sm"
             label="Delay (hours)"
             hint="Hours to wait, compared to the first result for the episode."
           >
@@ -512,7 +504,8 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
 
       {/* Auth & URL */}
       {(isNewznabLike || provider.config.customUrl !== undefined) && (
-        <Field size="sm"
+        <Field
+          size="sm"
           label={isNewznabLike ? "URL" : "Custom URL"}
           hint={
             isNewznabLike
@@ -600,7 +593,8 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
             </Field>
           )}
           {provider.config.ratio !== undefined && (
-            <Field size="sm"
+            <Field
+              size="sm"
               label="Seed ratio"
               className="col-span-2"
               hint={
@@ -720,7 +714,8 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
       {/* Cookies */}
       {provider.config.cookies?.required &&
         provider.config.cookies.required.length > 0 && (
-          <Field size="sm"
+          <Field
+            size="sm"
             label="Cookies"
             hint={
               <>

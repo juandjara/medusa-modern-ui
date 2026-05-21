@@ -120,12 +120,7 @@ export default function GeneralSettings() {
   const configQ = useQuery({
     queryKey: ["config", "main"],
     queryFn: ({ signal }) =>
-      api
-        .get<{ data: MainCfg } | MainCfg>("/config/main", { signal })
-        .then((r) => {
-          const d = r.data as { data?: MainCfg };
-          return d.data ?? (r.data as MainCfg);
-        }),
+      api.get<MainCfg>("/config/main", { signal }).then((r) => r.data),
   });
 
   const saved = configQ.data;
@@ -337,9 +332,9 @@ function ApiKeyField({ get, set }: { get: Getter; set: Setter }) {
       label="API key"
       hint={
         <span>
-          Used to authenticate asset URLs and the legacy v1 API. Generating
-          a new one invalidates the previous key for any 3rd-party tool using
-          it. Restart Medusa after saving so other clients pick up the change.
+          Used to authenticate asset URLs and the legacy v1 API. Generating a
+          new one invalidates the previous key for any 3rd-party tool using it.
+          Restart Medusa after saving so other clients pick up the change.
         </span>
       }
     >

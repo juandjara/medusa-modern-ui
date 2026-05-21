@@ -228,9 +228,7 @@ export default function DownloadClients() {
   const configQ = useQuery({
     queryKey: ["config", "clients"],
     queryFn: ({ signal }) =>
-      api
-        .get<{ data: ClientsConfig }>("/config/clients", { signal })
-        .then((r) => r.data.data ?? (r.data as unknown as ClientsConfig)),
+      api.get<ClientsConfig>("/config/clients", { signal }).then((r) => r.data),
   });
 
   const saved = configQ.data;
@@ -783,21 +781,19 @@ function TorrentSection({ get, set }: { get: Getter; set: Setter }) {
                             Optional. After Medusa places the library copy, it
                             asks {caps.title} to relocate the torrent's data
                             files here (the client equivalent of "Set Torrent
-                            location" / "Move Torrent"). Two reasons to set
-                            it:
+                            location" / "Move Torrent"). Two reasons to set it:
                             <ul className="list-disc list-inside mt-1">
                               <li>
-                                <strong>Tiering</strong> — move long-tail
-                                seeded torrents to a cheaper or quieter drive
-                                separate from the download folder.
+                                <strong>Tiering</strong> — move long-tail seeded
+                                torrents to a cheaper or quieter drive separate
+                                from the download folder.
                               </li>
                               <li>
                                 <strong>Scanner-loop guard</strong> — only
-                                relevant with <em>scheduled-scan</em>{" "}
-                                trigger + <em>hardlink</em> processing: point
-                                this outside the Download directory so the
-                                scanner can't keep re-finding the seeded
-                                file.
+                                relevant with <em>scheduled-scan</em> trigger +{" "}
+                                <em>hardlink</em> processing: point this outside
+                                the Download directory so the scanner can't keep
+                                re-finding the seeded file.
                               </li>
                             </ul>
                             Leave blank if your downloads and seeded torrents

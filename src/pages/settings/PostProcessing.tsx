@@ -116,7 +116,7 @@ function setByPath(obj: Record<string, unknown>, path: string, value: unknown) {
   cur[keys[keys.length - 1]] = value;
 }
 
-interface ClientsCfgSlim {
+interface ClientsConfigSlim {
   torrents?: { enabled?: boolean; method?: string };
   nzb?: { enabled?: boolean; method?: string };
 }
@@ -128,13 +128,8 @@ export default function PostProcessing() {
     queryKey: ["config", "postprocessing"],
     queryFn: ({ signal }) =>
       api
-        .get<
-          { data: PostProcessingConfig } | PostProcessingConfig
-        >("/config/postprocessing", { signal })
-        .then((r) => {
-          const d = r.data as { data?: PostProcessingConfig };
-          return d.data ?? (r.data as PostProcessingConfig);
-        }),
+        .get<PostProcessingConfig>("/config/postprocessing", { signal })
+        .then((r) => r.data),
   });
 
   // Used by the Trigger section to warn if the configured client doesn't
@@ -144,13 +139,8 @@ export default function PostProcessing() {
     queryKey: ["config", "clients"],
     queryFn: ({ signal }) =>
       api
-        .get<{ data: ClientsCfgSlim } | ClientsCfgSlim>("/config/clients", {
-          signal,
-        })
-        .then((r) => {
-          const d = r.data as { data?: ClientsCfgSlim };
-          return d.data ?? (r.data as ClientsCfgSlim);
-        }),
+        .get<ClientsConfigSlim>("/config/clients", { signal })
+        .then((r) => r.data),
   });
 
   const saved = configQ.data;
@@ -696,7 +686,7 @@ function TriggerSection({
   get: Getter;
   set: Setter;
   minFreq: number;
-  clients: ClientsCfgSlim | null;
+  clients: ClientsConfigSlim | null;
 }) {
   const scheduled = !!get<boolean>("processAutomatically");
   const handler = !!get<boolean>("downloadHandler.enabled");
@@ -874,8 +864,8 @@ function TriggerSection({
           <Link to="/postprocess" className="link link-hover text-primary">
             Manual post-process
           </Link>{" "}
-          page — should call <code>POST /api/v2/postprocess</code> with the
-          path to process.
+          page — should call <code>POST /api/v2/postprocess</code> with the path
+          to process.
         </p>
       )}
     </Section>
@@ -905,4 +895,3 @@ function FFmpegSection({ get, set }: { get: Getter; set: Setter }) {
     </Section>
   );
 }
-

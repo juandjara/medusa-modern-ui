@@ -88,12 +88,7 @@ export default function SearchSettings() {
   const configQ = useQuery({
     queryKey: ["config", "search"],
     queryFn: ({ signal }) =>
-      api
-        .get<{ data: SearchCfg } | SearchCfg>("/config/search", { signal })
-        .then((r) => {
-          const d = r.data as { data?: SearchCfg };
-          return d.data ?? (r.data as SearchCfg);
-        }),
+      api.get<SearchCfg>("/config/search", { signal }).then((r) => r.data),
   });
 
   const saved = configQ.data;
@@ -490,4 +485,3 @@ function TrackersSection({ get, set }: { get: Getter; set: Setter }) {
     </Section>
   );
 }
-
