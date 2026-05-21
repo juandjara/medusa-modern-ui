@@ -1,7 +1,41 @@
 import axios from "axios";
 
 export const AUTH_EXPIRED_EVENT = "medusa:auth-expired";
+const TOKEN_KEY = "medusa_token";
 const API_KEY_STORAGE_KEY = "medusa_api_key";
+
+// Dual-storage helper. "Remember me" writes to localStorage (persists across
+// browser restarts); the default writes to sessionStorage (cleared on tab
+// close). Reads prefer localStorage so a long-lived session beats a stale
+// session-storage token if both ever coexist.
+function readToken(): string | null {
+  return (
+    localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY)
+  );
+}
+
+function writeToken(jwt: string, remember: boolean) {
+  if (remember) {
+    localStorage.setItem(TOKEN_KEY, jwt);
+    sessionStorage.removeItem(TOKEN_KEY);
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, jwt);
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+function eraseToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
+export function getStoredToken(): string | null {
+  return readToken();
+}
+
+export function clearStoredToken() {
+  eraseToken();
+}
 
 // <img src> can't send Authorization headers, so asset endpoints fall back
 // to an api_key query string. We pull it from the JWT's `apiKey` claim.
@@ -28,7 +62,7 @@ function decodeJwtPayload(jwt: string): { apiKey?: string } | null {
 function getApiKey(): string {
   const cached = sessionStorage.getItem(API_KEY_STORAGE_KEY);
   if (cached) return cached;
-  const jwt = sessionStorage.getItem("medusa_token");
+  const jwt = readToken();
   if (!jwt) return "";
   const apiKey = decodeJwtPayload(jwt)?.apiKey ?? "";
   if (apiKey) sessionStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
@@ -55,7 +89,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem("medusa_token");
+  const token = readToken();
   if (token) config.headers["x-auth"] = `Bearer ${token}`;
   return config;
 });
@@ -64,7 +98,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      sessionStorage.removeItem("medusa_token");
+      eraseToken();
       clearApiKey();
       window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
     }
@@ -77,12 +111,13 @@ api.interceptors.response.use(
 export async function fetchToken(
   username: string,
   password: string,
+  remember = false,
 ): Promise<string> {
   const creds = btoa(`${username}:${password}`);
   const { data } = await axios.get<string>("/token", {
     headers: { Authorization: `Basic ${creds}` },
   });
-  sessionStorage.setItem("medusa_token", data);
+  writeToken(data, remember);
   const apiKey = decodeJwtPayload(data)?.apiKey;
   if (apiKey) sessionStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
 
