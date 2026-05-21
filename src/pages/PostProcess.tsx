@@ -134,8 +134,6 @@ export default function PostProcess() {
     ? [...METHODS_BASE, { value: "reflink", label: "Reflink (copy-on-write)" }]
     : METHODS_BASE;
 
-  console.log(historyQ.data?.[0]);
-
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-2">

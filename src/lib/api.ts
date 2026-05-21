@@ -193,7 +193,6 @@ export async function fetchToken(
     },
     { headers: { "Content-Type": "application/json" } },
   );
-  console.log("token data", data);
   const jwt = data.token;
   writeToken(jwt, remember);
   const apiKey = decodeJwtPayload(jwt)?.apiKey;
