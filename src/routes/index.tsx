@@ -21,6 +21,7 @@ const SearchProviders = lazy(() => import("../pages/SearchProviders"));
 const CustomProviders = lazy(() => import("../pages/CustomProviders"));
 const PostProcessing = lazy(() => import("../pages/PostProcessing"));
 const PostProcess = lazy(() => import("../pages/PostProcess"));
+const SearchSettings = lazy(() => import("../pages/SearchSettings"));
 
 function Root() {
   return (
@@ -76,6 +77,10 @@ export const router = createBrowserRouter([
           {
             path: "postprocess",
             element: <PostProcess />,
+          },
+          {
+            path: "settings/search",
+            element: <SearchSettings />,
           },
           { path: "*", element: <Navigate to="/" replace /> },
         ],

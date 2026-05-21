@@ -34,9 +34,24 @@ export default function Settings() {
 
       <div className="bg-base-100 border border-base-300 rounded-box">
         <div className="px-4 py-3 font-semibold border-b border-base-300">
-          Search providers
+          Search
         </div>
         <ul>
+          <li>
+            <Link
+              to="/settings/search"
+              className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors border-b border-base-300"
+            >
+              <div>
+                <div className="font-medium">Search settings</div>
+                <div className="text-xs text-base-content/60">
+                  Schedule, release filters (ignored / required / preferred /
+                  undesired), propers, failed-download handling, cache.
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-base-content/40" />
+            </Link>
+          </li>
           <li>
             <Link
               to="/settings/providers"
