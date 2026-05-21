@@ -98,7 +98,7 @@ export default function System() {
           </span>
         </h2>
         <div className="overflow-x-auto">
-          <table className="table table-zebra table-sm">
+          <table className="table table-zebra table-sm bg-base-100 border-2 border-base-300 rounded-box">
             <thead>
               <tr>
                 <th>Name</th>
@@ -125,7 +125,7 @@ export default function System() {
           <span className="badge badge-sm badge-ghost">{diskDirs.length}</span>
         </h2>
         <div className="overflow-x-auto">
-          <table className="table table-zebra table-sm">
+          <table className="table table-zebra table-sm bg-base-100 border-2 border-base-300 rounded-box">
             <thead>
               <tr>
                 <th>Type</th>
@@ -159,7 +159,7 @@ export default function System() {
         <h2 className="mb-3 font-semibold text-sm flex items-center gap-2 text-base-content/70">
           <Wrench size={14} /> Maintenance
         </h2>
-        <div className="bg-base-100 border border-base-300 rounded-box divide-y divide-base-300">
+        <div className="bg-base-100 border-2 border-base-300 rounded-box divide-y divide-base-300">
           <MaintenanceRow
             title="Scene exceptions"
             description="Refresh aliases from XEM, AniDB and AniList. Helps PyMedusa match releases that use alternate show names."
@@ -236,7 +236,7 @@ export default function System() {
         <h2 className="mb-3 font-semibold text-sm flex items-center gap-2 text-base-content/70">
           <Cpu size={14} /> Server
         </h2>
-        <div className="bg-base-100 border border-base-300 rounded-box p-4">
+        <div className="bg-base-100 border-2 border-base-300 rounded-box p-4">
           <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
             {data.memoryUsage && (
               <>
