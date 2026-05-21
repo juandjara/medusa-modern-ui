@@ -2,13 +2,14 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { ChevronLeft, TriangleAlert, RefreshCw } from "lucide-react";
+import { ChevronLeft, TriangleAlert, RefreshCw, X } from "lucide-react";
 import api from "../../lib/api";
 import Field from "../../components/forms/Field";
 import Toggle from "../../components/forms/Toggle";
 import SaveBar from "../../components/forms/SaveBar";
 import SecretInput from "../../components/forms/SecretInput";
 import Section from "../../components/forms/Section";
+import FolderPicker from "../../components/forms/FolderPicker";
 import type { ConfigMain } from "../../types/config";
 
 const CPU_PRESETS = [
@@ -163,6 +164,7 @@ export default function GeneralSettings() {
       )}
 
       <WebInterfaceSection get={get} set={set} />
+      <RootDirsSection saved={saved} />
       <AuthSection get={get} set={set} />
       <HttpsSection get={get} set={set} />
       <ProxySection get={get} set={set} />
@@ -593,6 +595,158 @@ function PerformanceSection({ get, set }: { get: Getter; set: Setter }) {
         checked={!!get<boolean>("noRestart")}
         onChange={(v) => set("noRestart", v)}
       />
+    </Section>
+  );
+}
+
+// Wire shape is [defaultIdxAsString, path0, path1, ...] with `< 2` meaning empty.
+function decodeRootDirs(raw: string[] | undefined): {
+  paths: string[];
+  defaultIdx: number;
+} {
+  if (!raw || raw.length < 2) return { paths: [], defaultIdx: -1 };
+  const idx = Number.parseInt(raw[0], 10);
+  return {
+    paths: raw.slice(1),
+    defaultIdx: Number.isFinite(idx) ? idx : 0,
+  };
+}
+
+function encodeRootDirs(paths: string[], defaultIdx: number): string[] {
+  if (paths.length === 0) return [];
+  const idx = defaultIdx >= 0 && defaultIdx < paths.length ? defaultIdx : 0;
+  return [String(idx), ...paths];
+}
+
+function RootDirsSection({ saved }: { saved: ConfigMain }) {
+  const queryClient = useQueryClient();
+  const [newPath, setNewPath] = useState("");
+
+  const { paths, defaultIdx } = decodeRootDirs(saved.rootDirs);
+
+  const write = useMutation({
+    mutationFn: (next: string[]) =>
+      api.patch("/config/main", { rootDirs: next }),
+    onMutate: async (next) => {
+      await queryClient.cancelQueries({ queryKey: ["config", "main"] });
+      const prev = queryClient.getQueryData<ConfigMain>(["config", "main"]);
+      queryClient.setQueryData<ConfigMain | undefined>(
+        ["config", "main"],
+        (old) => (old ? { ...old, rootDirs: next } : old),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["config", "main"], ctx.prev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["config", "main"] });
+    },
+  });
+
+  const writePaths = (nextPaths: string[], nextDefault: number) =>
+    write.mutate(encodeRootDirs(nextPaths, nextDefault));
+
+  const handleAdd = () => {
+    const p = newPath.trim();
+    if (!p) return;
+    if (paths.includes(p)) {
+      setNewPath("");
+      return;
+    }
+    const nextPaths = [...paths, p];
+    const nextDefault = paths.length === 0 ? 0 : defaultIdx;
+    writePaths(nextPaths, nextDefault);
+    setNewPath("");
+  };
+
+  const handleRemove = (idx: number) => {
+    const nextPaths = paths.filter((_, i) => i !== idx);
+    let nextDefault = defaultIdx;
+    if (idx === defaultIdx) {
+      nextDefault = nextPaths.length > 0 ? 0 : -1;
+    } else if (idx < defaultIdx) {
+      nextDefault = defaultIdx - 1;
+    }
+    writePaths(nextPaths, nextDefault);
+  };
+
+  const handleSetDefault = (idx: number) => {
+    if (idx === defaultIdx) return;
+    writePaths(paths, idx);
+  };
+
+  return (
+    <Section
+      title="Root directories"
+      hint="Folders where TV shows live on disk. Changes save automatically. The default is preselected when adding new shows."
+    >
+      {paths.length === 0 ? (
+        <p className="text-sm text-base-content/60">
+          No root directories configured yet. Add one below.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {paths.map((path, idx) => (
+            <li
+              key={path}
+              className="flex items-center gap-2 bg-base-200 rounded-md px-3 py-2"
+            >
+              <span
+                className="font-mono text-sm flex-1 truncate"
+                title={path}
+              >
+                {path}
+              </span>
+              {idx === defaultIdx ? (
+                <span className="badge badge-success badge-sm">Default</span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-xs"
+                  onClick={() => handleSetDefault(idx)}
+                  disabled={write.isPending}
+                >
+                  Set as default
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-xs btn-ghost text-error"
+                onClick={() => handleRemove(idx)}
+                disabled={write.isPending}
+                title="Remove"
+              >
+                <X size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex gap-2 items-start">
+        <FolderPicker
+          value={newPath}
+          onChange={setNewPath}
+          placeholder="/absolute/path/to/shows"
+          className="flex-1"
+          disabled={write.isPending}
+        />
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          onClick={handleAdd}
+          disabled={!newPath.trim() || write.isPending}
+        >
+          Add
+        </button>
+      </div>
+
+      {write.isError && (
+        <p className="text-sm text-error">
+          Save failed. Check the path exists and is readable by Medusa.
+        </p>
+      )}
     </Section>
   );
 }

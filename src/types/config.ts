@@ -26,6 +26,8 @@ export interface WebInterfaceCfg {
 
 export interface ConfigMain {
   webInterface: WebInterfaceCfg;
+  // Wire shape: [defaultIndexAsString, path0, path1, ...]. Empty means no dirs.
+  rootDirs: string[];
   webRoot: string;
   cpuPreset: string;
   noRestart: boolean;
