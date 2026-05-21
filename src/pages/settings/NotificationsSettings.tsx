@@ -197,8 +197,7 @@ function NotifierIcon({ name }: { name: string }) {
       style={{
         width: 16,
         height: 16,
-        backgroundImage:
-          'url("/images/32x_sprite_colored_notifiers.png")',
+        backgroundImage: 'url("/images/32x_sprite_colored_notifiers.png")',
         backgroundPosition: `-${idx * 16}px 0`,
         backgroundSize: "416px 16px",
         backgroundRepeat: "no-repeat",
@@ -322,11 +321,12 @@ function useLegacyTest(
   const test = useMutation({
     mutationFn: async () => {
       const data = await call();
-      return String(data).replace(/<br\s*\/?>/gi, " ").trim();
+      return String(data)
+        .replace(/<br\s*\/?>/gi, " ")
+        .trim();
     },
     onSuccess: (text) => setState({ ok: okPattern.test(text), result: text }),
-    onError: () =>
-      setState({ ok: false, result: "Request failed; see logs." }),
+    onError: () => setState({ ok: false, result: "Request failed; see logs." }),
   });
 
   return { test, state };
@@ -815,9 +815,7 @@ function PushoverRow({ get, set, expanded, onToggleExpand }: RowProps) {
           <select
             className="select select-sm w-full"
             value={get<number>("pushover.priority") ?? 0}
-            onChange={(e) =>
-              set("pushover.priority", Number(e.target.value))
-            }
+            onChange={(e) => set("pushover.priority", Number(e.target.value))}
           >
             {PUSHOVER_PRIORITIES.map((o) => (
               <option key={o.value} value={o.value}>
@@ -881,10 +879,7 @@ function TelegramRow({ get, set, expanded, onToggleExpand }: RowProps) {
     >
       <NotifyOnGroup prefix="telegram" get={get} set={set} />
 
-      <Field
-        label="Bot token"
-        hint="From @BotFather after creating the bot."
-      >
+      <Field label="Bot token" hint="From @BotFather after creating the bot.">
         <SecretInput
           value={get<string>("telegram.api") ?? ""}
           onChange={(v) => set("telegram.api", v)}
