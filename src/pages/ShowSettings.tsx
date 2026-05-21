@@ -6,11 +6,10 @@ import api from "../lib/api";
 import { useEditSeries } from "../lib/series-actions";
 import {
   DEFAULT_EPISODE_STATUSES,
-  QUALITY_PRESETS,
-  detectQualityPreset,
   type Series,
 } from "../types/medusa";
 import Toggle from "../components/forms/Toggle";
+import QualityPicker from "../components/forms/QualityPicker";
 
 export default function ShowSettings() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -37,8 +36,8 @@ export default function ShowSettings() {
 
 interface FormState {
   defaultEpisodeStatus: string;
-  // null = Custom (don't overwrite). Other values are QUALITY_PRESETS keys.
-  qualityPreset: string | null;
+  qualityAllowed: number[];
+  qualityPreferred: number[];
   anime: boolean;
   scene: boolean;
   subtitlesEnabled: boolean;
@@ -51,7 +50,8 @@ function formFromShow(show: Series): FormState {
   const c = show.config;
   return {
     defaultEpisodeStatus: c.defaultEpisodeStatus ?? "Skipped",
-    qualityPreset: detectQualityPreset(c.qualities?.allowed ?? []),
+    qualityAllowed: c.qualities?.allowed ?? [],
+    qualityPreferred: c.qualities?.preferred ?? [],
     anime: !!c.anime,
     scene: !!c.scene,
     subtitlesEnabled: !!c.subtitlesEnabled,
@@ -67,11 +67,11 @@ function SettingsForm({ show }: { show: Series }) {
   // Local form state survives background refetches of the server cache.
   const [form, setForm] = useState<FormState>(() => formFromShow(show));
 
-  const isCustomQuality = form.qualityPreset === null;
-
   const handleSave = () => {
     const body: Record<string, unknown> = {
       "config.defaultEpisodeStatus": form.defaultEpisodeStatus,
+      "config.qualities.allowed": form.qualityAllowed,
+      "config.qualities.preferred": form.qualityPreferred,
       "config.anime": form.anime,
       "config.scene": form.scene,
       "config.subtitlesEnabled": form.subtitlesEnabled,
@@ -79,11 +79,6 @@ function SettingsForm({ show }: { show: Series }) {
       "config.dvdOrder": form.dvdOrder,
       "config.airByDate": form.airByDate,
     };
-    if (form.qualityPreset !== null) {
-      const preset = QUALITY_PRESETS[form.qualityPreset];
-      body["config.qualities.allowed"] = preset.allowed;
-      body["config.qualities.preferred"] = [];
-    }
     editSeries.mutate(body);
   };
 
@@ -123,32 +118,17 @@ function SettingsForm({ show }: { show: Series }) {
 
       <fieldset className="fieldset w-full">
         <legend className="fieldset-legend">Quality</legend>
-        <select
-          className="select w-full"
-          value={form.qualityPreset ?? "__custom__"}
-          onChange={(e) =>
+        <QualityPicker
+          allowed={form.qualityAllowed}
+          preferred={form.qualityPreferred}
+          onChange={({ allowed, preferred }) =>
             setForm((s) => ({
               ...s,
-              qualityPreset:
-                e.target.value === "__custom__" ? null : e.target.value,
+              qualityAllowed: allowed,
+              qualityPreferred: preferred,
             }))
           }
-        >
-          {isCustomQuality && (
-            <option value="__custom__">Custom — keep current selection</option>
-          )}
-          {Object.entries(QUALITY_PRESETS).map(([key, preset]) => (
-            <option key={key} value={key}>
-              {preset.label}
-            </option>
-          ))}
-        </select>
-        {isCustomQuality && (
-          <p className="label whitespace-normal">
-            Current selection doesn't match a preset. Pick a preset to overwrite
-            it, or leave as Custom to keep the existing allowed-quality list.
-          </p>
-        )}
+        />
       </fieldset>
 
       <fieldset className="fieldset w-full">
