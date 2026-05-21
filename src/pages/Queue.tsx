@@ -8,6 +8,7 @@ import {
   Search as SearchIcon,
   HardDrive,
   X as XIcon,
+  Play,
 } from "lucide-react";
 import api from "../lib/api";
 import { useWebSocket } from "../lib/websocket";
@@ -100,16 +101,21 @@ export default function Queue() {
 
   return (
     <div className="space-y-10">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold">Queue</h1>
-        <button
-          className="btn btn-ghost btn-sm gap-2"
-          onClick={() => refetch()}
-          disabled={isFetching}
-        >
-          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link to="/postprocess" className="btn btn-ghost btn-sm gap-2">
+            <Play size={14} /> Manual post-process
+          </Link>
+          <button
+            className="btn btn-ghost btn-sm gap-2"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {isLoading && (

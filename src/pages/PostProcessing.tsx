@@ -867,9 +867,12 @@ function TriggerSection({
       {mode === "external" && (
         <p className="text-sm text-base-content/60">
           Nothing runs in the background. Whatever drives processing — your
-          download client's post-download script, a cron job, or a manual click
-          — should call <code>POST /api/v2/postprocess</code> with the path to
-          process.
+          download client's post-download script, a cron job, or the{" "}
+          <Link to="/postprocess" className="link link-hover text-primary">
+            Manual post-process
+          </Link>{" "}
+          page — should call <code>POST /api/v2/postprocess</code> with the
+          path to process.
         </p>
       )}
     </Section>
