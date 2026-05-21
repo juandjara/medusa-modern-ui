@@ -11,16 +11,8 @@ import {
 } from "lucide-react";
 import api from "../../lib/api";
 import type { ProviderSummary, ProwlarrIndexer } from "../../types/medusa";
+import type { ConfigMain } from "../../types/config";
 import SecretInput from "../../components/forms/SecretInput";
-
-interface ConfigMain {
-  providers?: {
-    prowlarr?: {
-      url?: string;
-      apikey?: string;
-    };
-  };
-}
 
 export default function ProwlarrSettings() {
   const queryClient = useQueryClient();

@@ -17,36 +17,8 @@ import Toggle from "../components/forms/Toggle";
 import FolderPicker from "../components/forms/FolderPicker";
 import { useWebSocket } from "../lib/websocket";
 import { formatRelative, parseMedusaIso } from "../lib/time";
-
-interface PPQueueItem {
-  identifier: string;
-  name: string;
-  priority?: number;
-  actionId?: number;
-  // Naive UTC ISO-ish from datetime.utcnow() server-side (e.g.
-  // "2026-05-21 14:32:55.123456"). parseMedusaIso normalises it.
-  queueTime?: string;
-  inProgress?: boolean;
-  success?: boolean | null;
-  output?: string[];
-  config?: {
-    path?: string;
-    resource_name?: string;
-    process_method?: string;
-    force?: boolean;
-    is_priority?: boolean;
-    delete_on?: boolean;
-    failed?: boolean;
-    proc_type?: string;
-    ignore_subs?: boolean;
-  };
-}
-
-interface PPCfgSlim {
-  showDownloadDir?: string;
-  processMethod?: string;
-  reflinkAvailable?: boolean;
-}
+import type { PostProcessQueueItem } from "../types/medusa";
+import type { ConfigPostProcessing } from "../types/config";
 
 const METHODS_BASE = [
   { value: "", label: "Use configured method" },
@@ -67,7 +39,7 @@ export default function PostProcess() {
     queryKey: ["config", "postprocessing"],
     queryFn: ({ signal }) =>
       api
-        .get<PPCfgSlim>("/config/postprocessing", { signal })
+        .get<ConfigPostProcessing>("/config/postprocessing", { signal })
         .then((r) => r.data),
     staleTime: 60_000,
   });
@@ -75,7 +47,7 @@ export default function PostProcess() {
   const historyQ = useQuery({
     queryKey: PP_QUEUE_KEY,
     queryFn: ({ signal }) =>
-      api.get<PPQueueItem[]>("/postprocess", { signal }).then((r) => r.data),
+      api.get<PostProcessQueueItem[]>("/postprocess", { signal }).then((r) => r.data),
   });
 
   // The PP queue emits QueueItemUpdate WS events with name === 'Post Process'.
@@ -105,7 +77,7 @@ export default function PostProcess() {
   const run = useMutation({
     mutationFn: () =>
       api
-        .post<{ status: string; message: string; queueItem: PPQueueItem }>(
+        .post<{ status: string; message: string; queueItem: PostProcessQueueItem }>(
           "/postprocess",
           {
             proc_dir: effectiveDir,
@@ -315,7 +287,7 @@ export default function PostProcess() {
   );
 }
 
-function PPHistoryRow({ item }: { item: PPQueueItem }) {
+function PPHistoryRow({ item }: { item: PostProcessQueueItem }) {
   const [showOutput, setShowOutput] = useState(false);
   const cfg = item.config ?? {};
   const status = item.inProgress

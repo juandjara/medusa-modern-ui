@@ -9,44 +9,7 @@ import SaveBar from "../../components/forms/SaveBar";
 import TagInput from "../../components/forms/TagInput";
 import TagList from "../../components/forms/TagList";
 import Section from "../../components/forms/Section";
-
-interface FailedDownloadsCfg {
-  enabled: boolean;
-  deleteFailed: boolean;
-}
-
-interface GeneralSearchCfg {
-  randomizeProviders: boolean;
-  downloadPropers: boolean;
-  checkPropersInterval: string;
-  propersSearchDays: number;
-  backlogDays: number;
-  backlogFrequency: number;
-  minBacklogFrequency: number;
-  dailySearchFrequency: number;
-  minDailySearchFrequency: number;
-  usenetRetention: number;
-  trackersList: string[];
-  allowHighPriority: boolean;
-  cacheTrimming: boolean;
-  maxCacheAge: number;
-  removeFromClient: boolean;
-  failedDownloads: FailedDownloadsCfg;
-}
-
-interface FiltersCfg {
-  ignored: string[];
-  undesired: string[];
-  preferred: string[];
-  required: string[];
-  ignoredSubsList: string[];
-  ignoreUnknownSubs: boolean;
-}
-
-interface SearchCfg {
-  general: GeneralSearchCfg;
-  filters: FiltersCfg;
-}
+import type { ConfigSearch } from "../../types/config";
 
 // Mirrors the (now-commented-out) PROPERS_INTERVAL_LABELS map in
 // data_search(). Order matches the old UI: 15m / 45m / 90m / 4h / daily.
@@ -88,7 +51,7 @@ export default function SearchSettings() {
   const configQ = useQuery({
     queryKey: ["config", "search"],
     queryFn: ({ signal }) =>
-      api.get<SearchCfg>("/config/search", { signal }).then((r) => r.data),
+      api.get<ConfigSearch>("/config/search", { signal }).then((r) => r.data),
   });
 
   const saved = configQ.data;

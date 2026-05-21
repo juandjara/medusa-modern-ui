@@ -63,7 +63,9 @@ export default function Queue() {
   const postProcessQueue = useMemo(
     () =>
       [...(data?.postProcessQueue ?? [])].sort(
-        (a, b) => parseMedusaIso(b.queueTime) - parseMedusaIso(a.queueTime),
+        (a, b) =>
+          parseMedusaIso(b.queueTime ?? "") -
+          parseMedusaIso(a.queueTime ?? ""),
       ),
     [data?.postProcessQueue],
   );
@@ -280,7 +282,7 @@ function SearchQueueRow({
             )}
           </p>
           <div className="text-xs text-base-content/50">
-            Queued {formatRelative(item.queueTime)}
+            Queued {item.queueTime ? formatRelative(item.queueTime) : "—"}
             {item.startTime && <> · started {formatRelative(item.startTime)}</>}
           </div>
           {failed && (
@@ -405,7 +407,7 @@ function PostProcessRow({ item }: { item: PostProcessQueueItem }) {
             </div>
           )}
           <div className="text-xs text-base-content/50 mt-3">
-            Queued {formatRelative(item.queueTime)}
+            Queued {item.queueTime ? formatRelative(item.queueTime) : "—"}
             {item.startTime && <> · started {formatRelative(item.startTime)}</>}
             {item.priority !== "normal" && <> · {item.priority} priority</>}
           </div>

@@ -9,44 +9,7 @@ import Toggle from "../../components/forms/Toggle";
 import SaveBar from "../../components/forms/SaveBar";
 import SecretInput from "../../components/forms/SecretInput";
 import Section from "../../components/forms/Section";
-
-interface WebInterfaceCfg {
-  apiKey: string;
-  log: boolean;
-  username: string;
-  password: string;
-  port: number;
-  host: string;
-  notifyOnLogin: boolean;
-  ipv6: boolean;
-  httpsEnable: boolean;
-  httpsCert: string;
-  httpsKey: string;
-  handleReverseProxy: boolean;
-}
-
-interface MainCfg {
-  webInterface: WebInterfaceCfg;
-  webRoot: string;
-  cpuPreset: string;
-  noRestart: boolean;
-  encryptionVersion: boolean;
-  calendarUnprotected: boolean;
-  calendarIcons: boolean;
-  versionNotify: boolean;
-  autoUpdate: boolean;
-  updateFrequency: number;
-  notifyOnUpdate: boolean;
-  indexerDefault: number;
-  indexerDefaultLanguage: string;
-  indexerTimeout: number;
-  showUpdateHour: number;
-  proxySetting: string;
-  proxyProviders: boolean;
-  proxyIndexers: boolean;
-  proxyClients: boolean;
-  proxyOthers: boolean;
-}
+import type { ConfigMain } from "../../types/config";
 
 const CPU_PRESETS = [
   { value: "LOW", label: "Low" },
@@ -120,7 +83,7 @@ export default function GeneralSettings() {
   const configQ = useQuery({
     queryKey: ["config", "main"],
     queryFn: ({ signal }) =>
-      api.get<MainCfg>("/config/main", { signal }).then((r) => r.data),
+      api.get<ConfigMain>("/config/main", { signal }).then((r) => r.data),
   });
 
   const saved = configQ.data;

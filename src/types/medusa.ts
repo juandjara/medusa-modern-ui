@@ -466,30 +466,34 @@ export interface ShowQueueItem {
 }
 
 // `output` is only present once the job finishes successfully.
+// All fields optional because consumers see different snapshots of the
+// underlying QueueItem at different stages — Queue page reads the basic
+// state fields, PostProcess page reads queueTime / output / config in
+// detail. Backend setup is in medusa/queues/generic_queue.py and
+// medusa/process_tv.py.
 export interface PostProcessQueueItem {
   identifier: string;
   name: string;
-  priority: "low" | "normal" | "high" | number;
-  actionId: number;
-  queueTime: string;
-  success: boolean | null;
-  inProgress: boolean;
-  startTime: string | null;
-  updateTime: string | null;
+  priority?: "low" | "normal" | "high" | number;
+  actionId?: number;
+  queueTime?: string;
+  success?: boolean | null;
+  inProgress?: boolean;
+  startTime?: string | null;
+  updateTime?: string | null;
   config?: {
-    path: string;
-    info_hash: string | null;
-    resource_name: string;
-    force: boolean;
-    is_priority: boolean;
-    process_method: "copy" | "move" | "hardlink" | "symlink" | string;
-    delete_on: boolean;
-    failed: boolean;
-    proc_type: "auto" | "manual" | string;
-    ignore_subs: boolean;
+    path?: string;
+    info_hash?: string | null;
+    resource_name?: string;
+    force?: boolean;
+    is_priority?: boolean;
+    process_method?: string;
+    delete_on?: boolean;
+    failed?: boolean;
+    proc_type?: string;
+    ignore_subs?: boolean;
   };
-  output?: string;
-  [extra: string]: unknown;
+  output?: string[];
 }
 
 // Uninitialised schedulers only have key + name. `isEnabled` widens to "Paused"

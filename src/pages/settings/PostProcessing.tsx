@@ -18,60 +18,7 @@ import NamingPreview from "../../components/forms/NamingPreview";
 import Section from "../../components/forms/Section";
 import TagInput from "../../components/forms/TagInput";
 import TagList from "../../components/forms/TagList";
-
-interface NamingConfig {
-  pattern: string;
-  multiEp: number;
-  patternAirByDate: string;
-  patternSports: string;
-  patternAnime: string;
-  enableCustomNamingAirByDate: boolean;
-  enableCustomNamingSports: boolean;
-  enableCustomNamingAnime: boolean;
-  animeMultiEp: number;
-  animeNamingType: number;
-  stripYear: boolean;
-}
-
-interface DownloadHandlerConfig {
-  enabled: boolean;
-  frequency: number;
-  minFrequency: number;
-  torrentSeedRatio: number;
-  torrentSeedAction: string;
-}
-
-interface PostProcessingConfig {
-  naming: NamingConfig;
-  showDownloadDir: string;
-  defaultClientPath: string;
-  processAutomatically: boolean;
-  postponeIfSyncFiles: boolean;
-  postponeIfNoSubs: boolean;
-  renameEpisodes: boolean;
-  createMissingShowDirs: boolean;
-  addShowsWithoutDir: boolean;
-  moveAssociatedFiles: boolean;
-  nfoRename: boolean;
-  airdateEpisodes: boolean;
-  unpack: boolean;
-  deleteRarContent: boolean;
-  noDelete: boolean;
-  processMethod: string;
-  specificProcessMethod: boolean;
-  processMethodTorrent: string;
-  processMethodNzb: string;
-  reflinkAvailable: boolean;
-  autoPostprocessorFrequency: number;
-  syncFiles: string[];
-  fileTimestampTimezone: string;
-  allowedExtensions: string[];
-  extraScripts: string[];
-  extraScriptsUrl?: string;
-  multiEpStrings: Record<string, string>;
-  downloadHandler: DownloadHandlerConfig;
-  ffmpeg: { checkStreams: boolean; path: string };
-}
+import type { ConfigPostProcessing, ConfigClients } from "../../types/config";
 
 const PROCESS_METHODS_BASE: { value: string; label: string }[] = [
   { value: "copy", label: "Copy" },
@@ -116,11 +63,6 @@ function setByPath(obj: Record<string, unknown>, path: string, value: unknown) {
   cur[keys[keys.length - 1]] = value;
 }
 
-interface ClientsConfigSlim {
-  torrents?: { enabled?: boolean; method?: string };
-  nzb?: { enabled?: boolean; method?: string };
-}
-
 export default function PostProcessing() {
   const queryClient = useQueryClient();
 
@@ -128,7 +70,7 @@ export default function PostProcessing() {
     queryKey: ["config", "postprocessing"],
     queryFn: ({ signal }) =>
       api
-        .get<PostProcessingConfig>("/config/postprocessing", { signal })
+        .get<ConfigPostProcessing>("/config/postprocessing", { signal })
         .then((r) => r.data),
   });
 
@@ -139,7 +81,7 @@ export default function PostProcessing() {
     queryKey: ["config", "clients"],
     queryFn: ({ signal }) =>
       api
-        .get<ClientsConfigSlim>("/config/clients", { signal })
+        .get<ConfigClients>("/config/clients", { signal })
         .then((r) => r.data),
   });
 
@@ -686,7 +628,7 @@ function TriggerSection({
   get: Getter;
   set: Setter;
   minFreq: number;
-  clients: ClientsConfigSlim | null;
+  clients: ConfigClients | null;
 }) {
   const scheduled = !!get<boolean>("processAutomatically");
   const handler = !!get<boolean>("downloadHandler.enabled");

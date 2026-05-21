@@ -10,70 +10,7 @@ import SecretInput from "../../components/forms/SecretInput";
 import TestRow from "../../components/forms/TestRow";
 import SaveBar from "../../components/forms/SaveBar";
 import FolderPicker from "../../components/forms/FolderPicker";
-
-interface NzbgetConfig {
-  host: string;
-  username: string;
-  password: string;
-  useHttps: boolean;
-  category: string;
-  categoryAnime: string;
-  categoryAnimeBacklog: string;
-  categoryBacklog: string;
-  priority: number;
-}
-
-interface SabnzbdConfig {
-  host: string;
-  username: string;
-  password: string;
-  apiKey: string;
-  category: string;
-  categoryAnime: string;
-  categoryAnimeBacklog: string;
-  categoryBacklog: string;
-  forced: boolean;
-}
-
-interface TorrentConfig {
-  enabled: boolean;
-  method: string;
-  host: string;
-  username: string;
-  password: string;
-  authType: string;
-  rpcUrl: string;
-  dir: string;
-  path: string;
-  label: string;
-  labelAnime: string;
-  seedLocation: string;
-  seedTime: number;
-  paused: boolean;
-  stopped: boolean;
-  highBandwidth: boolean;
-  saveMagnetFile: boolean;
-  verifySSL: boolean;
-}
-
-interface NzbConfig {
-  enabled: boolean;
-  dir: string;
-  method: string;
-  nzbget: NzbgetConfig;
-  sabnzbd: SabnzbdConfig;
-}
-
-interface RssConfig {
-  dir: string;
-  max_items: number;
-}
-
-interface ClientsConfig {
-  nzb: NzbConfig;
-  torrents: TorrentConfig;
-  rss: RssConfig;
-}
+import type { ConfigClients } from "../../types/config";
 
 const NZB_METHODS: { value: string; label: string }[] = [
   { value: "blackhole", label: "Black hole" },
@@ -228,7 +165,7 @@ export default function DownloadClients() {
   const configQ = useQuery({
     queryKey: ["config", "clients"],
     queryFn: ({ signal }) =>
-      api.get<ClientsConfig>("/config/clients", { signal }).then((r) => r.data),
+      api.get<ConfigClients>("/config/clients", { signal }).then((r) => r.data),
   });
 
   const saved = configQ.data;

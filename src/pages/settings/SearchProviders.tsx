@@ -31,20 +31,12 @@ import {
 } from "lucide-react";
 import api from "../../lib/api";
 import type { ProviderSummary, ProviderConfig } from "../../types/medusa";
+import type { ConfigMain, ConfigClients } from "../../types/config";
 import { CategoryEditor } from "./CustomProviders";
 import Field from "../../components/forms/Field";
 import Toggle from "../../components/forms/Toggle";
 import SecretInput from "../../components/forms/SecretInput";
 import SaveBar from "../../components/forms/SaveBar";
-
-interface ConfigMain {
-  brokenProviders?: string[];
-}
-
-interface ClientsCfg {
-  nzb?: { enabled?: boolean };
-  torrents?: { enabled?: boolean };
-}
 
 const EMPTY_ARRAY = [] as never[];
 
@@ -66,7 +58,7 @@ export default function SearchProviders() {
   const clientsQ = useQuery({
     queryKey: ["config", "clients"],
     queryFn: ({ signal }) =>
-      api.get<ClientsCfg>("/config/clients", { signal }).then((r) => r.data),
+      api.get<ConfigClients>("/config/clients", { signal }).then((r) => r.data),
   });
 
   const broken = mainQ.data?.brokenProviders ?? [];
