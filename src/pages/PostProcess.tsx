@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
+  ChevronDown,
+  ChevronRight,
   Play,
   Check,
   TriangleAlert,
@@ -14,14 +16,18 @@ import Field from "../components/forms/Field";
 import Toggle from "../components/forms/Toggle";
 import FolderPicker from "../components/forms/FolderPicker";
 import { useWebSocket } from "../lib/websocket";
-import { formatRelative } from "../lib/time";
+import { formatRelative, parseMedusaIso } from "../lib/time";
 
 interface PPQueueItem {
   identifier: string;
   name: string;
+  priority?: number;
+  actionId?: number;
+  // Naive UTC ISO-ish from datetime.utcnow() server-side (e.g.
+  // "2026-05-21 14:32:55.123456"). parseMedusaIso normalises it.
+  queueTime?: string;
   inProgress?: boolean;
   success?: boolean | null;
-  added?: string;
   output?: string[];
   config?: {
     path?: string;
@@ -61,27 +67,15 @@ export default function PostProcess() {
     queryKey: ["config", "postprocessing"],
     queryFn: ({ signal }) =>
       api
-        .get<{ data: PPCfgSlim } | PPCfgSlim>("/config/postprocessing", {
-          signal,
-        })
-        .then((r) => {
-          const d = r.data as { data?: PPCfgSlim };
-          return d.data ?? (r.data as PPCfgSlim);
-        }),
+        .get<PPCfgSlim>("/config/postprocessing", { signal })
+        .then((r) => r.data),
     staleTime: 60_000,
   });
 
   const historyQ = useQuery({
     queryKey: PP_QUEUE_KEY,
     queryFn: ({ signal }) =>
-      api
-        .get<PPQueueItem[] | { data: PPQueueItem[] }>("/postprocess", {
-          signal,
-        })
-        .then((r) => {
-          const d = r.data as { data?: PPQueueItem[] };
-          return d.data ?? (r.data as PPQueueItem[]);
-        }),
+      api.get<PPQueueItem[]>("/postprocess", { signal }).then((r) => r.data),
   });
 
   // The PP queue emits QueueItemUpdate WS events with name === 'Post Process'.
@@ -137,11 +131,10 @@ export default function PostProcess() {
 
   const reflinkAvailable = cfgQ.data?.reflinkAvailable;
   const methodOptions = reflinkAvailable
-    ? [
-        ...METHODS_BASE,
-        { value: "reflink", label: "Reflink (copy-on-write)" },
-      ]
+    ? [...METHODS_BASE, { value: "reflink", label: "Reflink (copy-on-write)" }]
     : METHODS_BASE;
+
+  console.log(historyQ.data?.[0]);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -293,11 +286,31 @@ export default function PostProcess() {
             Nothing in the post-process queue history yet.
           </div>
         ) : (
-          <ul className="space-y-2">
-            {historyQ.data.map((item) => (
-              <PPHistoryRow key={item.identifier} item={item} />
-            ))}
-          </ul>
+          <div className="overflow-x-auto rounded-box border-2 border-base-300">
+            <table className="table table-sm table-fixed w-full min-w-4xl">
+              <thead>
+                <tr>
+                  <th className="w-8 p-0" aria-label="Output toggle" />
+                  <th className="w-24">Status</th>
+                  <th className="w-44">Queued</th>
+                  <th className="w-auto">Target</th>
+                  <th className="w-20">Method</th>
+                  <th className="w-28">Flags</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...historyQ.data]
+                  .sort((a, b) => {
+                    const ta = a.queueTime ? parseMedusaIso(a.queueTime) : 0;
+                    const tb = b.queueTime ? parseMedusaIso(b.queueTime) : 0;
+                    return tb - ta;
+                  })
+                  .map((item) => (
+                    <PPHistoryRow key={item.identifier} item={item} />
+                  ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>
@@ -315,53 +328,102 @@ function PPHistoryRow({ item }: { item: PPQueueItem }) {
         ? { label: "Failed", cls: "badge-error" }
         : { label: "Queued", cls: "badge-ghost" };
 
+  // queueTime is "YYYY-MM-DD HH:MM:SS.micro" naive UTC. parseMedusaIso adds
+  // the Z so Date.parse reads it as UTC; otherwise JS treats it as local.
+  const queuedAt = item.queueTime
+    ? new Date(parseMedusaIso(item.queueTime))
+    : null;
+  const absolute = queuedAt
+    ? queuedAt.toLocaleString(navigator.language, {
+        hour: "numeric",
+        minute: "2-digit",
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      })
+    : "—";
+  const relative = item.queueTime ? formatRelative(item.queueTime) : "";
+
+  const target =
+    cfg.resource_name && cfg.path
+      ? `${cfg.path}/${cfg.resource_name}`
+      : cfg.resource_name || cfg.path || "—";
+
+  const hasOutput = !!item.output?.length;
+
   return (
-    <li className="rounded-box border border-base-300 bg-base-100">
-      <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
-        <span className={`badge badge-sm ${status.cls}`}>{status.label}</span>
-        <code className="font-mono text-xs truncate flex-1 min-w-0">
-          {cfg.path}
-          {cfg.resource_name ? ` / ${cfg.resource_name}` : ""}
-        </code>
-        {cfg.process_method && (
-          <span
-            className="badge badge-xs badge-ghost"
-            title="Process method used"
-          >
-            {cfg.process_method}
-          </span>
-        )}
-        {cfg.force && (
-          <span className="badge badge-xs badge-warning" title="Force flag">
-            force
-          </span>
-        )}
-        {cfg.failed && (
-          <span className="badge badge-xs badge-error" title="Failed flag">
-            failed
-          </span>
-        )}
-        {item.added && (
-          <span className="text-xs text-base-content/50">
-            {formatRelative(item.added)}
-          </span>
-        )}
-        {!!item.output?.length && (
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs"
-            onClick={() => setShowOutput((v) => !v)}
-          >
-            {showOutput ? "Hide" : "Show"} output ({item.output.length})
-          </button>
-        )}
-      </div>
+    <>
+      <tr
+        onClick={hasOutput ? () => setShowOutput((v) => !v) : undefined}
+        className={hasOutput ? "cursor-pointer hover:bg-base-200/40" : ""}
+        aria-expanded={hasOutput ? showOutput : undefined}
+      >
+        <td className="p-0 text-center align-middle">
+          {hasOutput ? (
+            showOutput ? (
+              <ChevronDown size={14} className="inline text-base-content/60" />
+            ) : (
+              <ChevronRight size={14} className="inline text-base-content/60" />
+            )
+          ) : null}
+        </td>
+        <td>
+          <span className={`badge badge-sm ${status.cls}`}>{status.label}</span>
+        </td>
+        <td className="text-xs whitespace-nowrap" title={item.queueTime}>
+          <p>{relative}</p>
+          {absolute && (
+            <p className="mt-0.5 text-base-content/50">{absolute}</p>
+          )}
+        </td>
+        <td>
+          <code className="font-mono text-xs break-all">{target}</code>
+        </td>
+        <td>
+          {cfg.process_method && (
+            <span className="badge badge-xs">{cfg.process_method}</span>
+          )}
+        </td>
+        <td>
+          <div className="flex gap-1 flex-wrap">
+            {cfg.force && (
+              <span className="badge badge-xs badge-warning" title="Manual">
+                force
+              </span>
+            )}
+            {cfg.is_priority && (
+              <span className="badge badge-xs badge-info" title="Priority flag">
+                priority
+              </span>
+            )}
+            {cfg.failed && (
+              <span className="badge badge-xs badge-error" title="Failed flag">
+                failed
+              </span>
+            )}
+            {cfg.delete_on && (
+              <span
+                className="badge badge-xs badge-ghost"
+                title="Delete source on success"
+              >
+                delete src
+              </span>
+            )}
+          </div>
+        </td>
+      </tr>
       {showOutput && item.output && (
-        <pre className="bg-base-300/40 text-[10px] font-mono p-2 overflow-x-auto border-t border-base-300">
-          {item.output.join("\n")}
-        </pre>
+        <tr>
+          <td colSpan={6} className="bg-base-300/40 p-0">
+            <div className="overflow-auto p-1">
+              <pre className="text-xs font-mono p-2 whitespace-pre">
+                {item.output.join("\n")}
+              </pre>
+            </div>
+          </td>
+        </tr>
       )}
-    </li>
+    </>
   );
 }
 
