@@ -234,8 +234,8 @@ export default function PostProcessing() {
       />
       <GeneralSection get={get} set={set} />
       <MethodSection get={get} set={set} processMethods={processMethods} />
-      <FileHandlingSection get={get} set={set} />
       <ShowCreationSection get={get} set={set} />
+      <FileHandlingSection get={get} set={set} />
       <NamingSection
         get={get}
         set={set}
