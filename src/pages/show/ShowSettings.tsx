@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
-import api from "../lib/api";
-import { useEditSeries } from "../lib/series-actions";
-import { DEFAULT_EPISODE_STATUSES, type Series } from "../types/medusa";
-import Toggle from "../components/forms/Toggle";
-import QualityPicker from "../components/forms/QualityPicker";
+import api from "../../lib/api";
+import { useEditSeries } from "../../lib/series-actions";
+import { DEFAULT_EPISODE_STATUSES, type Series } from "../../types/medusa";
+import Toggle from "../../components/forms/Toggle";
+import QualityPicker from "../../components/forms/QualityPicker";
 
 export default function ShowSettings() {
   const { slug = "" } = useParams<{ slug: string }>();

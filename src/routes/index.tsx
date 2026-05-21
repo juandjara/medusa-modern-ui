@@ -4,14 +4,14 @@ import { AuthProvider } from "../lib/auth";
 import ProtectedRoute from "./ProtectedRoute";
 import Layout from "../components/Layout";
 import Login from "../pages/Login";
-import ShowList from "../pages/ShowList";
+import ShowList from "../pages/show/ShowList";
 import AddShow from "../pages/AddShow";
 import Schedule from "../pages/Schedule";
 import History from "../pages/History";
 import Queue from "../pages/Queue";
 
-const ShowDetail = lazy(() => import("../pages/ShowDetail"));
-const ShowSettings = lazy(() => import("../pages/ShowSettings"));
+const ShowDetail = lazy(() => import("../pages/show/ShowDetail"));
+const ShowSettings = lazy(() => import("../pages/show/ShowSettings"));
 const Settings = lazy(() => import("../pages/settings/Settings"));
 const System = lazy(() => import("../pages/System"));
 const Logs = lazy(() => import("../pages/Logs"));

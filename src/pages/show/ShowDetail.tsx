@@ -9,8 +9,8 @@ import {
   HardDrive,
   Clock,
 } from "lucide-react";
-import api, { getAssetUrl } from "../lib/api";
-import { formatBytes } from "../lib/time";
+import api, { getAssetUrl } from "../../lib/api";
+import { formatBytes } from "../../lib/time";
 import {
   INDEXER_ID_TO_SLUG,
   qualityName,
@@ -19,14 +19,14 @@ import {
   type Episode,
   type Series,
   type ShowStatsResponse,
-} from "../types/medusa";
-import SeasonAccordion from "../components/SeasonAccordion";
-import ShowActionsMenu from "../components/ShowActionsMenu";
+} from "../../types/medusa";
+import SeasonAccordion from "../../components/SeasonAccordion";
+import ShowActionsMenu from "../../components/ShowActionsMenu";
 import {
   useSeriesMassUpdate,
   usePauseSeries,
   ACTION_LABELS,
-} from "../lib/series-actions";
+} from "../../lib/series-actions";
 
 export default function ShowDetail() {
   const { slug = "" } = useParams<{ slug: string }>();

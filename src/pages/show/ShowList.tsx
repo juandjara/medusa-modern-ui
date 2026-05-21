@@ -2,14 +2,14 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Tv } from "lucide-react";
-import api, { getAssetUrl } from "../lib/api";
+import api, { getAssetUrl } from "../../lib/api";
 import {
   INDEXER_ID_TO_SLUG,
   seriesStatusBadgeClass,
   type Series,
   type ShowStat,
   type ShowStatsResponse,
-} from "../types/medusa";
+} from "../../types/medusa";
 
 function useSeries() {
   return useQuery({
