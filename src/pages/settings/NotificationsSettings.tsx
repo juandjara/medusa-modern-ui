@@ -140,6 +140,8 @@ export default function NotificationsSettings() {
         <KodiRow {...rowProps("kodi")} />
         <PlexServerRow {...rowProps("plex.server")} />
         <EmbyRow {...rowProps("emby")} />
+        <SynologyIndexerRow {...rowProps("synologyIndex")} />
+        <SynologyNotifierRow {...rowProps("synology")} />
         <PushbulletRow {...rowProps("pushbullet")} />
         <PushoverRow {...rowProps("pushover")} />
         <TelegramRow {...rowProps("telegram")} />
@@ -148,6 +150,61 @@ export default function NotificationsSettings() {
         <EmailRow {...rowProps("email")} />
       </ul>
     </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Notifier icon — pulls from the legacy slim UI's CSS sprite, scaled to 16×16
+// so it sits next to the row checkbox without bulking the layout. Mapping
+// matches the `icon-notifiers-*` classes in slim's style.css.
+// -----------------------------------------------------------------------------
+
+const NOTIFIER_SPRITE_INDEX: Record<string, number> = {
+  kodi: 0,
+  plex: 1,
+  plexth: 2,
+  emby: 3,
+  nmj: 4,
+  syno1: 5,
+  syno2: 6,
+  pytivo: 7,
+  growl: 8,
+  prowl: 9,
+  libnotify: 10,
+  pushover: 11,
+  boxcar2: 12,
+  pushalot: 13,
+  pushbullet: 14,
+  freemobile: 15,
+  telegram: 16,
+  twitter: 17,
+  trakt: 18,
+  email: 19,
+  anime: 20,
+  look: 21,
+  slack: 22,
+  join: 23,
+  discord: 24,
+};
+
+function NotifierIcon({ name }: { name: string }) {
+  const idx = NOTIFIER_SPRITE_INDEX[name];
+  if (idx === undefined) return null;
+  // Original sprite is 832×32 with 32px tiles. Halved for the row.
+  return (
+    <div
+      className="shrink-0"
+      style={{
+        width: 16,
+        height: 16,
+        backgroundImage:
+          'url("/images/32x_sprite_colored_notifiers.png")',
+        backgroundPosition: `-${idx * 16}px 0`,
+        backgroundSize: "416px 16px",
+        backgroundRepeat: "no-repeat",
+      }}
+      aria-hidden
+    />
   );
 }
 
@@ -164,6 +221,7 @@ interface RowProps {
 
 function NotifierRow({
   title,
+  icon,
   hint,
   enabled,
   onEnabledChange,
@@ -172,12 +230,14 @@ function NotifierRow({
   children,
 }: {
   title: string;
+  // Sprite key from NOTIFIER_SPRITE_INDEX; omit to hide the icon column.
+  icon?: string;
   hint?: ReactNode;
   enabled: boolean;
   onEnabledChange: (v: boolean) => void;
   expanded: boolean;
   onToggleExpand: () => void;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <li className="rounded-box border bg-base-100 border-base-300">
@@ -190,6 +250,7 @@ function NotifierRow({
           onClick={(e) => e.stopPropagation()}
           aria-label={`Enable ${title}`}
         />
+        {icon && <NotifierIcon name={icon} />}
         <button
           type="button"
           className="font-medium flex-1 text-left hover:underline truncate"
@@ -292,6 +353,7 @@ function KodiRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Kodi"
+      icon="kodi"
       hint="Notify one or more Kodi installs and (optionally) refresh the library after each download."
       enabled={enabled}
       onEnabledChange={(v) => set("kodi.enabled", v)}
@@ -399,6 +461,7 @@ function PlexServerRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Plex Media Server"
+      icon="plex"
       hint="Refresh the Plex library when new episodes land. Notifications go to Plex Server (not Plex Home Theater)."
       enabled={enabled}
       onEnabledChange={(v) => set("plex.server.enabled", v)}
@@ -550,6 +613,7 @@ function EmbyRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Emby / Jellyfin"
+      icon="emby"
       hint="Jellyfin forked from Emby and stayed mostly API-compatible — the library refresh works for both. Test probes /System/Info directly, since Jellyfin removed the legacy notification endpoint."
       enabled={enabled}
       onEnabledChange={(v) => set("emby.enabled", v)}
@@ -604,6 +668,7 @@ function PushbulletRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Pushbullet"
+      icon="pushbullet"
       hint="Send push notifications to your phone / browser via pushbullet.com."
       enabled={enabled}
       onEnabledChange={(v) => set("pushbullet.enabled", v)}
@@ -701,6 +766,7 @@ function PushoverRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Pushover"
+      icon="pushover"
       hint="Paid push service with finer-grained controls than Pushbullet — priorities, sounds, per-device targeting."
       enabled={enabled}
       onEnabledChange={(v) => set("pushover.enabled", v)}
@@ -806,6 +872,7 @@ function TelegramRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Telegram"
+      icon="telegram"
       hint="Post to a chat, group, or channel via a Telegram bot. Create one with @BotFather, then start a chat with it (or add it to the group / channel) before testing."
       enabled={enabled}
       onEnabledChange={(v) => set("telegram.enabled", v)}
@@ -870,6 +937,7 @@ function DiscordRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Discord"
+      icon="discord"
       hint="Post to a Discord channel via a webhook. Create one under the channel's Edit → Integrations → Webhooks."
       enabled={enabled}
       onEnabledChange={(v) => set("discord.enabled", v)}
@@ -940,6 +1008,7 @@ function SlackRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Slack"
+      icon="slack"
       hint="Post to a Slack channel via an Incoming Webhook."
       enabled={enabled}
       onEnabledChange={(v) => set("slack.enabled", v)}
@@ -996,6 +1065,7 @@ function EmailRow({ get, set, expanded, onToggleExpand }: RowProps) {
   return (
     <NotifierRow
       title="Email"
+      icon="email"
       hint="Send notifications via SMTP. Test goes to the first recipient in the list."
       enabled={enabled}
       onEnabledChange={(v) => set("email.enabled", v)}
@@ -1088,6 +1158,49 @@ function EmailRow({ get, set, expanded, onToggleExpand }: RowProps) {
         pending={test.isPending}
         onClick={() => test.mutate()}
       />
+    </NotifierRow>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Synology Indexer (synoindex) — local-only, NAS-side. No notify-on triggers
+// because it's not a notifier; it just tells DSM "a new media file landed."
+// No upstream test endpoint — either the binary runs or it doesn't.
+// -----------------------------------------------------------------------------
+
+function SynologyIndexerRow({ get, set, expanded, onToggleExpand }: RowProps) {
+  const enabled = !!get<boolean>("synologyIndex.enabled");
+  return (
+    <NotifierRow
+      title="Synology Indexer"
+      icon="syno1"
+      hint="Calls DSM's `synoindex` after each download so newly-added episodes show up in DSM's Media Server / DLNA index without waiting for a full scan. Only works when Medusa runs on the Synology NAS itself."
+      enabled={enabled}
+      onEnabledChange={(v) => set("synologyIndex.enabled", v)}
+      expanded={expanded}
+      onToggleExpand={onToggleExpand}
+    />
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Synology DSM Notifier — posts to the DSM notification bell via the local
+// `synodsmnotify` binary. Same on-the-NAS caveat as the Indexer.
+// -----------------------------------------------------------------------------
+
+function SynologyNotifierRow({ get, set, expanded, onToggleExpand }: RowProps) {
+  const enabled = !!get<boolean>("synology.enabled");
+  return (
+    <NotifierRow
+      title="Synology DSM Notifier"
+      icon="syno2"
+      hint="Sends Medusa events to the DSM notification system (the bell icon in DSM's top bar). Runs `synodsmnotify` locally — Medusa must be on the Synology NAS."
+      enabled={enabled}
+      onEnabledChange={(v) => set("synology.enabled", v)}
+      expanded={expanded}
+      onToggleExpand={onToggleExpand}
+    >
+      <NotifyOnGroup prefix="synology" get={get} set={set} />
     </NotifierRow>
   );
 }

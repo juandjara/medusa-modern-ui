@@ -319,6 +319,18 @@ export interface EmailCfg extends NotifyOnTriggersCfg {
   subject: string;
 }
 
+// Refreshes DSM's media index (DLNA etc.) via the local `synoindex` binary.
+// Only useful when Medusa runs on the NAS itself.
+export interface SynologyIndexerCfg {
+  enabled: boolean;
+}
+
+// Posts to DSM's notification system via the local `synodsmnotify` binary.
+// Same caveat — Medusa must run on the NAS.
+export interface SynologyNotifierCfg extends NotifyOnTriggersCfg {
+  enabled: boolean;
+}
+
 export interface ConfigNotifiers {
   kodi: KodiCfg;
   plex: {
@@ -333,4 +345,6 @@ export interface ConfigNotifiers {
   discord: DiscordCfg;
   slack: SlackCfg;
   email: EmailCfg;
+  synologyIndex: SynologyIndexerCfg;
+  synology: SynologyNotifierCfg;
 }
