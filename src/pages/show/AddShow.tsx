@@ -8,10 +8,10 @@ import {
   AlertCircle,
   ArrowRight,
 } from "lucide-react";
-import api from "../lib/api";
-import { useWebSocket } from "../lib/websocket";
-import type { SearchResult, SystemConfig } from "../types/medusa";
-import { EPISODE_STATUS_CODE, QUALITY_PRESETS } from "../types/medusa";
+import api from "../../lib/api";
+import { useWebSocket } from "../../lib/websocket";
+import type { SearchResult, SystemConfig } from "../../types/medusa";
+import { EPISODE_STATUS_CODE, QUALITY_PRESETS } from "../../types/medusa";
 
 interface AddShowQueueItem {
   identifier: string;

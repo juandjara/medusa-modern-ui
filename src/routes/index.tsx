@@ -5,7 +5,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Layout from "../components/Layout";
 import Login from "../pages/Login";
 import ShowList from "../pages/show/ShowList";
-import AddShow from "../pages/AddShow";
+import AddShow from "../pages/show/AddShow";
 import Schedule from "../pages/Schedule";
 import History from "../pages/History";
 import Queue from "../pages/Queue";
@@ -18,9 +18,7 @@ const Logs = lazy(() => import("../pages/Logs"));
 const ProwlarrSettings = lazy(
   () => import("../pages/settings/ProwlarrSettings"),
 );
-const DownloadClients = lazy(
-  () => import("../pages/settings/DownloadClients"),
-);
+const DownloadClients = lazy(() => import("../pages/settings/DownloadClients"));
 const SearchProviders = lazy(() => import("../pages/settings/SearchProviders"));
 const CustomProviders = lazy(() => import("../pages/settings/CustomProviders"));
 const PostProcessing = lazy(() => import("../pages/settings/PostProcessing"));
