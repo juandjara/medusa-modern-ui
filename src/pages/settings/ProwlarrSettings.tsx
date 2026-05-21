@@ -136,7 +136,7 @@ export default function ProwlarrSettings() {
         </p>
       </header>
 
-      <section className="card bg-base-100 border border-base-300 rounded-box">
+      <section className="card bg-base-100 border-2 border-base-300 rounded-box">
         <div className="card-body p-4 pt-3">
           <fieldset className="fieldset">
             <legend className="fieldset-legend">Prowlarr URL</legend>
@@ -223,7 +223,7 @@ export default function ProwlarrSettings() {
         </div>
       </section>
 
-      <section className="card bg-base-100 border border-base-300 rounded-box">
+      <section className="card bg-base-100 border-2 border-base-300 rounded-box">
         <div className="card-body p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-semibold">Indexers</h2>
@@ -233,6 +233,14 @@ export default function ProwlarrSettings() {
               </span>
             )}
           </div>
+
+          {dirty && indexers && indexers.length > 0 && (
+            <div className="alert alert-soft alert-warning text-xs">
+              <TriangleAlert size={12} />
+              Adding is disabled until you save the URL / API key above — the
+              backend reads the stored values when importing.
+            </div>
+          )}
 
           {!canConnect && (
             <div className="text-sm text-base-content/60 italic py-4 text-center">
@@ -258,14 +266,12 @@ export default function ProwlarrSettings() {
 
           {indexers && indexers.length > 0 && (
             <div className="overflow-x-auto rounded-box border-2 border-base-300">
-              <table className="table table-sm">
+              <table className="table table-sm table-fixed w-full min-w-2xl">
                 <thead>
                   <tr>
-                    <th className="w-20">Status</th>
-                    <th>Name</th>
-                    <th className="w-32">Protocol</th>
-                    <th className="w-24">Privacy</th>
-                    <th className="w-32"></th>
+                    <th className="w-auto">Name</th>
+                    <th className="w-40">Type</th>
+                    <th className="w-32 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -329,40 +335,62 @@ function IndexerRow({
   onAdd: () => void;
   onRemove: () => void;
 }) {
+  const isImported = !!imported;
+  // Whole row is a tap target for the only non-destructive primary action
+  // (Add). Imported rows don't get a row click — Remove must be an explicit
+  // button press to avoid accidental loss of an indexer.
+  const rowClickable = !isImported && !dirty && !adding;
   return (
-    <tr>
+    <tr
+      onClick={rowClickable ? onAdd : undefined}
+      className={`${isImported ? "bg-success/5" : ""} ${
+        rowClickable ? "cursor-pointer hover:bg-base-200/40" : ""
+      }`}
+      title={
+        rowClickable
+          ? "Import this indexer as a Medusa provider"
+          : isImported
+            ? "Already imported as a Medusa provider"
+            : dirty
+              ? "Save the Prowlarr URL / API key first"
+              : undefined
+      }
+    >
       <td>
-        {imported ? (
-          <span className="badge badge-sm badge-success gap-1">
-            <Check size={12} /> imported
-          </span>
-        ) : (
-          <span className="text-xs text-base-content/40">—</span>
-        )}
+        <div className="flex items-center gap-2 min-w-0">
+          {isImported && (
+            <Check
+              size={12}
+              className="shrink-0 text-success"
+              aria-label="Imported"
+            />
+          )}
+          <span className="font-medium truncate">{indexer.name}</span>
+        </div>
       </td>
-      <td className="font-medium">{indexer.name}</td>
       <td>
-        <span
-          className={`badge badge-xs ${
-            indexer.protocol === "torrent" ? "badge-info" : "badge-neutral"
-          }`}
-        >
-          {indexer.protocol}
-        </span>
-      </td>
-      <td>
-        {indexer.privacy && (
-          <span className="text-xs text-base-content/60">
-            {indexer.privacy}
+        <div className="flex items-center gap-1 flex-wrap">
+          <span
+            className={`badge badge-xs ${
+              indexer.protocol === "torrent" ? "badge-info" : "badge-neutral"
+            }`}
+          >
+            {indexer.protocol}
           </span>
-        )}
+          {indexer.privacy && (
+            <span className="badge badge-xs">{indexer.privacy}</span>
+          )}
+        </div>
       </td>
       <td className="text-right">
-        {imported ? (
+        {isImported ? (
           <button
             type="button"
             className="btn btn-xs btn-ghost text-error gap-1"
-            onClick={onRemove}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
             disabled={removing}
             title="Remove from Medusa (does not touch Prowlarr)"
           >
@@ -377,13 +405,11 @@ function IndexerRow({
           <button
             type="button"
             className="btn btn-xs btn-primary gap-1"
-            onClick={onAdd}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
             disabled={adding || dirty}
-            title={
-              dirty
-                ? "Save the Prowlarr URL / API key first"
-                : "Import this indexer as a Medusa provider"
-            }
           >
             {adding ? (
               <span className="loading loading-spinner loading-xs" />
