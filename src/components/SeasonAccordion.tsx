@@ -64,7 +64,7 @@ export default function SeasonAccordion({
 
   return (
     <div className="bg-base-100 border-2 border-base-300 rounded-box">
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-2 p-2">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -80,17 +80,9 @@ export default function SeasonAccordion({
             Season {season === 0 ? "Specials" : season}
           </span>
           <span className="text-sm font-normal text-base-content/50 truncate">
-            {episodes.length} episodes · {downloaded} downloaded
+            {downloaded} / {episodes.length} episodes downloaded
           </span>
         </button>
-
-        <Link
-          to={`/history?show=${seriesSlug}&season=${season}`}
-          className="btn btn-ghost btn-sm gap-1"
-          title="History for this season"
-        >
-          <History size={12} /> History
-        </Link>
 
         <div className="dropdown dropdown-end dropdown-top">
           <button
@@ -122,26 +114,46 @@ export default function SeasonAccordion({
             ))}
           </ul>
         </div>
+
+        <Link
+          to={`/history?show=${seriesSlug}&season=${season}`}
+          className="btn btn-ghost btn-sm btn-square"
+          title="History for this season"
+          aria-label="History for this season"
+        >
+          <History size={14} />
+        </Link>
       </div>
 
       {open && (
         <div className="border-t border-base-300 overflow-x-auto">
-          <table className="table table-zebra table-xs">
+          <table className="table table-zebra table-xs table-fixed w-full min-w-2xl">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>Air Date</th>
-                <th>Status</th>
-                <th></th>
+                <th className="w-12">#</th>
+                <th className="w-auto">Title</th>
+                <th className="w-28">Air date</th>
+                <th className="w-32">Status</th>
+                <th className="w-24 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {episodes.map((ep) => (
                 <tr key={ep.identifier}>
                   <td>{ep.episode}</td>
-                  <td className={ep.title ? "" : "text-base-content/30 italic"}>
-                    {ep.title || "TBA"}
+                  {/* td has no padding — the inner button owns it so the
+                      whole cell area is a tap target for Manual search. */}
+                  <td className="p-0">
+                    <button
+                      type="button"
+                      onClick={() => setSearchTarget(ep.episode)}
+                      className={`block w-full h-full text-left truncate cursor-pointer hover:text-primary hover:bg-base-200/40 px-3 py-2 ${
+                        ep.title ? "" : "text-base-content/30 italic"
+                      }`}
+                      title={ep.title || "Open manual search"}
+                    >
+                      {ep.title || "TBA"}
+                    </button>
                   </td>
                   <td className="text-xs whitespace-nowrap">
                     {ep.airDate ? ep.airDate.split("T")[0] : "—"}
@@ -150,21 +162,14 @@ export default function SeasonAccordion({
                     <StatusBadge status={ep.status} />
                   </td>
                   <td>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 justify-end">
                       <button
                         className="btn btn-ghost btn-xs btn-square"
-                        title="Search"
+                        title="Manual search"
                         onClick={() => setSearchTarget(ep.episode)}
                       >
                         <Search size={14} />
                       </button>
-                      <Link
-                        to={`/history?show=${seriesSlug}&season=${season}&episode=${ep.episode}`}
-                        className="btn btn-ghost btn-xs btn-square"
-                        title="History for this episode"
-                      >
-                        <History size={14} />
-                      </Link>
                       <div className="dropdown dropdown-end">
                         <button
                           tabIndex={0}
@@ -175,8 +180,16 @@ export default function SeasonAccordion({
                         </button>
                         <ul
                           tabIndex={0}
-                          className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-sm border border-base-300 p-2 w-44"
+                          className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-sm border border-base-300 p-2 w-48"
                         >
+                          <li>
+                            <Link
+                              to={`/history?show=${seriesSlug}&season=${season}&episode=${ep.episode}`}
+                            >
+                              <History size={14} /> View history
+                            </Link>
+                          </li>
+                          <li className="menu-title text-xs">Set status</li>
                           {BULK_STATUSES.map((status) => (
                             <li key={status}>
                               <button
@@ -190,7 +203,7 @@ export default function SeasonAccordion({
                                   setStatus.isPending || ep.status === status
                                 }
                               >
-                                Set {status}
+                                {status}
                               </button>
                             </li>
                           ))}
