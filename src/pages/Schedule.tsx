@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { CalendarPlus, Copy, Check } from "lucide-react";
 import api, { getAssetUrl } from "../lib/api";
 import type {
   ScheduleEntry,
@@ -47,7 +49,10 @@ export default function Schedule() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold">Schedule</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-2xl font-bold">Schedule</h1>
+        <CalendarSubscribe />
+      </div>
 
       {totalCount === 0 && (
         <div className="text-center py-16 text-base-content/50">
@@ -165,5 +170,97 @@ function ScheduleRow({
         </div>
       </Link>
     </li>
+  );
+}
+
+function CalendarSubscribe() {
+  const [copied, setCopied] = useState(false);
+
+  // window.location.origin already reflects what the user typed into the
+  // browser bar — works behind a reverse proxy or with a non-standard port.
+  // PyMedusa serves the iCal feed at /<webRoot>/calendar. We don't know the
+  // webRoot client-side, so we read it from the current pathname's leading
+  // segments — but in practice it's the root or matches the SPA mount.
+  const icalUrl = `${window.location.origin}/calendar`;
+  // webcal:// is the magic scheme that hands the URL to the OS's default
+  // calendar app (Apple Calendar, Outlook, etc.) for subscription. iOS and
+  // macOS handle it natively; on Linux/Windows the calendar app needs to be
+  // the registered handler.
+  const webcalUrl = icalUrl.replace(/^https?:/, "webcal:");
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(icalUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API can be blocked (insecure context, permissions). Fall
+      // back to selecting the text in a temporary input.
+      const ta = document.createElement("input");
+      ta.value = icalUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    }
+  };
+
+  return (
+    <div className="dropdown dropdown-end">
+      <button tabIndex={0} className="btn btn-sm gap-1">
+        <CalendarPlus size={14} /> Subscribe
+      </button>
+      <div
+        tabIndex={0}
+        className="dropdown-content bg-base-100 rounded-box z-10 shadow-sm border border-base-300 p-3 w-80 text-sm space-y-3"
+      >
+        <p className="text-xs text-base-content/60">
+          Subscribe to this schedule from your calendar app — episodes show up
+          as events on their air date.
+        </p>
+        <a
+          href={webcalUrl}
+          className="btn btn-sm btn-primary w-full gap-1"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <CalendarPlus size={14} /> Open in calendar app
+        </a>
+        <div className="space-y-1">
+          <div className="text-xs text-base-content/60">
+            …or paste this URL into your calendar:
+          </div>
+          <div className="flex gap-1">
+            <input
+              readOnly
+              className="input input-xs flex-1 font-mono"
+              value={icalUrl}
+              onFocus={(e) => e.currentTarget.select()}
+            />
+            <button
+              type="button"
+              className="btn btn-xs gap-1"
+              onClick={copy}
+              title="Copy URL"
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-base-content/50">
+          By default the feed requires the same login as Medusa. Toggle{" "}
+          <Link
+            to="/settings/general"
+            className="link link-hover text-primary"
+          >
+            Public calendar (no auth)
+          </Link>{" "}
+          on if you want a credential-free URL.
+        </p>
+      </div>
+    </div>
   );
 }
