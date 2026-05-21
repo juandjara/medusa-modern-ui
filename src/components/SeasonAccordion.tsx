@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, History } from "lucide-react";
+import {
+  Search,
+  History,
+  MoreVertical,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import api from "../lib/api";
 import type { Episode, EpisodeStatus } from "../types/medusa";
 import { EPISODE_STATUS_CODE } from "../types/medusa";
@@ -14,6 +20,13 @@ interface Props {
   episodes: Episode[];
 }
 
+const BULK_STATUSES: EpisodeStatus[] = [
+  "Wanted",
+  "Skipped",
+  "Archived",
+  "Ignored",
+];
+
 export default function SeasonAccordion({
   seriesSlug,
   season,
@@ -21,6 +34,11 @@ export default function SeasonAccordion({
 }: Props) {
   const queryClient = useQueryClient();
   const [searchTarget, setSearchTarget] = useState<number | null>(null);
+  // Replaces daisyUI's <input type="checkbox" class="peer"> + .collapse pair.
+  // The .collapse class sets overflow:hidden on the wrapper for its grid
+  // animation, which clips popover dropdowns in the header — go with a
+  // controlled expand instead so the bulk menu can render below the title.
+  const [open, setOpen] = useState(false);
 
   const aired = episodes.filter((e) => e.status !== "Unaired");
   const downloaded = aired.filter(
@@ -42,25 +60,72 @@ export default function SeasonAccordion({
     },
   });
 
+  const allIdentifiers = episodes.map((e) => e.identifier);
+
   return (
-    <div className="collapse collapse-arrow bg-base-100 border-2 border-base-300 rounded-box">
-      <input type="checkbox" className="peer" />
-      <div className="collapse-title font-semibold text-lg flex items-center gap-3">
-        Season {season === 0 ? "Specials" : season}
-        <span className="text-sm font-normal text-base-content/50">
-          {episodes.length} episodes · {downloaded} downloaded
-        </span>
+    <div className="bg-base-100 border-2 border-base-300 rounded-box">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-3 flex-1 text-left cursor-pointer min-w-0"
+          aria-expanded={open}
+        >
+          {open ? (
+            <ChevronDown size={16} className="shrink-0" />
+          ) : (
+            <ChevronRight size={16} className="shrink-0" />
+          )}
+          <span className="font-semibold text-lg shrink-0">
+            Season {season === 0 ? "Specials" : season}
+          </span>
+          <span className="text-sm font-normal text-base-content/50 truncate">
+            {episodes.length} episodes · {downloaded} downloaded
+          </span>
+        </button>
+
         <Link
           to={`/history?show=${seriesSlug}&season=${season}`}
-          className="btn btn-ghost btn-xs gap-1 ml-auto"
+          className="btn btn-ghost btn-sm gap-1"
           title="History for this season"
-          onClick={(e) => e.stopPropagation()}
         >
           <History size={12} /> History
         </Link>
+
+        <div className="dropdown dropdown-end dropdown-top">
+          <button
+            tabIndex={0}
+            className="btn btn-ghost btn-sm gap-1"
+            title="Bulk actions for this season"
+          >
+            Bulk <ChevronDown size={12} />
+          </button>
+          <ul
+            tabIndex={0}
+            className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-sm border border-base-300 p-2 w-56"
+          >
+            <li className="menu-title text-xs">Set status for all</li>
+            {BULK_STATUSES.map((status) => (
+              <li key={status}>
+                <button
+                  onClick={() =>
+                    setStatus.mutate({
+                      identifiers: allIdentifiers,
+                      status,
+                    })
+                  }
+                  disabled={setStatus.isPending}
+                >
+                  {status}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
-      <div className="collapse-content p-0">
-        <div className="overflow-x-auto">
+
+      {open && (
+        <div className="border-t border-base-300 overflow-x-auto">
           <table className="table table-zebra table-xs">
             <thead>
               <tr>
@@ -101,49 +166,34 @@ export default function SeasonAccordion({
                         <History size={14} />
                       </Link>
                       <div className="dropdown dropdown-end">
-                        <button tabIndex={0} className="btn btn-ghost btn-xs">
-                          ⋯
+                        <button
+                          tabIndex={0}
+                          className="btn btn-ghost btn-xs btn-square"
+                          aria-label="More actions"
+                        >
+                          <MoreVertical size={14} />
                         </button>
                         <ul
                           tabIndex={0}
-                          className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-sm border border-base-300 p-2"
+                          className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-sm border border-base-300 p-2 w-44"
                         >
-                          <li>
-                            <button
-                              onClick={() =>
-                                setStatus.mutate({
-                                  identifiers: [ep.identifier],
-                                  status: "Wanted",
-                                })
-                              }
-                            >
-                              Set Wanted
-                            </button>
-                          </li>
-                          <li>
-                            <button
-                              onClick={() =>
-                                setStatus.mutate({
-                                  identifiers: [ep.identifier],
-                                  status: "Skipped",
-                                })
-                              }
-                            >
-                              Skip
-                            </button>
-                          </li>
-                          <li>
-                            <button
-                              onClick={() =>
-                                setStatus.mutate({
-                                  identifiers: [ep.identifier],
-                                  status: "Archived",
-                                })
-                              }
-                            >
-                              Archive
-                            </button>
-                          </li>
+                          {BULK_STATUSES.map((status) => (
+                            <li key={status}>
+                              <button
+                                onClick={() =>
+                                  setStatus.mutate({
+                                    identifiers: [ep.identifier],
+                                    status,
+                                  })
+                                }
+                                disabled={
+                                  setStatus.isPending || ep.status === status
+                                }
+                              >
+                                Set {status}
+                              </button>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     </div>
@@ -153,7 +203,7 @@ export default function SeasonAccordion({
             </tbody>
           </table>
         </div>
-      </div>
+      )}
 
       {searchTarget !== null && (
         <EpisodeSearchModal
