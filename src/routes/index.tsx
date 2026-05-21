@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "../lib/auth";
 import ProtectedRoute from "./ProtectedRoute";
 import Layout from "../components/Layout";
+import RouteErrorBoundary from "../components/RouteErrorBoundary";
 import Login from "../pages/Login";
 import ShowList from "../pages/show/ShowList";
 import AddShow from "../pages/show/AddShow";
@@ -40,6 +41,7 @@ function Root() {
 export const router = createBrowserRouter([
   {
     element: <Root />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { path: "/signin", element: <Login /> },
       {
