@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import {
   RefreshCw,
   RefreshCcw,
@@ -12,60 +12,63 @@ import {
   Play,
   Pause,
   History,
-  Settings as SettingsIcon,
-} from 'lucide-react'
-import type { Series } from '../types/medusa'
-import type { MassUpdateAction } from '../lib/series-actions'
-import ConfirmDialog from './ConfirmDialog'
+  Edit2Icon,
+} from "lucide-react";
+import type { Series } from "../types/medusa";
+import type { MassUpdateAction } from "../lib/series-actions";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface ConfirmConfig {
-  title: string
-  body: ReactNode
-  confirmLabel: string
-  variant: 'normal' | 'danger'
+  title: string;
+  body: ReactNode;
+  confirmLabel: string;
+  variant: "normal" | "danger";
 }
 
 const CONFIRMS: Partial<Record<MassUpdateAction, ConfirmConfig>> = {
   rename: {
-    title: 'Rename episode files?',
-    body: 'PyMedusa will rename files in this show\'s folder to match the configured naming pattern. Files on disk will change.',
-    confirmLabel: 'Rename',
-    variant: 'normal',
+    title: "Rename episode files?",
+    body: "PyMedusa will rename files in this show's folder to match the configured naming pattern. Files on disk will change.",
+    confirmLabel: "Rename",
+    variant: "normal",
   },
   remove: {
-    title: 'Remove show from Medusa?',
+    title: "Remove show from Medusa?",
     body: (
       <>
         <p>PyMedusa will forget about this show.</p>
-        <p>Episode files on disk are <strong>kept</strong>. You can re-add the show later to resume tracking.</p>
+        <p>
+          Episode files on disk are <strong>kept</strong>. You can re-add the
+          show later to resume tracking.
+        </p>
       </>
     ),
-    confirmLabel: 'Remove',
-    variant: 'danger',
+    confirmLabel: "Remove",
+    variant: "danger",
   },
   delete: {
-    title: 'Delete show and all files?',
+    title: "Delete show and all files?",
     body: (
       <>
         <p>
-          PyMedusa will remove this show <strong>and permanently delete</strong>{' '}
+          PyMedusa will remove this show <strong>and permanently delete</strong>{" "}
           every episode file from disk.
         </p>
         <p className="text-error">This cannot be undone.</p>
       </>
     ),
-    confirmLabel: 'Delete forever',
-    variant: 'danger',
+    confirmLabel: "Delete forever",
+    variant: "danger",
   },
-}
+};
 
 interface Props {
-  series: Series
-  isPending: boolean
-  queued: MassUpdateAction | null
-  onAction: (action: MassUpdateAction) => void
-  onTogglePause: () => void
-  isPausePending: boolean
+  series: Series;
+  isPending: boolean;
+  queued: MassUpdateAction | null;
+  onAction: (action: MassUpdateAction) => void;
+  onTogglePause: () => void;
+  isPausePending: boolean;
 }
 
 export default function ShowActionsMenu({
@@ -76,32 +79,32 @@ export default function ShowActionsMenu({
   onTogglePause,
   isPausePending,
 }: Props) {
-  const [confirming, setConfirming] = useState<MassUpdateAction | null>(null)
+  const [confirming, setConfirming] = useState<MassUpdateAction | null>(null);
 
   const trigger = (action: MassUpdateAction) => {
     if (CONFIRMS[action]) {
-      setConfirming(action)
+      setConfirming(action);
     } else {
-      onAction(action)
+      onAction(action);
     }
-  }
+  };
 
-  const refreshIsActive = isPending || queued === 'update'
+  const refreshIsActive = isPending || queued === "update";
 
   return (
     <>
       <div className="join">
         <button
           className="btn btn-sm gap-2 join-item"
-          onClick={() => onAction('update')}
+          onClick={() => onAction("update")}
           disabled={refreshIsActive}
           title="Re-fetch metadata from the indexer (TMDB/TVDB)"
         >
           <RefreshCw
             size={14}
-            className={refreshIsActive ? 'animate-spin' : ''}
+            className={refreshIsActive ? "animate-spin" : ""}
           />
-          {queued === 'update' ? 'Refresh queued' : 'Refresh metadata'}
+          {queued === "update" ? "Refresh queued" : "Refresh metadata"}
         </button>
 
         <div className="dropdown dropdown-end join-item">
@@ -124,15 +127,12 @@ export default function ShowActionsMenu({
             </li>
             <li>
               <Link to={`/show/${series.id.slug}/settings`}>
-                <SettingsIcon size={14} /> Edit settings
+                <Edit2Icon size={14} /> Edit settings
               </Link>
             </li>
             <div className="divider my-1" />
             <li>
-              <button
-                onClick={onTogglePause}
-                disabled={isPausePending}
-              >
+              <button onClick={onTogglePause} disabled={isPausePending}>
                 {series.config.paused ? (
                   <>
                     <Play size={14} /> Resume
@@ -146,41 +146,35 @@ export default function ShowActionsMenu({
             </li>
             <div className="divider my-1" />
             <li>
-              <button onClick={() => trigger('rescan')}>
+              <button onClick={() => trigger("rescan")}>
                 <RefreshCcw size={14} /> Rescan files
               </button>
             </li>
             <li>
-              <button onClick={() => trigger('rename')}>
+              <button onClick={() => trigger("rename")}>
                 <Pencil size={14} /> Rename episodes
               </button>
             </li>
             <li>
-              <button onClick={() => trigger('image')}>
+              <button onClick={() => trigger("image")}>
                 <ImageIcon size={14} /> Refresh artwork
               </button>
             </li>
             {series.config.subtitlesEnabled && (
               <li>
-                <button onClick={() => trigger('subtitle')}>
+                <button onClick={() => trigger("subtitle")}>
                   <Languages size={14} /> Download subtitles
                 </button>
               </li>
             )}
             <div className="divider my-1" />
             <li>
-              <button
-                onClick={() => trigger('remove')}
-                className="text-error"
-              >
+              <button onClick={() => trigger("remove")} className="text-error">
                 <Eraser size={14} /> Remove from Medusa
               </button>
             </li>
             <li>
-              <button
-                onClick={() => trigger('delete')}
-                className="text-error"
-              >
+              <button onClick={() => trigger("delete")} className="text-error">
                 <Trash2 size={14} /> Delete show & files
               </button>
             </li>
@@ -196,12 +190,12 @@ export default function ShowActionsMenu({
           confirmLabel={CONFIRMS[confirming]!.confirmLabel}
           variant={CONFIRMS[confirming]!.variant}
           onConfirm={() => {
-            onAction(confirming)
-            setConfirming(null)
+            onAction(confirming);
+            setConfirming(null);
           }}
           onClose={() => setConfirming(null)}
         />
       )}
     </>
-  )
+  );
 }
