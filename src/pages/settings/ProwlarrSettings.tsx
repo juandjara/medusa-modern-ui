@@ -9,9 +9,9 @@ import {
   TriangleAlert,
   Trash2,
 } from "lucide-react";
-import api from "../lib/api";
-import type { ProviderSummary, ProwlarrIndexer } from "../types/medusa";
-import SecretInput from "../components/forms/SecretInput";
+import api from "../../lib/api";
+import type { ProviderSummary, ProwlarrIndexer } from "../../types/medusa";
+import SecretInput from "../../components/forms/SecretInput";
 
 interface ConfigMain {
   providers?: {

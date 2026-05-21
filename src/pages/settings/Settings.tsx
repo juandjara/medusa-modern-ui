@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight } from 'lucide-react'
-import api from '../lib/api'
+import api from '../../lib/api'
 
 interface GeneralConfig {
   tvDownloadDir: string

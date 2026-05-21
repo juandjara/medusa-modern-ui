@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
-import api from "../lib/api";
-import Field from "../components/forms/Field";
-import Toggle from "../components/forms/Toggle";
-import SaveBar from "../components/forms/SaveBar";
-import TagInput from "../components/forms/TagInput";
-import TagList from "../components/forms/TagList";
-import Section from "../components/forms/Section";
+import api from "../../lib/api";
+import Field from "../../components/forms/Field";
+import Toggle from "../../components/forms/Toggle";
+import SaveBar from "../../components/forms/SaveBar";
+import TagInput from "../../components/forms/TagInput";
+import TagList from "../../components/forms/TagList";
+import Section from "../../components/forms/Section";
 
 interface FailedDownloadsCfg {
   enabled: boolean;

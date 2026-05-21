@@ -11,8 +11,8 @@ import {
   EyeOffIcon,
   RefreshCw,
 } from "lucide-react";
-import api from "../lib/api";
-import type { ProviderSummary } from "../types/medusa";
+import api from "../../lib/api";
+import type { ProviderSummary } from "../../types/medusa";
 
 type CustomSubType = "newznab" | "torznab" | "torrentrss";
 

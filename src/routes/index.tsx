@@ -12,16 +12,20 @@ import Queue from "../pages/Queue";
 
 const ShowDetail = lazy(() => import("../pages/ShowDetail"));
 const ShowSettings = lazy(() => import("../pages/ShowSettings"));
-const Settings = lazy(() => import("../pages/Settings"));
+const Settings = lazy(() => import("../pages/settings/Settings"));
 const System = lazy(() => import("../pages/System"));
 const Logs = lazy(() => import("../pages/Logs"));
-const ProwlarrSettings = lazy(() => import("../pages/ProwlarrSettings"));
-const DownloadClients = lazy(() => import("../pages/DownloadClients"));
-const SearchProviders = lazy(() => import("../pages/SearchProviders"));
-const CustomProviders = lazy(() => import("../pages/CustomProviders"));
-const PostProcessing = lazy(() => import("../pages/PostProcessing"));
+const ProwlarrSettings = lazy(
+  () => import("../pages/settings/ProwlarrSettings"),
+);
+const DownloadClients = lazy(
+  () => import("../pages/settings/DownloadClients"),
+);
+const SearchProviders = lazy(() => import("../pages/settings/SearchProviders"));
+const CustomProviders = lazy(() => import("../pages/settings/CustomProviders"));
+const PostProcessing = lazy(() => import("../pages/settings/PostProcessing"));
 const PostProcess = lazy(() => import("../pages/PostProcess"));
-const SearchSettings = lazy(() => import("../pages/SearchSettings"));
+const SearchSettings = lazy(() => import("../pages/settings/SearchSettings"));
 
 function Root() {
   return (

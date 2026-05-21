@@ -3,13 +3,13 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { ChevronLeft } from "lucide-react";
-import api from "../lib/api";
-import Field from "../components/forms/Field";
-import Toggle from "../components/forms/Toggle";
-import SecretInput from "../components/forms/SecretInput";
-import TestRow from "../components/forms/TestRow";
-import SaveBar from "../components/forms/SaveBar";
-import FolderPicker from "../components/forms/FolderPicker";
+import api from "../../lib/api";
+import Field from "../../components/forms/Field";
+import Toggle from "../../components/forms/Toggle";
+import SecretInput from "../../components/forms/SecretInput";
+import TestRow from "../../components/forms/TestRow";
+import SaveBar from "../../components/forms/SaveBar";
+import FolderPicker from "../../components/forms/FolderPicker";
 
 interface NzbgetConfig {
   host: string;

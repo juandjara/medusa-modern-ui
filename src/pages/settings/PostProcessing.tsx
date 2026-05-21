@@ -9,15 +9,15 @@ import {
   Radio,
   Wrench,
 } from "lucide-react";
-import api from "../lib/api";
-import Field from "../components/forms/Field";
-import Toggle from "../components/forms/Toggle";
-import SaveBar from "../components/forms/SaveBar";
-import FolderPicker from "../components/forms/FolderPicker";
-import NamingPreview from "../components/forms/NamingPreview";
-import Section from "../components/forms/Section";
-import TagInput from "../components/forms/TagInput";
-import TagList from "../components/forms/TagList";
+import api from "../../lib/api";
+import Field from "../../components/forms/Field";
+import Toggle from "../../components/forms/Toggle";
+import SaveBar from "../../components/forms/SaveBar";
+import FolderPicker from "../../components/forms/FolderPicker";
+import NamingPreview from "../../components/forms/NamingPreview";
+import Section from "../../components/forms/Section";
+import TagInput from "../../components/forms/TagInput";
+import TagList from "../../components/forms/TagList";
 
 interface NamingConfig {
   pattern: string;

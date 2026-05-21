@@ -29,13 +29,13 @@ import {
   Check,
   TestTube2,
 } from "lucide-react";
-import api from "../lib/api";
-import type { ProviderSummary, ProviderConfig } from "../types/medusa";
+import api from "../../lib/api";
+import type { ProviderSummary, ProviderConfig } from "../../types/medusa";
 import { CategoryEditor } from "./CustomProviders";
-import Field from "../components/forms/Field";
-import Toggle from "../components/forms/Toggle";
-import SecretInput from "../components/forms/SecretInput";
-import SaveBar from "../components/forms/SaveBar";
+import Field from "../../components/forms/Field";
+import Toggle from "../../components/forms/Toggle";
+import SecretInput from "../../components/forms/SecretInput";
+import SaveBar from "../../components/forms/SaveBar";
 
 interface ConfigMain {
   brokenProviders?: string[];
