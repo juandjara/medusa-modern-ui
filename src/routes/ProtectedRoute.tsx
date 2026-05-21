@@ -4,6 +4,6 @@ import { useAuth } from '../lib/auth'
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth()
-  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!isAuthenticated) return <Navigate to="/signin" replace />
   return <>{children}</>
 }

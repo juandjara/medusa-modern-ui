@@ -38,7 +38,7 @@ export const router = createBrowserRouter([
   {
     element: <Root />,
     children: [
-      { path: "/login", element: <Login /> },
+      { path: "/signin", element: <Login /> },
       {
         path: "/",
         element: (

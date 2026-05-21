@@ -8,9 +8,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import {
   fetchToken,
-  clearApiKey,
-  clearStoredToken,
   getStoredToken,
+  logoutSession,
   AUTH_EXPIRED_EVENT,
 } from "./api";
 
@@ -36,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handler = () => {
       setToken(null);
-      navigate("/login", { replace: true });
+      navigate("/signin", { replace: true });
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, handler);
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handler);
@@ -52,9 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    clearStoredToken();
-    clearApiKey();
     setToken(null);
+    // Fire-and-forget: clears local storage immediately, and waits on the
+    // server-side cookie clear in the background. The setToken above already
+    // navigated the UI away from anything that needs auth.
+    void logoutSession();
   };
 
   return (
