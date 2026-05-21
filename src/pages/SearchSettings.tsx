@@ -8,6 +8,7 @@ import Toggle from "../components/forms/Toggle";
 import SaveBar from "../components/forms/SaveBar";
 import TagInput from "../components/forms/TagInput";
 import TagList from "../components/forms/TagList";
+import Section from "../components/forms/Section";
 
 interface FailedDownloadsCfg {
   enabled: boolean;
@@ -490,24 +491,3 @@ function TrackersSection({ get, set }: { get: Getter; set: Setter }) {
   );
 }
 
-function Section({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="card bg-base-100 border-2 border-base-300 rounded-box">
-      <div className="card-body p-4 space-y-3">
-        <div>
-          <h2 className="font-semibold text-lg">{title}</h2>
-          {hint && <p className="text-sm text-base-content/60 mt-1">{hint}</p>}
-        </div>
-        {children}
-      </div>
-    </section>
-  );
-}
