@@ -25,6 +25,9 @@ const PostProcessing = lazy(() => import("../pages/settings/PostProcessing"));
 const PostProcess = lazy(() => import("../pages/PostProcess"));
 const SearchSettings = lazy(() => import("../pages/settings/SearchSettings"));
 const GeneralSettings = lazy(() => import("../pages/settings/GeneralSettings"));
+const NotificationsSettings = lazy(
+  () => import("../pages/settings/NotificationsSettings"),
+);
 
 function Root() {
   return (
@@ -88,6 +91,10 @@ export const router = createBrowserRouter([
           {
             path: "settings/general",
             element: <GeneralSettings />,
+          },
+          {
+            path: "settings/notifications",
+            element: <NotificationsSettings />,
           },
           { path: "*", element: <Navigate to="/" replace /> },
         ],

@@ -224,3 +224,113 @@ export interface ConfigSearch {
   general: GeneralSearchCfg;
   filters: SearchFiltersCfg;
 }
+
+// -----------------------------------------------------------------------------
+// /api/v2/config/notifiers
+//
+// Medusa exposes ~22 notifier services. We only type the subset the React UI
+// renders today; unmodeled keys round-trip untouched because PATCH only sends
+// the dirty fields.
+// -----------------------------------------------------------------------------
+
+interface NotifyOnTriggersCfg {
+  notifyOnSnatch: boolean;
+  notifyOnDownload: boolean;
+  notifyOnSubtitleDownload: boolean;
+}
+
+export interface KodiCfg extends NotifyOnTriggersCfg {
+  enabled: boolean;
+  alwaysOn: boolean;
+  update: {
+    library: boolean;
+    full: boolean;
+    onlyFirst: boolean;
+  };
+  host: string[];
+  username: string;
+  password: string;
+  libraryCleanPending: boolean;
+  cleanLibrary: boolean;
+}
+
+export interface PlexServerCfg {
+  enabled: boolean;
+  updateLibrary: boolean;
+  host: string[];
+  https: boolean;
+  username: string;
+  password: string;
+  token: string;
+}
+
+export interface EmbyCfg {
+  enabled: boolean;
+  host: string;
+  apiKey: string;
+}
+
+export interface PushbulletCfg extends NotifyOnTriggersCfg {
+  enabled: boolean;
+  api: string;
+  device: string;
+}
+
+export interface PushoverCfg extends NotifyOnTriggersCfg {
+  enabled: boolean;
+  apiKey: string;
+  userKey: string;
+  device: string;
+  sound: string;
+  // -2..2 — see Pushover docs (lowest, low, normal, high, emergency).
+  priority: number;
+}
+
+export interface TelegramCfg extends NotifyOnTriggersCfg {
+  enabled: boolean;
+  // Bot token from @BotFather.
+  api: string;
+  // Chat/group/channel id the bot posts to.
+  id: string;
+}
+
+export interface DiscordCfg extends NotifyOnTriggersCfg {
+  enabled: boolean;
+  webhook: string;
+  tts: boolean;
+  overrideAvatar: boolean;
+  name: string;
+}
+
+export interface SlackCfg extends NotifyOnTriggersCfg {
+  enabled: boolean;
+  webhook: string;
+}
+
+export interface EmailCfg extends NotifyOnTriggersCfg {
+  enabled: boolean;
+  host: string;
+  port: number;
+  from: string;
+  tls: boolean;
+  username: string;
+  password: string;
+  addressList: string[];
+  subject: string;
+}
+
+export interface ConfigNotifiers {
+  kodi: KodiCfg;
+  plex: {
+    server: PlexServerCfg;
+    // `client` (Plex Home Theater) and other plex.* keys exist but aren't
+    // modeled here; they round-trip through PATCH untouched.
+  };
+  emby: EmbyCfg;
+  pushbullet: PushbulletCfg;
+  pushover: PushoverCfg;
+  telegram: TelegramCfg;
+  discord: DiscordCfg;
+  slack: SlackCfg;
+  email: EmailCfg;
+}
