@@ -15,6 +15,7 @@ export default defineConfig({
       "/home": { target: SERVER_URL, changeOrigin: true },
       "/errorlogs": { target: SERVER_URL, changeOrigin: true },
       "/browser": { target: SERVER_URL, changeOrigin: true },
+      "/config/postProcessing": { target: SERVER_URL, changeOrigin: true },
       "/ws": {
         target: SERVER_URL.replace("http", "ws"),
         ws: true,

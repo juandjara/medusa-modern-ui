@@ -14,6 +14,7 @@ import Field from "../components/forms/Field";
 import Toggle from "../components/forms/Toggle";
 import SaveBar from "../components/forms/SaveBar";
 import FolderPicker from "../components/forms/FolderPicker";
+import NamingPreview from "../components/forms/NamingPreview";
 
 interface NamingConfig {
   pattern: string;
@@ -519,6 +520,7 @@ function NamingSection({
   set: Setter;
   multiEpStrings: Record<string, string>;
 }) {
+  const rename = !!get<boolean>("renameEpisodes");
   const customAnime = !!get<boolean>("naming.enableCustomNamingAnime");
   const customSports = !!get<boolean>("naming.enableCustomNamingSports");
   const customAbd = !!get<boolean>("naming.enableCustomNamingAirByDate");
@@ -533,142 +535,112 @@ function NamingSection({
   return (
     <Section
       title="Naming"
-      hint="Rename files using a pattern. A live preview with token reference will arrive in a dedicated tab."
+      hint="Rename files using a pattern. Toggle off to keep the original release filename — everything below disappears."
     >
       <Toggle
         label="Rename episodes"
         hint="Apply the naming pattern when moving files into the library. Off keeps the original release filename."
-        checked={!!get<boolean>("renameEpisodes")}
+        checked={rename}
         onChange={(v) => set("renameEpisodes", v)}
       />
 
-      <Field
-        label="Naming pattern"
-        hint="Tokens like %SN (show), %0S/%0E (zero-padded), %EN (episode title), %QN (quality), %RG (release group)."
-      >
-        <input
-          className="input input-sm w-full font-mono"
-          value={get<string>("naming.pattern") ?? ""}
-          onChange={(e) => set("naming.pattern", e.target.value)}
-          spellCheck={false}
-        />
-      </Field>
-
-      <Field
-        label="Multi-episode style"
-        hint="How files containing more than one episode are named."
-      >
-        <select
-          className="select select-sm"
-          value={get<number>("naming.multiEp") ?? 1}
-          onChange={(e) => set("naming.multiEp", Number(e.target.value))}
-        >
-          {multiEpOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      <Toggle
-        label="Strip year from show name"
-        hint="Drop the (2023)-style year suffix when emitting %SN."
-        checked={!!get<boolean>("naming.stripYear")}
-        onChange={(v) => set("naming.stripYear", v)}
-      />
-
-      {/* Air-by-date */}
-      <div className="border-t-2 border-base-300 pt-5">
-        <Toggle
-          label="Custom pattern for air-by-date shows"
-          checked={customAbd}
-          onChange={(v) => set("naming.enableCustomNamingAirByDate", v)}
-        />
-        {customAbd && (
-          <Field label="Air-by-date pattern">
-            <input
-              className="input input-sm w-full font-mono"
-              value={get<string>("naming.patternAirByDate") ?? ""}
-              onChange={(e) => set("naming.patternAirByDate", e.target.value)}
-              spellCheck={false}
+      {rename && (
+        <>
+          <Field label="Naming pattern">
+            <NamingPreview
+              pattern={get<string>("naming.pattern") ?? ""}
+              onChange={(p) => set("naming.pattern", p)}
+              multiEp={get<number>("naming.multiEp") ?? 1}
+              multiEpOptions={multiEpOptions}
+              onMultiEpChange={(n) => set("naming.multiEp", n)}
             />
           </Field>
-        )}
-      </div>
 
-      {/* Sports */}
-      <div>
-        <Toggle
-          label="Custom pattern for sports"
-          checked={customSports}
-          onChange={(v) => set("naming.enableCustomNamingSports", v)}
-        />
-        {customSports && (
-          <Field label="Sports pattern">
-            <input
-              className="input input-sm w-full font-mono"
-              value={get<string>("naming.patternSports") ?? ""}
-              onChange={(e) => set("naming.patternSports", e.target.value)}
-              spellCheck={false}
+          <Toggle
+            label="Strip year from show name"
+            hint="Drop the (2023)-style year suffix when emitting %SN."
+            checked={!!get<boolean>("naming.stripYear")}
+            onChange={(v) => set("naming.stripYear", v)}
+          />
+
+          {/* Air-by-date */}
+          <div className="border-t-2 border-base-300 pt-5">
+            <Toggle
+              label="Custom pattern for air-by-date shows"
+              checked={customAbd}
+              onChange={(v) => set("naming.enableCustomNamingAirByDate", v)}
             />
-          </Field>
-        )}
-      </div>
+            {customAbd && (
+              <Field label="Air-by-date pattern">
+                <NamingPreview
+                  pattern={get<string>("naming.patternAirByDate") ?? ""}
+                  onChange={(p) => set("naming.patternAirByDate", p)}
+                  abd
+                />
+              </Field>
+            )}
+          </div>
 
-      {/* Anime */}
-      <div>
-        <Toggle
-          label="Custom pattern for anime"
-          checked={customAnime}
-          onChange={(v) => set("naming.enableCustomNamingAnime", v)}
-        />
-        {customAnime && (
-          <>
-            <Field label="Anime pattern">
-              <input
-                className="input input-sm w-full font-mono"
-                value={get<string>("naming.patternAnime") ?? ""}
-                onChange={(e) => set("naming.patternAnime", e.target.value)}
-                spellCheck={false}
-              />
-            </Field>
-            <Field
-              label="Anime numbering"
-              hint="How absolute / SxxEyy numbering is combined."
-            >
-              <select
-                className="select select-sm"
-                value={get<number>("naming.animeNamingType") ?? 3}
-                onChange={(e) =>
-                  set("naming.animeNamingType", Number(e.target.value))
-                }
-              >
-                {ANIME_NAMING_TYPE.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Anime multi-episode style">
-              <select
-                className="select select-sm"
-                value={get<number>("naming.animeMultiEp") ?? 1}
-                onChange={(e) =>
-                  set("naming.animeMultiEp", Number(e.target.value))
-                }
-              >
-                {multiEpOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </>
-        )}
-      </div>
+          {/* Sports */}
+          <div>
+            <Toggle
+              label="Custom pattern for sports"
+              checked={customSports}
+              onChange={(v) => set("naming.enableCustomNamingSports", v)}
+            />
+            {customSports && (
+              <Field label="Sports pattern">
+                <NamingPreview
+                  pattern={get<string>("naming.patternSports") ?? ""}
+                  onChange={(p) => set("naming.patternSports", p)}
+                  sports
+                />
+              </Field>
+            )}
+          </div>
+
+          {/* Anime */}
+          <div>
+            <Toggle
+              label="Custom pattern for anime"
+              checked={customAnime}
+              onChange={(v) => set("naming.enableCustomNamingAnime", v)}
+            />
+            {customAnime && (
+              <>
+                <Field label="Anime pattern">
+                  <NamingPreview
+                    pattern={get<string>("naming.patternAnime") ?? ""}
+                    onChange={(p) => set("naming.patternAnime", p)}
+                    multiEp={get<number>("naming.animeMultiEp") ?? 1}
+                    multiEpOptions={multiEpOptions}
+                    onMultiEpChange={(n) => set("naming.animeMultiEp", n)}
+                    animeType={get<number>("naming.animeNamingType")}
+                  />
+                </Field>
+                <Field
+                  label="Anime numbering"
+                  hint="How absolute / SxxEyy numbering is combined."
+                >
+                  <select
+                    className="select select-sm"
+                    value={get<number>("naming.animeNamingType") ?? 3}
+                    onChange={(e) =>
+                      set("naming.animeNamingType", Number(e.target.value))
+                    }
+                  >
+                    {ANIME_NAMING_TYPE.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </Section>
   );
 }
