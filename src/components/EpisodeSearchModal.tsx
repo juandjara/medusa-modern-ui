@@ -13,6 +13,7 @@ import {
   Check,
   X as XIcon,
   TriangleAlert,
+  ExternalLink,
 } from "lucide-react";
 import api from "../lib/api";
 import { formatBytes, formatRelative } from "../lib/time";
@@ -32,6 +33,15 @@ interface Props {
 }
 
 const LIVE_QUEUE_KEY = ["live-queue"] as const;
+
+function resolveInfoUrl(
+  release: CachedRelease,
+  provider: ProviderSummary | undefined,
+): { href: string; kind: "release" | "home" } | null {
+  if (release.infoUrl) return { href: release.infoUrl, kind: "release" };
+  if (provider?.url) return { href: provider.url, kind: "home" };
+  return null;
+}
 
 function epSlug(season: number, episode: number): string {
   return `s${String(season).padStart(2, "0")}e${String(episode).padStart(2, "0")}`;
@@ -63,6 +73,14 @@ export default function EpisodeSearchModal({
       ),
     [providersQ.data],
   );
+
+  // Lookup map for resolveInfoUrl — cached releases only carry provider id /
+  // name / image, not the subType or home URL we need to build the link.
+  const providersById = useMemo(() => {
+    const map = new Map<string, ProviderSummary>();
+    for (const p of providersQ.data ?? []) map.set(p.id, p);
+    return map;
+  }, [providersQ.data]);
 
   // 2) Per-provider cached results — fanned out so one slow provider doesn't
   // block the others.
@@ -259,7 +277,7 @@ export default function EpisodeSearchModal({
       <div className="modal-box w-11/12 max-w-5xl">
         <header className="flex items-center justify-between gap-3 mb-3">
           <h3 id="search-modal-title" className="font-bold text-lg">
-            Manual search · S{String(season).padStart(2, "0")}E
+            Episode search · S{String(season).padStart(2, "0")}E
             {String(episode).padStart(2, "0")}
           </h3>
           <form method="dialog">
@@ -388,12 +406,10 @@ export default function EpisodeSearchModal({
                       </div>
                     </td>
                     <td className="max-w-md">
-                      <div
-                        className="text-xs font-mono truncate"
-                        title={r.release}
-                      >
-                        {r.release}
-                      </div>
+                      <ReleaseName
+                        release={r}
+                        provider={providersById.get(r.provider.id)}
+                      />
                       {r.seasonPack && (
                         <span className="badge badge-xs badge-ghost mt-0.5">
                           season pack
@@ -455,5 +471,39 @@ export default function EpisodeSearchModal({
         <button aria-label="Close dialog">close</button>
       </form>
     </dialog>
+  );
+}
+
+function ReleaseName({
+  release,
+  provider,
+}: {
+  release: CachedRelease;
+  provider: ProviderSummary | undefined;
+}) {
+  const info = resolveInfoUrl(release, provider);
+  const baseCls = "text-xs font-mono truncate inline-flex items-center gap-1";
+  if (!info) {
+    return (
+      <div className={baseCls} title={release.release}>
+        {release.release}
+      </div>
+    );
+  }
+  const tooltip =
+    info.kind === "release"
+      ? `${release.release}\nOpens release page on ${provider?.name ?? "indexer"}`
+      : `${release.release}\nOpens ${provider?.name ?? "tracker"} home — find the release manually`;
+  return (
+    <a
+      href={info.href}
+      target="_blank"
+      rel="noreferrer"
+      className={`${baseCls} hover:text-primary hover:underline`}
+      title={tooltip}
+    >
+      <span className="truncate">{release.release}</span>
+      <ExternalLink size={10} className="shrink-0 opacity-60" />
+    </a>
   );
 }

@@ -333,6 +333,7 @@ export interface CachedRelease {
   seriesId: number;
   showSlug: string;
   url: string;
+  infoUrl: string | null;
   time: string;
   // PyMedusa quality bitmask (see QUALITY constants).
   quality: number;
