@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, Tv } from "lucide-react";
+import { FolderInput, Plus, Search, Tv } from "lucide-react";
 import api, { getAssetUrl } from "../../lib/api";
 import {
   INDEXER_ID_TO_SLUG,
@@ -58,8 +58,8 @@ export default function ShowList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">Shows</h1>
-        <div className="join w-full sm:w-auto">
-          <div className="join-item flex-1 relative">
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
             <Search
               size={16}
               className="absolute z-10 left-3 top-1/2 -translate-y-1/2 text-base-content/40"
@@ -71,8 +71,15 @@ export default function ShowList() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Link to="/add" className="btn btn-primary btn-sm join-item">
-            Add Show
+          <Link
+            to="/import"
+            className="btn btn-sm gap-1"
+            title="Scan a root folder for existing shows on disk"
+          >
+            <FolderInput size={14} /> Import
+          </Link>
+          <Link to="/add" className="btn btn-primary btn-sm gap-1">
+            <Plus size={14} /> Add show
           </Link>
         </div>
       </div>
