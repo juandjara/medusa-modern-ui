@@ -17,7 +17,6 @@ import api from "./api";
 type DraftMap = Record<string, unknown>;
 
 function getByPath(obj: unknown, path: string): unknown {
-  console.log("getByPath: ", { path, obj });
   return path
     .split(".")
     .reduce<unknown>(
@@ -40,7 +39,15 @@ function setByPath(obj: Record<string, unknown>, path: string, value: unknown) {
 }
 
 interface UseDraftConfigOptions {
+  // GET path is `/config/<section>` and the React Query key is
+  // `["config", section]`. PATCH body is nested under the same name unless
+  // `patchPrefix` overrides it.
   section: string;
+  // When the backend's PATCH field bindings use a different case from the
+  // GET endpoint (e.g. GET `/config/postprocessing` but PATCH keys are
+  // `postProcessing.*`). Defaults to `section`. Pass an empty string when
+  // PATCH expects a flat body (only "main" does today).
+  patchPrefix?: string;
 }
 
 export interface DraftConfig<T> {
@@ -52,6 +59,10 @@ export interface DraftConfig<T> {
   get: <V>(path: string) => V;
   set: (path: string, value: unknown) => void;
   dirty: boolean;
+  // Paths whose draft value differs from saved. Lets consumers reason about
+  // *which* fields are pending (e.g. GeneralSettings' "restart required"
+  // banner that only fires for a subset of fields).
+  dirtyPaths: string[];
   save: UseMutationResult<unknown, Error, void, unknown>;
 }
 
@@ -59,6 +70,14 @@ export default function useDraftConfig<T>(
   opts: UseDraftConfigOptions,
 ): DraftConfig<T> {
   const { section } = opts;
+  // Default the PATCH prefix to the section name. `main` is the one section
+  // whose body is sent flat; everything else nests by name.
+  const patchPrefix =
+    opts.patchPrefix !== undefined
+      ? opts.patchPrefix
+      : section === "main"
+        ? ""
+        : section;
   const queryClient = useQueryClient();
 
   const configQ = useQuery({
@@ -82,14 +101,16 @@ export default function useDraftConfig<T>(
   const set = (path: string, value: unknown) =>
     setDraft((d) => ({ ...d, [path]: value }));
 
-  const dirty = Object.keys(draft).some(
-    (k) => draft[k] !== getByPath(saved, k),
+  const dirtyPaths = useMemo(
+    () => Object.keys(draft).filter((k) => draft[k] !== getByPath(saved, k)),
+    [draft, saved],
   );
+  const dirty = dirtyPaths.length > 0;
 
   const save = useMutation({
     mutationFn: () => {
       const payload: Record<string, unknown> = {};
-      const prefix = section === "main" ? "" : `${section}.`;
+      const prefix = patchPrefix ? `${patchPrefix}.` : "";
       for (const [path, value] of Object.entries(draft)) {
         setByPath(payload, `${prefix}${path}`, value);
       }
@@ -107,6 +128,7 @@ export default function useDraftConfig<T>(
     get,
     set,
     dirty,
+    dirtyPaths,
     save,
   };
 }
