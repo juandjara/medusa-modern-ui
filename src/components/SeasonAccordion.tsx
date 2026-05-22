@@ -60,6 +60,19 @@ export default function SeasonAccordion({
     },
   });
 
+  // Fire-and-forget season search. Backend returns 202 immediately and the
+  // queue item drives progress via QueueItemUpdate WS events; we don't pop a
+  // results modal here, the user can browse cached releases per-episode after.
+  const searchSeason = useMutation({
+    mutationFn: () => {
+      const seasonSlug = `s${String(season).padStart(2, "0")}`;
+      return api.put("/search/manual", {
+        showSlug: seriesSlug,
+        season: [seasonSlug],
+      });
+    },
+  });
+
   const allIdentifiers = episodes.map((e) => e.identifier);
 
   return (
@@ -96,6 +109,21 @@ export default function SeasonAccordion({
             tabIndex={0}
             className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-sm border border-base-300 p-2 w-56"
           >
+            <li className="menu-title text-xs">Search</li>
+            <li>
+              <button
+                onClick={() => searchSeason.mutate()}
+                disabled={searchSeason.isPending}
+                title="Queue a manual search across providers for season packs"
+              >
+                <Search size={12} />
+                {searchSeason.isPending
+                  ? "Starting…"
+                  : searchSeason.isSuccess
+                    ? "Search queued"
+                    : "Search whole season"}
+              </button>
+            </li>
             <li className="menu-title text-xs">Set status for all</li>
             {BULK_STATUSES.map((status) => (
               <li key={status}>
