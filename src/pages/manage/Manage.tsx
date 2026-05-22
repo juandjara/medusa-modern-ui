@@ -42,17 +42,16 @@ export default function Manage() {
               <div>
                 <div className="font-medium inline-flex items-center gap-2">
                   Failed releases
-                  {failedCountQ.data !== undefined &&
-                    failedCountQ.data > 0 && (
-                      <span className="badge badge-sm badge-ghost">
-                        {failedCountQ.data}
-                      </span>
-                    )}
+                  {failedCountQ.data !== undefined && failedCountQ.data > 0 && (
+                    <span className="badge badge-sm badge-ghost">
+                      {failedCountQ.data}
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-base-content/60">
-                  Releases the search will skip on future runs because they
-                  failed post-processing or were user-flagged. Clear out stale
-                  entries to let the search find them again.
+                  A blacklist for releases that failed post-processing, or were
+                  flagged by the user or the download client. Search will skip
+                  them on future runs.
                 </div>
               </div>
               <ChevronRight size={16} className="text-base-content/40" />
