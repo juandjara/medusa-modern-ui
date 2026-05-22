@@ -30,6 +30,7 @@ const NotificationsSettings = lazy(
   () => import("../pages/settings/NotificationsSettings"),
 );
 const ImportShows = lazy(() => import("../pages/show/ImportShows"));
+const Recommended = lazy(() => import("../pages/show/Recommended"));
 
 function Root() {
   return (
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
           { path: "show/:slug/settings", element: <ShowSettings /> },
           { path: "add", element: <AddShow /> },
           { path: "import", element: <ImportShows /> },
+          { path: "recommended", element: <Recommended /> },
           { path: "schedule", element: <Schedule /> },
           { path: "history", element: <History /> },
           { path: "queue", element: <Queue /> },

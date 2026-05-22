@@ -172,9 +172,9 @@ export interface SeriesDetailResponse {
 }
 
 // Normalised from the positional tuples returned by
-// `/api/v2/internal/searchIndexersForShowName` (see SearchResultTuple in
-// AddShow.tsx). No poster / overview here — those only land after the
-// show is added and the indexer fetch completes.
+// `/api/v2/internal/searchIndexersForShowName` (see SearchResultTuple in AddShow.tsx).
+// No poster / overview here — those only land after the show is added
+// and the indexer fetch completes.
 export interface SearchResult {
   indexer: string; // 'tvdb' | 'tmdb' | 'imdb' | 'tvmaze' | …
   showId: number; // id of the show in `indexer`'s namespace — used in POST /series
@@ -188,8 +188,52 @@ export interface SearchResult {
   alreadyAddedSlug: string | null;
 }
 
-// Bitmask values from medusa/common.py:Quality. Shifts start at `1 << 1`,
-// so SDTV = 2, NOT 1 — getting this wrong silently corrupts requests.
+// GET /api/v2/recommended/{source}, paginated. Source identifiers: "imdb",
+// "trakt", "anidb", "anilist".
+export interface RecommendedShow {
+  // Numeric external source id (EXTERNAL_IMDB etc.) — also indexes the categories response.
+  source: number;
+  seriesId: number;
+  title: string;
+  // The TVDB/TMDB/etc. mapping Medusa resolves so it can be added.
+  // May be 0 when the source hasn't been resolved to a known indexer.
+  mappedIndexer: number;
+  // Display name like "TVDBv2", convert to slug for POST /series.
+  mappedIndexerName: string | null;
+  mappedSeriesId: number;
+  rating: string; // "8.4" as string
+  votes: number;
+  imageHref: string; // outbound link to the show on the source's site
+  imageSrc: string; // local cache path like "cache/images/imdb/<id>.jpg"
+  externals: Record<string, number | string>;
+  isAnime: boolean;
+  // Already in the user's library? Backend computes this.
+  showInLibrary: boolean;
+  subcat: string; // category bucket: "popular", "trending", …
+  genres: string[];
+  plot: string;
+}
+
+// GET /api/v2/recommended/categories. Keys are stringified source ids,
+// values are the available subcategories for that source.
+export type RecommendedCategories = Record<string, string[]>;
+
+// Source-id ↔ readable name for show recommendations.
+// EXTERNAL_* constants from medusa/indexers/config.py
+// the backend keys the categories dict by these numeric ids.
+export const RECOMMENDED_SOURCES: {
+  id: number;
+  slug: "imdb" | "anidb" | "trakt" | "anilist";
+  label: string;
+}[] = [
+  { id: 12, slug: "trakt", label: "Trakt" },
+  { id: 10, slug: "imdb", label: "IMDb" },
+  { id: 11, slug: "anidb", label: "AniDB" },
+  { id: 13, slug: "anilist", label: "AniList" },
+];
+
+// Bitmask values from medusa/common.py:Quality.
+// Shifts start at `1 << 1`, so SDTV = 2, NOT 1
 export const QUALITY = {
   UNKNOWN: 1,
   SDTV: 2, // 'SDTV'
@@ -206,8 +250,7 @@ export const QUALITY = {
   UHD_4K_BLURAY: 4096, // '4K UHD BluRay'
 } as const;
 
-// Any HD (TV / WEB / BluRay), no SD, no 4K — matches every show currently in
-// the user's library.
+// Default quality bitmasks: Any HD (TV / WEB / BluRay), no SD, no 4K
 export const DEFAULT_QUALITY_ALLOWED = [
   QUALITY.HDTV,
   QUALITY.FULLHDTV,
@@ -217,8 +260,8 @@ export const DEFAULT_QUALITY_ALLOWED = [
   QUALITY.FULLHDBLURAY,
 ];
 
-// Keys are stable form-state identifiers; `allowed` is the bitmask array
-// sent in POST/PATCH /series bodies.
+// Keys are stable form-state identifiers;
+// `allowed` is the bitmask array sent in POST/PATCH /series bodies.
 export const QUALITY_PRESETS: Record<
   string,
   { label: string; allowed: number[] }
@@ -249,9 +292,9 @@ export const QUALITY_PRESETS: Record<
   },
 };
 
-// Full shape from medusa/providers/generic_provider.py:to_json. Optional
-// blocks only exist on certain provider types — `cookies` is everywhere,
-// `apikey`/`minseed`/etc. are gated by `hasattr` on the Python side.
+// Full shape from medusa/providers/generic_provider.py:to_json.
+// Optional blocks only exist on certain provider types. `cookies` is everywhere.
+// `apikey`, `minseed`, etc are gated by `hasattr` on the Python side.
 export interface ProviderConfig {
   enabled: boolean;
   url?: string;
@@ -288,9 +331,9 @@ export interface ProviderConfig {
   params?: Record<string, unknown>;
 }
 
-// `manager` / `idManager` are only present when the provider's __init__ set
-// them — Newznab/Torznab always do (manager defaults to null), other built-in
-// providers don't. `manager === 'prowlarr'` marks Prowlarr-imported indexers.
+// `manager` / `idManager` are only present when the provider's __init__ set them.
+// Newznab/Torznab always do (manager defaults to null), other built-in providers don't.
+// `manager === 'prowlarr'` marks Prowlarr-imported indexers.
 export interface ProviderSummary {
   id: string;
   name: string;
@@ -467,11 +510,10 @@ export interface ShowQueueItem {
 }
 
 // `output` is only present once the job finishes successfully.
-// All fields optional because consumers see different snapshots of the
-// underlying QueueItem at different stages — Queue page reads the basic
-// state fields, PostProcess page reads queueTime / output / config in
-// detail. Backend setup is in medusa/queues/generic_queue.py and
-// medusa/process_tv.py.
+// All fields optional because consumers see different snapshots of the underlying QueueItem at different stages.
+// Queue page reads the basic state fields,
+// PostProcess page reads queueTime / output / config in detail.
+// Backend setup is in medusa/queues/generic_queue.py and medusa/process_tv.py.
 export interface PostProcessQueueItem {
   identifier: string;
   name: string;
@@ -497,9 +539,10 @@ export interface PostProcessQueueItem {
   output?: string[];
 }
 
-// Uninitialised schedulers only have key + name. `isEnabled` widens to "Paused"
-// because `_is_enabled()` returns that literal for key === 'backlog' when the
-// backlog is paused — coercing it loses information.
+// Uninitialised schedulers only have key + name.
+// `isEnabled` widens to "Paused" because `_is_enabled()` returns that literal
+// for key === 'backlog' when the backlog is paused.
+// Better to widen the type here to not loose information.
 export interface SchedulerItem {
   key: string;
   name: string;
@@ -536,9 +579,9 @@ export interface SystemConfig {
   commitHash?: string;
 }
 
-// Search and download-handler items only arrive via WebSocket; no HTTP
-// endpoint lists them. Non-base fields are optional because different
-// emitters (search/queue.py, download_handler.py) extend the base shape.
+// Search and download-handler items only arrive via WebSocket;
+// no HTTP endpoint lists them. Non-base fields are optional because
+// different emitters (search/queue.py, download_handler.py) extend the base shape.
 export interface LiveQueueEpisodeSegment {
   identifier?: string;
   season?: number;

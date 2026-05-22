@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search,
@@ -7,8 +7,10 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowRight,
+  ChevronLeft,
 } from "lucide-react";
 import api from "../../lib/api";
+import useDebouncedValue from "../../lib/useDebouncedValue";
 import { useWebSocket } from "../../lib/websocket";
 import type { SearchResult, SystemConfig } from "../../types/medusa";
 import { EPISODE_STATUS_CODE, QUALITY_PRESETS } from "../../types/medusa";
@@ -101,12 +103,39 @@ function yearOf(result: SearchResult): string | null {
 export default function AddShow() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
+
+  // Other pages (Recommended) can deep-link here via URL params:
+  //   ?q=<title>                    — prefill the search input.
+  //   ?indexer=<slug>&id=<showId>   — auto-select that result once the
+  //                                   search returns it. AddShow then has
+  //                                   a real SearchResult from the search
+  //                                   endpoint with correct params.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const debouncedQuery = useDebouncedValue(query, 300);
   const [indexerId, setIndexerId] = useState(0);
   const [language, setLanguage] = useState("");
-  const [selected, setSelected] = useState<SearchResult | null>(null);
-  // rootDir is nullable so we can derive the default from /config/system
-  // inline instead of mirroring server state in a useEffect.
+  const autoTarget = useMemo(() => {
+    const indexer = searchParams.get("indexer");
+    const rawId = searchParams.get("id");
+    if (!indexer || !rawId) {
+      return null;
+    }
+
+    const id = Number(rawId);
+    if (!Number.isFinite(id) || id <= 0) {
+      return null;
+    }
+
+    return { indexer, showId: id };
+  }, [searchParams]);
+
+  // This tracks the user's explicit pick.
+  // When it is null and `autoTarget` matches a search result, the `autoSelected` below takes over.
+  const [_selected, setSelected] = useState<SearchResult | null>(null);
+
+  // rootDir is nullable so we can derive the default from /config/system inline
+  // instead of mirroring server state in a useEffect.
   const [options, setOptions] = useState<{
     status: "Wanted" | "Skipped";
     qualityPreset: string;
@@ -121,8 +150,9 @@ export default function AddShow() {
   const [completion, setCompletion] = useState<AddCompletion>({
     state: "queued",
   });
-  // Latest entry from QueueItemShow.data.step (an array); shown under the
-  // spinner so the wait isn't opaque.
+
+  // Latest entry from QueueItemShow.data.step
+  // shown under the spinner so the wait isn't opaque.
   const [currentStep, setCurrentStep] = useState<string | null>(null);
 
   // Shares the /config/system cache with Queue + System pages.
@@ -136,9 +166,12 @@ export default function AddShow() {
   const effectiveRootDir = options.rootDir ?? rootDirs[0]?.location ?? "";
 
   const search = useQuery({
-    queryKey: ["search-shows", query, indexerId, language],
+    queryKey: ["search-shows", debouncedQuery, indexerId, language],
     queryFn: ({ signal }) => {
-      const params: Record<string, string | number> = { query, indexerId };
+      const params: Record<string, string | number> = {
+        query: debouncedQuery,
+        indexerId,
+      };
       if (language) params.language = language;
       return api
         .get<{
@@ -147,11 +180,40 @@ export default function AddShow() {
         }>("/internal/searchIndexersForShowName", { signal, params })
         .then((r) => r.data.results.map(rowToResult));
     },
-    enabled: query.length >= 3,
+    enabled: debouncedQuery.length >= 3,
   });
 
-  // Response is a queue item (the show is added async after the indexer
-  // fetch), so we navigate back to the list rather than to /show/{slug}.
+  // When the URL carries `indexer` + `id`, look for the matching result in
+  // the search payload and treat it as the implicit selection.
+  // This is only used when we don't have an explicit selection from the user
+  // made using `setSelected`
+  const autoSelected: SearchResult | null = useMemo(() => {
+    if (!autoTarget || !search.data) return null;
+    return (
+      search.data.find(
+        (r) =>
+          r.indexer === autoTarget.indexer && r.showId === autoTarget.showId,
+      ) ?? null
+    );
+  }, [autoTarget, search.data]);
+
+  const selected: SearchResult | null = _selected ?? autoSelected;
+
+  // Drops the user's pick AND the URL params so neither the explicit choice
+  // nor the autoTarget re-resolves to a selection. `replace: true` keeps the
+  // history clean. Browser back button still escapes to wherever the user came from.
+  const backToSearch = () => {
+    setSelected(null);
+    if (autoTarget) {
+      setSearchParams(
+        {
+          q: searchParams.get("q") ?? "",
+        },
+        { replace: true },
+      );
+    }
+  };
+
   const addShow = useMutation({
     mutationFn: () => {
       if (!selected) throw new Error("No show selected");
@@ -160,7 +222,7 @@ export default function AddShow() {
         .post<AddShowQueueItem>("/series", {
           id: { [selected.indexer]: selected.showId },
           options: {
-            // Backend's statusStrings is keyed by int; must convert.
+            // here the endpoint must receive a number, so we use this map to convert
             status: EPISODE_STATUS_CODE[options.status],
             quality: { allowed: preset.allowed, preferred: [] },
             anime: options.anime,
@@ -188,10 +250,12 @@ export default function AddShow() {
   // listen to QueueItemShow only for progress + failure, and showAdded for
   // the success+slug.
   const queueItemId = addShow.data?.identifier;
+
   // PyMedusa composes slugs as `${indexer}${showId}` (indexers/utils.py).
   const expectedSlug = selected
     ? `${selected.indexer}${selected.showId}`
     : null;
+
   useWebSocket({
     QueueItemShow: (raw) => {
       if (!queueItemId) return;
@@ -221,8 +285,8 @@ export default function AddShow() {
     const resetToSearch = () => {
       addShow.reset();
       setCompletion({ state: "queued" });
-      setSelected(null);
       setQuery("");
+      backToSearch();
     };
     const retry = () => {
       addShow.reset();
@@ -231,6 +295,11 @@ export default function AddShow() {
 
     return (
       <div className="max-w-lg mx-auto pt-8 space-y-6">
+        <div className="flex items-center gap-2">
+          <Link to="/" className="btn btn-ghost btn-sm gap-1">
+            <ChevronLeft size={16} /> Shows
+          </Link>
+        </div>
         <h1 className="text-2xl font-bold">Add Show</h1>
 
         {completion.state === "queued" && (
@@ -342,8 +411,13 @@ export default function AddShow() {
 
   if (!selected) {
     return (
-      <div className="max-w-xl mx-auto pt-8">
-        <h1 className="text-2xl font-bold mb-8">Add Show</h1>
+      <div className="max-w-xl mx-auto pt-8 space-y-6">
+        <div className="flex items-center gap-2">
+          <Link to="/" className="btn btn-ghost btn-sm gap-1">
+            <ChevronLeft size={16} /> Shows
+          </Link>
+        </div>
+        <h1 className="text-2xl font-bold">Add Show</h1>
         <label className="input w-full">
           <Search size={18} />
           <input
@@ -425,6 +499,11 @@ export default function AddShow() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6 pt-8">
+      <div className="flex items-center gap-2">
+        <Link to="/" className="btn btn-ghost btn-sm gap-1">
+          <ChevronLeft size={16} /> Shows
+        </Link>
+      </div>
       <h1 className="text-2xl font-bold">Configure Show</h1>
       <div className="bg-base-100 border-2 border-base-300 rounded-box p-4 space-y-1">
         <div className="font-semibold flex items-center gap-2">
@@ -544,7 +623,7 @@ export default function AddShow() {
         <button
           type="button"
           className="btn btn-ghost flex-1"
-          onClick={() => setSelected(null)}
+          onClick={backToSearch}
         >
           Back
         </button>

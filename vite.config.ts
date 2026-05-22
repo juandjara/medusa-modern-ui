@@ -13,6 +13,9 @@ export default defineConfig({
       "/login": { target: SERVER_URL, changeOrigin: true },
       "/logout": { target: SERVER_URL, changeOrigin: true },
       "/images": { target: SERVER_URL, changeOrigin: true },
+      // Tornado serves the Recommended posters and other cached assets under
+      // /cache/images/<source>/<file>; needs its own proxy entry.
+      "/cache": { target: SERVER_URL, changeOrigin: true },
       "/home": { target: SERVER_URL, changeOrigin: true },
       "/errorlogs": { target: SERVER_URL, changeOrigin: true },
       "/browser": { target: SERVER_URL, changeOrigin: true },

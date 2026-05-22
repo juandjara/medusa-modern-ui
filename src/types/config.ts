@@ -319,6 +319,13 @@ export interface EmailCfg extends NotifyOnTriggersCfg {
   subject: string;
 }
 
+// Watchlist sync rather than a notifier — the full Trakt block has ~15 more
+// fields (OAuth pin flow, sync policy). We only need `enabled` here to gate
+// the Recommended page; the rest stays unmodeled and round-trips on PATCH.
+export interface TraktCfg {
+  enabled: boolean;
+}
+
 // Refreshes DSM's media index (DLNA etc.) via the local `synoindex` binary.
 // Only useful when Medusa runs on the NAS itself.
 export interface SynologyIndexerCfg {
@@ -347,4 +354,5 @@ export interface ConfigNotifiers {
   email: EmailCfg;
   synologyIndex: SynologyIndexerCfg;
   synology: SynologyNotifierCfg;
+  trakt: TraktCfg;
 }

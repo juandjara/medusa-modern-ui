@@ -1,7 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { FolderInput, Plus, Search, Tv } from "lucide-react";
+import {
+  ChevronDown,
+  FolderInput,
+  Plus,
+  Search,
+  Sparkles,
+  Tv,
+} from "lucide-react";
 import api, { getAssetUrl } from "../../lib/api";
 import {
   INDEXER_ID_TO_SLUG,
@@ -71,16 +78,35 @@ export default function ShowList() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Link
-            to="/import"
-            className="btn btn-sm gap-1"
-            title="Scan a root folder for existing shows on disk"
-          >
-            <FolderInput size={14} /> Import
-          </Link>
-          <Link to="/add" className="btn btn-primary btn-sm gap-1">
-            <Plus size={14} /> Add show
-          </Link>
+          <div className="join">
+            <Link to="/add" className="btn btn-primary btn-sm gap-1 join-item">
+              <Plus size={14} /> Add show
+            </Link>
+            <div className="dropdown dropdown-end join-item">
+              <button
+                tabIndex={0}
+                className="btn btn-primary btn-sm"
+                aria-label="More ways to add shows"
+              >
+                <ChevronDown size={14} />
+              </button>
+              <ul
+                tabIndex={0}
+                className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-lg border border-base-300 p-2 w-64 mt-1"
+              >
+                <li>
+                  <Link to="/recommended">
+                    <Sparkles size={14} /> Recommended shows
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/import">
+                    <FolderInput size={14} /> Import from disk
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
