@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import api from "../lib/api";
 import { formatRelative, parseActionDate } from "../lib/time";
 import { qualityName, type HistoryEntry } from "../types/medusa";
+import type { ConfigSubtitles } from "../types/config";
 import StatusBadge from "../components/StatusBadge";
 
 const PAGE_SIZE = 20;
@@ -94,6 +96,22 @@ export default function History() {
     },
     placeholderData: keepPreviousData,
   });
+
+  // Subtitle-language code → full name. Shares the cache with
+  // SubtitlesSettings; codes don't change at runtime so we never invalidate.
+  const subtitlesQ = useQuery({
+    queryKey: ["config", "subtitles"],
+    queryFn: ({ signal }) =>
+      api
+        .get<ConfigSubtitles>("/config/subtitles", { signal })
+        .then((r) => r.data),
+    staleTime: Infinity,
+  });
+  const langByCode = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const l of subtitlesQ.data?.codeFilter ?? []) m.set(l.id, l.name);
+    return m;
+  }, [subtitlesQ.data]);
 
   let items = data?.items ?? [];
   const showTitle = showSlug ? (items[0]?.showTitle ?? showSlug) : null;
@@ -196,7 +214,7 @@ export default function History() {
             </thead>
             <tbody>
               {items.map((h) => (
-                <HistoryRow key={h.id} entry={h} />
+                <HistoryRow key={h.id} entry={h} langByCode={langByCode} />
               ))}
             </tbody>
           </table>
@@ -242,8 +260,25 @@ export default function History() {
   );
 }
 
-function HistoryRow({ entry }: { entry: HistoryEntry }) {
+function HistoryRow({
+  entry,
+  langByCode,
+}: {
+  entry: HistoryEntry;
+  langByCode: Map<string, string>;
+}) {
   const when = parseActionDate(entry.actionDate);
+  // Subtitled rows have different semantics: the provider is a subliminal
+  // provider (icon lives under /images/subtitles/), `releaseName`/`resource`
+  // both carry the language code, and `quality` is the underlying video's,
+  // not the subtitle's.
+  const isSubtitle = entry.statusName === "Subtitled";
+  const iconBase = isSubtitle ? "/images/subtitles" : "/images/providers";
+  const subtitleLabel =
+    isSubtitle && entry.subtitleLanguage
+      ? (langByCode.get(entry.subtitleLanguage) ?? entry.subtitleLanguage)
+      : null;
+
   return (
     <tr>
       <td className="text-xs whitespace-nowrap">
@@ -273,14 +308,19 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
         {String(entry.episode).padStart(2, "0")}
       </td>
       <td className="whitespace-nowrap">
-        <span className="badge badge-xs">{qualityName(entry.quality)}</span>
+        <span
+          className={`badge badge-xs ${isSubtitle ? "badge-ghost opacity-50" : ""}`}
+          title={isSubtitle ? "Quality of the episode, not the subtitle" : undefined}
+        >
+          {qualityName(entry.quality)}
+        </span>
       </td>
       <td className="text-xs">
         {entry.provider?.name ? (
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
             {entry.provider.imageName && (
               <img
-                src={`/images/providers/${entry.provider.imageName}`}
+                src={`${iconBase}/${entry.provider.imageName}`}
                 alt=""
                 width={16}
                 height={16}
@@ -298,10 +338,21 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
         )}
       </td>
       <td
-        className="text-xs font-mono max-w-[20rem] truncate"
-        title={entry.releaseName ?? entry.resource}
+        className="text-xs max-w-[20rem] truncate"
+        title={subtitleLabel ?? entry.releaseName ?? entry.resource}
       >
-        {entry.releaseName ?? entry.resource ?? "—"}
+        {subtitleLabel ? (
+          <span className="inline-flex items-baseline gap-1.5">
+            <span>{subtitleLabel}</span>
+            <span className="font-mono text-base-content/50">
+              ({entry.subtitleLanguage})
+            </span>
+          </span>
+        ) : (
+          <span className="font-mono">
+            {entry.releaseName ?? entry.resource ?? "—"}
+          </span>
+        )}
       </td>
       <td>
         <StatusBadge status={entry.statusName} />
