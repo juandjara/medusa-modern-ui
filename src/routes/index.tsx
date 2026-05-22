@@ -29,6 +29,9 @@ const GeneralSettings = lazy(() => import("../pages/settings/GeneralSettings"));
 const NotificationsSettings = lazy(
   () => import("../pages/settings/NotificationsSettings"),
 );
+const SubtitlesSettings = lazy(
+  () => import("../pages/settings/SubtitlesSettings"),
+);
 const ImportShows = lazy(() => import("../pages/show/ImportShows"));
 const Recommended = lazy(() => import("../pages/show/Recommended"));
 
@@ -101,6 +104,10 @@ export const router = createBrowserRouter([
           {
             path: "settings/notifications",
             element: <NotificationsSettings />,
+          },
+          {
+            path: "settings/subtitles",
+            element: <SubtitlesSettings />,
           },
           { path: "*", element: <Navigate to="/" replace /> },
         ],

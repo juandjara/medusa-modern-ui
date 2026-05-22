@@ -226,6 +226,73 @@ export interface ConfigSearch {
 }
 
 // -----------------------------------------------------------------------------
+// /api/v2/config/subtitles
+// -----------------------------------------------------------------------------
+
+// Subliminal provider entry. The list is ordered — first enabled provider is
+// tried first when searching for a subtitle. Reordering server-side is via the
+// `services` ListField on PATCH.
+export interface SubtitleService {
+  name: string;
+  url: string;
+  // Filename of the provider's icon under /images/<image>.
+  image: string;
+  enabled: boolean;
+}
+
+// `{id, name}` pairs returned for available + wanted languages. `id` is the
+// opensubtitles 3-letter code (e.g. "eng", "spa"); `name` is a human label
+// like "English". PATCH writes back just the code array under `languages`.
+export interface SubtitleLanguage {
+  id: string;
+  name: string;
+}
+
+// Only three providers have credential forms today. Other subliminal providers
+// either need no auth or use cookies the user manages elsewhere.
+export interface SubtitleProviderLogin {
+  user: string;
+  pass: string;
+}
+
+export interface ConfigSubtitles {
+  enabled: boolean;
+  // Source of truth: the picked language codes. `wantedLanguages` is the
+  // server-side derived intersection with the available filter; we don't need
+  // both, but keep the field for round-trip safety.
+  languages: string[];
+  wantedLanguages: SubtitleLanguage[];
+  // Available languages (intersection of subliminal's supported set + Medusa's
+  // own filter). Drives the language picker.
+  codeFilter: SubtitleLanguage[];
+  services: SubtitleService[];
+  stopAtFirst: boolean;
+  // Flag that triggers the subliminal disk cache to be cleared on next save +
+  // restart. The backend stores it as a boolean, not a button click.
+  eraseCache: boolean;
+  // Override the subtitle drop dir. Empty = save alongside the video file.
+  location: string;
+  // Minutes between scheduled subtitle searches.
+  finderFrequency: number;
+  perfectMatch: boolean;
+  logHistory: boolean;
+  multiLanguage: boolean;
+  keepOnlyWanted: boolean;
+  ignoreEmbeddedSubs: boolean;
+  acceptUnknownEmbeddedSubs: boolean;
+  hearingImpaired: boolean;
+  // Absolute paths of scripts to run before / after each subtitle search.
+  preScripts: string[];
+  extraScripts: string[];
+  wikiUrl: string;
+  providerLogins: {
+    addic7ed: SubtitleProviderLogin;
+    legendastv: SubtitleProviderLogin;
+    opensubtitles: SubtitleProviderLogin;
+  };
+}
+
+// -----------------------------------------------------------------------------
 // /api/v2/config/notifiers
 //
 // Medusa exposes ~22 notifier services. We only type the subset the React UI
