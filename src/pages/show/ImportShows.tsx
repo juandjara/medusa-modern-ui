@@ -684,7 +684,7 @@ function FolderRow({
 
   return (
     <li
-      className={`rounded-box border bg-base-100 ${
+      className={`rounded-box border-2 bg-base-100 ${
         entry.alreadyAdded
           ? "border-base-300 opacity-60"
           : identified
