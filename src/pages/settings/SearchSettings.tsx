@@ -1,8 +1,6 @@
-import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
-import api from "../../lib/api";
+import useDraftConfig from "../../lib/useDraftConfig";
 import Field from "../../components/forms/Field";
 import Toggle from "../../components/forms/Toggle";
 import SaveBar from "../../components/forms/SaveBar";
@@ -11,8 +9,6 @@ import TagList from "../../components/forms/TagList";
 import Section from "../../components/forms/Section";
 import type { ConfigSearch } from "../../types/config";
 
-// Mirrors the (now-commented-out) PROPERS_INTERVAL_LABELS map in
-// data_search(). Order matches the old UI: 15m / 45m / 90m / 4h / daily.
 const PROPERS_INTERVAL_OPTIONS = [
   { value: "15m", label: "Every 15 min" },
   { value: "45m", label: "Every 45 min" },
@@ -21,72 +17,11 @@ const PROPERS_INTERVAL_OPTIONS = [
   { value: "daily", label: "Every 24 hours" },
 ];
 
-type DraftMap = Record<string, unknown>;
-
-function getByPath(obj: unknown, path: string): unknown {
-  return path
-    .split(".")
-    .reduce<unknown>(
-      (o, k) => (o == null ? o : (o as Record<string, unknown>)[k]),
-      obj,
-    );
-}
-
-function setByPath(obj: Record<string, unknown>, path: string, value: unknown) {
-  const keys = path.split(".");
-  let cur = obj;
-  for (let i = 0; i < keys.length - 1; i++) {
-    const k = keys[i];
-    if (!(k in cur) || typeof cur[k] !== "object" || cur[k] === null) {
-      cur[k] = {};
-    }
-    cur = cur[k] as Record<string, unknown>;
-  }
-  cur[keys[keys.length - 1]] = value;
-}
-
 export default function SearchSettings() {
-  const queryClient = useQueryClient();
+  const { saved, isLoading, get, set, dirty, save } =
+    useDraftConfig<ConfigSearch>({ section: "search" });
 
-  const configQ = useQuery({
-    queryKey: ["config", "search"],
-    queryFn: ({ signal }) =>
-      api.get<ConfigSearch>("/config/search", { signal }).then((r) => r.data),
-  });
-
-  const saved = configQ.data;
-  const [draft, setDraft] = useState<DraftMap>({});
-
-  const get = useMemo(
-    () =>
-      <T,>(path: string): T => {
-        if (path in draft) return draft[path] as T;
-        return getByPath(saved, path) as T;
-      },
-    [draft, saved],
-  );
-  const set = (path: string, value: unknown) =>
-    setDraft((d) => ({ ...d, [path]: value }));
-
-  const dirty = Object.keys(draft).some(
-    (k) => draft[k] !== getByPath(saved, k),
-  );
-
-  const save = useMutation({
-    mutationFn: () => {
-      const payload: Record<string, unknown> = { search: {} };
-      for (const [path, value] of Object.entries(draft)) {
-        setByPath(payload.search as Record<string, unknown>, path, value);
-      }
-      return api.patch("/config/main", payload);
-    },
-    onSuccess: () => {
-      setDraft({});
-      queryClient.invalidateQueries({ queryKey: ["config", "search"] });
-    },
-  });
-
-  if (configQ.isLoading || !saved) {
+  if (isLoading || !saved) {
     return (
       <div className="flex justify-center py-20">
         <span className="loading loading-spinner loading-lg" />

@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
   Check,
@@ -10,6 +9,7 @@ import {
   Wrench,
 } from "lucide-react";
 import api from "../../lib/api";
+import useDraftConfig from "../../lib/useDraftConfig";
 import Field from "../../components/forms/Field";
 import Toggle from "../../components/forms/Toggle";
 import SaveBar from "../../components/forms/SaveBar";
@@ -39,40 +39,14 @@ const ANIME_NAMING_TYPE = [
   { value: 3, label: "Use both" },
 ];
 
-type DraftMap = Record<string, unknown>;
-
-function getByPath(obj: unknown, path: string): unknown {
-  return path
-    .split(".")
-    .reduce<unknown>(
-      (o, k) => (o == null ? o : (o as Record<string, unknown>)[k]),
-      obj,
-    );
-}
-
-function setByPath(obj: Record<string, unknown>, path: string, value: unknown) {
-  const keys = path.split(".");
-  let cur = obj;
-  for (let i = 0; i < keys.length - 1; i++) {
-    const k = keys[i];
-    if (!(k in cur) || typeof cur[k] !== "object" || cur[k] === null) {
-      cur[k] = {};
-    }
-    cur = cur[k] as Record<string, unknown>;
-  }
-  cur[keys[keys.length - 1]] = value;
-}
-
 export default function PostProcessing() {
-  const queryClient = useQueryClient();
-
-  const configQ = useQuery({
-    queryKey: ["config", "postprocessing"],
-    queryFn: ({ signal }) =>
-      api
-        .get<ConfigPostProcessing>("/config/postprocessing", { signal })
-        .then((r) => r.data),
-  });
+  // GET path is /config/postprocessing (lowercase) but PATCH field bindings
+  // are keyed by `postProcessing.*` (camelCase) — see config.py field map.
+  const { saved, isLoading, get, set, dirty, save } =
+    useDraftConfig<ConfigPostProcessing>({
+      section: "postprocessing",
+      patchPrefix: "postProcessing",
+    });
 
   // Used by the Trigger section to warn if the configured client doesn't
   // support the Download handler (e.g., Synology DS / MLDonkey raise
@@ -85,43 +59,7 @@ export default function PostProcessing() {
         .then((r) => r.data),
   });
 
-  const saved = configQ.data;
-  const [draft, setDraft] = useState<DraftMap>({});
-
-  const get = useMemo(
-    () =>
-      <T,>(path: string): T => {
-        if (path in draft) return draft[path] as T;
-        return getByPath(saved, path) as T;
-      },
-    [draft, saved],
-  );
-  const set = (path: string, value: unknown) =>
-    setDraft((d) => ({ ...d, [path]: value }));
-
-  const dirty = Object.keys(draft).some(
-    (k) => draft[k] !== getByPath(saved, k),
-  );
-
-  const save = useMutation({
-    mutationFn: () => {
-      const payload: Record<string, unknown> = { postProcessing: {} };
-      for (const [path, value] of Object.entries(draft)) {
-        setByPath(
-          payload.postProcessing as Record<string, unknown>,
-          path,
-          value,
-        );
-      }
-      return api.patch("/config/main", payload);
-    },
-    onSuccess: () => {
-      setDraft({});
-      queryClient.invalidateQueries({ queryKey: ["config", "postprocessing"] });
-    },
-  });
-
-  if (configQ.isLoading || !saved) {
+  if (isLoading || !saved) {
     return (
       <div className="flex justify-center py-20">
         <span className="loading loading-spinner loading-lg" />

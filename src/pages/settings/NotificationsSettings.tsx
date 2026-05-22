@@ -1,9 +1,9 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { ChevronLeft, ChevronDown, ChevronUp } from "lucide-react";
-import api from "../../lib/api";
+import useDraftConfig from "../../lib/useDraftConfig";
 import Field from "../../components/forms/Field";
 import Toggle from "../../components/forms/Toggle";
 import SaveBar from "../../components/forms/SaveBar";
@@ -12,31 +12,8 @@ import TagInput from "../../components/forms/TagInput";
 import TestRow from "../../components/forms/TestRow";
 import type { ConfigNotifiers } from "../../types/config";
 
-type DraftMap = Record<string, unknown>;
 type Getter = <T>(path: string) => T;
 type Setter = (path: string, value: unknown) => void;
-
-function getByPath(obj: unknown, path: string): unknown {
-  return path
-    .split(".")
-    .reduce<unknown>(
-      (o, k) => (o == null ? o : (o as Record<string, unknown>)[k]),
-      obj,
-    );
-}
-
-function setByPath(obj: Record<string, unknown>, path: string, value: unknown) {
-  const keys = path.split(".");
-  let cur = obj;
-  for (let i = 0; i < keys.length - 1; i++) {
-    const k = keys[i];
-    if (!(k in cur) || typeof cur[k] !== "object" || cur[k] === null) {
-      cur[k] = {};
-    }
-    cur = cur[k] as Record<string, unknown>;
-  }
-  cur[keys[keys.length - 1]] = value;
-}
 
 // Medusa stores Kodi/Plex hosts as arrays. The legacy /home/testKODI and
 // /home/testPMS endpoints take a comma-separated string, so we join when
@@ -46,52 +23,12 @@ function hostsToString(hosts: string[] | undefined): string {
 }
 
 export default function NotificationsSettings() {
-  const queryClient = useQueryClient();
-
-  const configQ = useQuery({
-    queryKey: ["config", "notifiers"],
-    queryFn: ({ signal }) =>
-      api
-        .get<ConfigNotifiers>("/config/notifiers", { signal })
-        .then((r) => r.data),
+  const { isLoading, get, set, dirty, save } = useDraftConfig<ConfigNotifiers>({
+    section: "notifiers",
   });
-
-  const saved = configQ.data;
-  const [draft, setDraft] = useState<DraftMap>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const get = useMemo(
-    () =>
-      <T,>(path: string): T => {
-        if (path in draft) return draft[path] as T;
-        return getByPath(saved, path) as T;
-      },
-    [draft, saved],
-  );
-  const set = (path: string, value: unknown) =>
-    setDraft((d) => ({ ...d, [path]: value }));
-
-  const dirty = Object.keys(draft).some(
-    (k) => draft[k] !== getByPath(saved, k),
-  );
-
-  // PATCH lives at /config/main (Medusa's only writeable config endpoint); the
-  // body just needs to be nested under `notifiers`.
-  const save = useMutation({
-    mutationFn: () => {
-      const payload: Record<string, unknown> = {};
-      for (const [path, value] of Object.entries(draft)) {
-        setByPath(payload, `notifiers.${path}`, value);
-      }
-      return api.patch("/config/main", payload);
-    },
-    onSuccess: () => {
-      setDraft({});
-      queryClient.invalidateQueries({ queryKey: ["config", "notifiers"] });
-    },
-  });
-
-  if (configQ.isLoading || !saved) {
+  if (isLoading) {
     return (
       <div className="flex justify-center py-20">
         <span className="loading loading-spinner loading-lg" />

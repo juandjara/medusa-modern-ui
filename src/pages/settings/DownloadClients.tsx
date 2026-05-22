@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { ChevronLeft } from "lucide-react";
-import api from "../../lib/api";
+import useDraftConfig from "../../lib/useDraftConfig";
 import Field from "../../components/forms/Field";
 import Toggle from "../../components/forms/Toggle";
 import SecretInput from "../../components/forms/SecretInput";
@@ -135,75 +134,17 @@ const NZBGET_PRIORITY_OPTIONS = [
   { value: 900, label: "Force" },
 ];
 
-type DraftMap = Record<string, unknown>;
-
-function getByPath(obj: unknown, path: string): unknown {
-  return path
-    .split(".")
-    .reduce<unknown>(
-      (o, k) => (o == null ? o : (o as Record<string, unknown>)[k]),
-      obj,
-    );
-}
-
-function setByPath(obj: Record<string, unknown>, path: string, value: unknown) {
-  const keys = path.split(".");
-  let cur = obj;
-  for (let i = 0; i < keys.length - 1; i++) {
-    const k = keys[i];
-    if (!(k in cur) || typeof cur[k] !== "object" || cur[k] === null) {
-      cur[k] = {};
-    }
-    cur = cur[k] as Record<string, unknown>;
-  }
-  cur[keys[keys.length - 1]] = value;
-}
-
 export default function DownloadClients() {
-  const queryClient = useQueryClient();
+  const {
+    saved,
+    isLoading,
+    get,
+    set,
+    dirty,
+    save: saveMutation,
+  } = useDraftConfig<ConfigClients>({ section: "clients" });
 
-  const configQ = useQuery({
-    queryKey: ["config", "clients"],
-    queryFn: ({ signal }) =>
-      api.get<ConfigClients>("/config/clients", { signal }).then((r) => r.data),
-  });
-
-  const saved = configQ.data;
-
-  // Single draft keyed by dot path (relative to ClientsConfig root). Avoids
-  // 30+ useState calls. Save dispatches the union as a nested PATCH payload.
-  const [draft, setDraft] = useState<DraftMap>({});
-
-  const get = useMemo(
-    () =>
-      <T,>(path: string): T => {
-        if (path in draft) return draft[path] as T;
-        return getByPath(saved, path) as T;
-      },
-    [draft, saved],
-  );
-  const set = (path: string, value: unknown) =>
-    setDraft((d) => ({ ...d, [path]: value }));
-
-  const dirty = Object.keys(draft).some(
-    (k) => draft[k] !== getByPath(saved, k),
-  );
-
-  const saveMutation = useMutation({
-    mutationFn: () => {
-      const payload: Record<string, unknown> = { clients: {} };
-      for (const [path, value] of Object.entries(draft)) {
-        setByPath(payload.clients as Record<string, unknown>, path, value);
-      }
-      return api.patch("/config/main", payload);
-    },
-    onSuccess: () => {
-      setDraft({});
-      queryClient.invalidateQueries({ queryKey: ["config", "clients"] });
-    },
-  });
-
-  if (configQ.isLoading || !saved) {
+  if (isLoading || !saved) {
     return (
       <div className="flex justify-center py-20">
         <span className="loading loading-spinner loading-lg" />
