@@ -269,18 +269,18 @@ function FailedSection({ get, set }: { get: Getter; set: Setter }) {
   const enabled = !!get<boolean>("general.failedDownloads.enabled");
   return (
     <Section
-      title="Failed downloads"
-      hint="When a snatch fails to post-process (e.g. corrupt file, wrong release), Medusa can record it and try a different one."
+      title="Failed-release handling"
+      hint="When a snatched release fails (post-processing can't identify it, the download client errors out, or the user flags it bad), Medusa can record it and try a different release on the next search."
     >
       <Toggle
-        label="Track failed downloads"
-        hint="Log failed releases to failed.db. Once enabled, Medusa avoids re-snatching the same release and immediately searches for a different one."
+        label="Track failed releases"
+        hint="Log failed releases to failed.db. Once enabled, Medusa avoids re-snatching the same release and immediately searches for a different one. View the list under Manage → Failed releases."
         checked={enabled}
         onChange={(v) => set("general.failedDownloads.enabled", v)}
       />
       {enabled && (
         <Toggle
-          label="Delete files of failed downloads"
+          label="Delete files when a release fails"
           hint="When a release is marked failed, also delete its files from the post-process folder. Recommended unless you want to inspect what went wrong."
           checked={!!get<boolean>("general.failedDownloads.deleteFailed")}
           onChange={(v) => set("general.failedDownloads.deleteFailed", v)}

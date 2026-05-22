@@ -34,6 +34,8 @@ const SubtitlesSettings = lazy(
 );
 const ImportShows = lazy(() => import("../pages/show/ImportShows"));
 const Recommended = lazy(() => import("../pages/show/Recommended"));
+const Manage = lazy(() => import("../pages/manage/Manage"));
+const FailedReleases = lazy(() => import("../pages/manage/FailedReleases"));
 
 function Root() {
   return (
@@ -63,6 +65,8 @@ export const router = createBrowserRouter([
           { path: "add", element: <AddShow /> },
           { path: "import", element: <ImportShows /> },
           { path: "recommended", element: <Recommended /> },
+          { path: "manage", element: <Manage /> },
+          { path: "manage/failed", element: <FailedReleases /> },
           { path: "schedule", element: <Schedule /> },
           { path: "history", element: <History /> },
           { path: "queue", element: <Queue /> },

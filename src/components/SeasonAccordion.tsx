@@ -7,6 +7,7 @@ import {
   MoreVertical,
   ChevronDown,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import api from "../lib/api";
 import type { Episode, EpisodeStatus } from "../types/medusa";
@@ -26,6 +27,15 @@ const BULK_STATUSES: EpisodeStatus[] = [
   "Archived",
   "Ignored",
 ];
+
+// "Mark release as failed" only makes sense when there's a current release
+// to flag — i.e. the episode is in some snatched/downloaded state.
+const SNATCHED_STATUSES: Set<EpisodeStatus> = new Set([
+  "Snatched",
+  "Snatched (Proper)",
+  "Snatched (Best)",
+  "Downloaded",
+]);
 
 export default function SeasonAccordion({
   seriesSlug,
@@ -53,6 +63,24 @@ export default function SeasonAccordion({
       }
       return api.patch(`/series/${seriesSlug}/episodes`, body);
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["series", seriesSlug, "episodes"],
+      });
+    },
+  });
+
+  // POST /search/failed kicks off a FailedQueueItem on the backend: logs the
+  // current release to failed.db so the search won't pick it again, reverts
+  // the episode to Wanted, and immediately runs a fresh search excluding the
+  // blocklisted release. The action only makes sense when the episode is in
+  // a Snatched/Downloaded state — otherwise there's no current release to flag.
+  const markFailed = useMutation({
+    mutationFn: (identifier: string) =>
+      api.post("/search/failed", {
+        showSlug: seriesSlug,
+        episodes: [identifier],
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["series", seriesSlug, "episodes"],
@@ -217,6 +245,23 @@ export default function SeasonAccordion({
                               <History size={14} /> View history
                             </Link>
                           </li>
+                          {SNATCHED_STATUSES.has(ep.status) && (
+                            <li>
+                              <button
+                                onClick={() =>
+                                  markFailed.mutate(ep.identifier)
+                                }
+                                disabled={markFailed.isPending}
+                                title="Add the current release to the failed list and search again"
+                              >
+                                <AlertTriangle
+                                  size={14}
+                                  className="text-warning"
+                                />
+                                Mark release as failed
+                              </button>
+                            </li>
+                          )}
                           <li className="menu-title text-xs">Set status</li>
                           {BULK_STATUSES.map((status) => (
                             <li key={status}>

@@ -66,11 +66,7 @@ export default function FolderPicker({
         </button>
       </div>
 
-      <dialog
-        ref={dialogRef}
-        className="modal"
-        onClose={() => setOpen(false)}
-      >
+      <dialog ref={dialogRef} className="modal" onClose={() => setOpen(false)}>
         <div className="modal-box max-w-2xl">
           <BrowserPanel
             path={browsePath}
@@ -190,7 +186,11 @@ function BrowserPanel({
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <button type="button" className="btn btn-sm btn-ghost" onClick={onCancel}>
+        <button
+          type="button"
+          className="btn btn-sm btn-ghost"
+          onClick={onCancel}
+        >
           Cancel
         </button>
         <button

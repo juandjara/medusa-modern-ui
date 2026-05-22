@@ -18,7 +18,7 @@ import FolderPicker from "../components/forms/FolderPicker";
 import { useWebSocket } from "../lib/websocket";
 import { formatRelative, parseMedusaIso } from "../lib/time";
 import type { PostProcessQueueItem } from "../types/medusa";
-import type { ConfigPostProcessing } from "../types/config";
+import type { ConfigPostProcessing, ConfigSearch } from "../types/config";
 
 const METHODS_BASE = [
   { value: "", label: "Use configured method" },
@@ -44,10 +44,24 @@ export default function PostProcess() {
     staleTime: 60_000,
   });
 
+  // `app.USE_FAILED_DOWNLOADS` short-circuits the entire failure path on the
+  // backend (process_tv.py:980), so the "Mark as failed" toggle is dead when
+  // the setting's off. Share the query key with SearchSettings.
+  const searchCfgQ = useQuery({
+    queryKey: ["config", "search"],
+    queryFn: ({ signal }) =>
+      api.get<ConfigSearch>("/config/search", { signal }).then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const trackingEnabled =
+    searchCfgQ.data?.general?.failedDownloads?.enabled ?? true;
+
   const historyQ = useQuery({
     queryKey: PP_QUEUE_KEY,
     queryFn: ({ signal }) =>
-      api.get<PostProcessQueueItem[]>("/postprocess", { signal }).then((r) => r.data),
+      api
+        .get<PostProcessQueueItem[]>("/postprocess", { signal })
+        .then((r) => r.data),
   });
 
   // The PP queue emits QueueItemUpdate WS events with name === 'Post Process'.
@@ -69,6 +83,10 @@ export default function PostProcess() {
   const [isPriority, setIsPriority] = useState(false);
   const [deleteOn, setDeleteOn] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Gate the user's failed-flag intent on the backend setting — sending
+  // `failed: true` when tracking is off is a no-op anyway; gating here keeps
+  // the toggle's display state in sync with what'll actually happen.
+  const effectiveFailed = trackingEnabled && failed;
 
   // Nullable-initial: null = fall back to configured download dir, string =
   // explicit override by the user.
@@ -77,21 +95,22 @@ export default function PostProcess() {
   const run = useMutation({
     mutationFn: () =>
       api
-        .post<{ status: string; message: string; queueItem: PostProcessQueueItem }>(
-          "/postprocess",
-          {
-            proc_dir: effectiveDir,
-            resource,
-            process_method: method || undefined,
-            force,
-            is_priority: isPriority,
-            delete_on: deleteOn,
-            failed,
-            proc_type: "manual",
-            // Backend currently aliases ignore_subs to is_priority (see
-            // postprocess.py); leave it off unless you opt in via priority.
-          },
-        )
+        .post<{
+          status: string;
+          message: string;
+          queueItem: PostProcessQueueItem;
+        }>("/postprocess", {
+          proc_dir: effectiveDir,
+          resource,
+          process_method: method || undefined,
+          force,
+          is_priority: isPriority,
+          delete_on: deleteOn,
+          failed: effectiveFailed,
+          proc_type: "manual",
+          // Backend currently aliases ignore_subs to is_priority (see
+          // postprocess.py); leave it off unless you opt in via priority.
+        })
         .then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PP_QUEUE_KEY });
@@ -191,9 +210,36 @@ export default function PostProcess() {
             />
             <Toggle
               label="Mark as failed"
-              hint="Tell the backend to treat this as a failed download — logs to failed.db and may trigger a retry search if 'Use failed downloads' is on."
-              checked={failed}
+              hint={
+                <>
+                  <p>
+                    Only useful when "Track failed releases" is on in{" "}
+                    <Link
+                      to="/settings/search"
+                      className="link link-hover text-primary"
+                    >
+                      Search settings
+                    </Link>
+                    . Treat the files in this folder as failed releases instead
+                    of importing them. If the folder's name can be parsed to a
+                    known show, the backend marks the matching episode Failed,
+                    reverts it to Wanted, and runs a fresh search. The release
+                    is also added to{" "}
+                    <Link
+                      to="/manage/failed"
+                      className="link link-hover text-primary"
+                    >
+                      a blacklist
+                    </Link>{" "}
+                    so the next search skips it (if original snatch is still in
+                    history)
+                  </p>
+                </>
+              }
+              checked={effectiveFailed}
               onChange={setFailed}
+              disabled={!trackingEnabled}
+              disabledHint="Track failed releases is off in Search settings."
             />
           </div>
 

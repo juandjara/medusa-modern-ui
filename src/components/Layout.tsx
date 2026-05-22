@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   ScrollText,
+  Wrench,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useWebSocket } from "../lib/websocket";
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
   { to: "/schedule", label: "Schedule", icon: Calendar },
   { to: "/history", label: "History", icon: History },
   { to: "/queue", label: "Queue", icon: Download },
+  { to: "/manage", label: "Manage", icon: Wrench },
   { to: "/logs", label: "Logs", icon: ScrollText, showLogBadge: true },
   { to: "/system", label: "System", icon: Gauge },
   { to: "/settings", label: "Settings", icon: Settings },
