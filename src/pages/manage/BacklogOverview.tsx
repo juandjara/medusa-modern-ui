@@ -11,6 +11,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import api, { getAssetUrl } from "../../lib/api";
+import { pushToast } from "../../lib/toasts";
 import EpisodeSearchModal from "../../components/EpisodeSearchModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import type {
@@ -416,6 +417,20 @@ function ShowSection({
 }) {
   const forceBacklog = useMutation({
     mutationFn: () => api.put("/search/backlog", { showSlug: show.slug }),
+    onSuccess: () => {
+      pushToast({
+        title: `Backlog search queued for ${show.name}`,
+        body: "Progress lands in the activity log; new snatches show up in History.",
+        type: "notice",
+      });
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't queue the backlog search",
+        body: "Check the server logs.",
+        type: "error",
+      });
+    },
   });
 
   return (

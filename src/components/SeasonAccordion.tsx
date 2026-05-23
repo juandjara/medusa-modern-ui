@@ -10,6 +10,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import api from "../lib/api";
+import { pushToast } from "../lib/toasts";
 import type { Episode, EpisodeStatus } from "../types/medusa";
 import { EPISODE_STATUS_CODE } from "../types/medusa";
 import StatusBadge from "./StatusBadge";
@@ -63,9 +64,21 @@ export default function SeasonAccordion({
       }
       return api.patch(`/series/${seriesSlug}/episodes`, body);
     },
-    onSuccess: () => {
+    onSuccess: (_data, payload) => {
       queryClient.invalidateQueries({
         queryKey: ["series", seriesSlug, "episodes"],
+      });
+      const n = payload.identifiers.length;
+      pushToast({
+        title: `Set ${n} episode${n === 1 ? "" : "s"} to ${payload.status}`,
+        type: "notice",
+      });
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't update episode status",
+        body: "Check the server logs.",
+        type: "error",
       });
     },
   });
@@ -85,6 +98,18 @@ export default function SeasonAccordion({
       queryClient.invalidateQueries({
         queryKey: ["series", seriesSlug, "episodes"],
       });
+      pushToast({
+        title: "Release marked as failed",
+        body: "The release was blocklisted and a fresh search was queued.",
+        type: "notice",
+      });
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't mark the release as failed",
+        body: "Check the server logs.",
+        type: "error",
+      });
     },
   });
 
@@ -97,6 +122,19 @@ export default function SeasonAccordion({
       return api.put("/search/manual", {
         showSlug: seriesSlug,
         season: [seasonSlug],
+      });
+    },
+    onSuccess: () => {
+      pushToast({
+        title: `Search queued for season ${season === 0 ? "Specials" : season}`,
+        type: "notice",
+      });
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't queue the season search",
+        body: "Check the server logs.",
+        type: "error",
       });
     },
   });

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import api from "../lib/api";
 import { useWebSocket } from "../lib/websocket";
+import { pushToast } from "../lib/toasts";
 import { formatBytes, formatRelative } from "../lib/time";
 import { LIVE_QUEUE_KEY } from "../lib/queryKeys";
 import {
@@ -175,6 +176,20 @@ export default function EpisodeSearchModal({
         throw new Error("pickManualSearch did not return success");
       }
       return release;
+    },
+    onSuccess: (release) => {
+      pushToast({
+        title: "Snatched",
+        body: release.release,
+        type: "notice",
+      });
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't snatch the release",
+        body: "Check the server logs.",
+        type: "error",
+      });
     },
   });
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './api'
+import { pushToast } from './toasts'
 import { useWebSocket } from './websocket'
 
 export type MassUpdateAction =
@@ -64,6 +65,15 @@ export function useSeriesMassUpdate(slug: string) {
       const cfg = ACTION_CONFIG[action]
       if (cfg.navigateHome) {
         queryClient.invalidateQueries({ queryKey: ['series'] })
+        // Destructive actions navigate away with no inline confirmation —
+        // confirm via toast so the user knows the click took.
+        pushToast({
+          title:
+            action === 'delete'
+              ? 'Show deleted (files removed)'
+              : 'Show removed from Medusa',
+          type: 'notice',
+        })
         navigate('/')
         return
       }
@@ -72,6 +82,13 @@ export function useSeriesMassUpdate(slug: string) {
         queryClient.invalidateQueries({ queryKey: ['series', slug] })
         setQueued((current) => (current === action ? null : current))
       }, cfg.invalidateDelayMs)
+    },
+    onError: (_err, action) => {
+      pushToast({
+        title: `Couldn't ${ACTION_LABELS[action].toLowerCase()}`,
+        body: 'Check the server logs.',
+        type: 'error',
+      })
     },
   })
 
