@@ -34,6 +34,7 @@ export default function ShowSettings() {
 
 interface FormState {
   location: string;
+  paused: boolean;
   defaultEpisodeStatus: string;
   qualityAllowed: number[];
   qualityPreferred: number[];
@@ -49,6 +50,7 @@ function formFromShow(show: Series): FormState {
   const c = show.config;
   return {
     location: c.location ?? "",
+    paused: !!c.paused,
     defaultEpisodeStatus: c.defaultEpisodeStatus ?? "Skipped",
     qualityAllowed: c.qualities?.allowed ?? [],
     qualityPreferred: c.qualities?.preferred ?? [],
@@ -69,6 +71,7 @@ function SettingsForm({ show }: { show: Series }) {
 
   const handleSave = () => {
     const body: Record<string, unknown> = {
+      "config.paused": form.paused,
       "config.defaultEpisodeStatus": form.defaultEpisodeStatus,
       "config.qualities.allowed": form.qualityAllowed,
       "config.qualities.preferred": form.qualityPreferred,
@@ -158,6 +161,12 @@ function SettingsForm({ show }: { show: Series }) {
       <fieldset className="fieldset w-full">
         <legend className="fieldset-legend mb-1">Behavior</legend>
         <div className="space-y-3">
+          <Toggle
+            label="Paused"
+            hint="Pause searches and daily updates for this show. Useful when you're moving its folder on disk or just want to stop tracking it temporarily."
+            checked={form.paused}
+            onChange={(v) => setForm((s) => ({ ...s, paused: v }))}
+          />
           <Toggle
             label="Anime"
             hint="Absolute episode numbering; matches AniDB / AniList aliases."
