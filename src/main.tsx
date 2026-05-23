@@ -18,8 +18,8 @@ const queryClient = new QueryClient({
   },
 })
 
-function App() {
-  return (
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary
         fallbackRender={({ error, resetErrorBoundary }) => (
@@ -29,11 +29,5 @@ function App() {
         <RouterProvider router={router} />
       </ErrorBoundary>
     </QueryClientProvider>
-  )
-}
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
   </StrictMode>,
 )

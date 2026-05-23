@@ -1,3 +1,8 @@
+// Route config — the only export is `router`. The `const X = lazy(...)`
+// declarations look like component declarations to react-refresh, but
+// editing this file always triggers a full reload anyway (the router config
+// itself doesn't hot-swap), so the rule's heuristic is wrong here.
+/* eslint-disable react-refresh/only-export-components */
 import { lazy } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "../lib/auth";

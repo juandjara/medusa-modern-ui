@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchToken,
@@ -12,19 +6,7 @@ import {
   logoutSession,
   AUTH_EXPIRED_EVENT,
 } from "./api";
-
-interface AuthContextValue {
-  token: string | null;
-  isAuthenticated: boolean;
-  login: (
-    username: string,
-    password: string,
-    remember?: boolean,
-  ) => Promise<void>;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext } from "./useAuth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Initial read picks up a token from either storage tier — local survives
@@ -65,10 +47,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be inside AuthProvider");
-  return ctx;
 }

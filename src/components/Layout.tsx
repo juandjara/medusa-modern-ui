@@ -14,7 +14,7 @@ import {
   ScrollText,
   Wrench,
 } from "lucide-react";
-import { useAuth } from "../lib/auth";
+import { useAuth } from "../lib/useAuth";
 import { useWebSocket } from "../lib/websocket";
 import { useLogCounts } from "../lib/logs";
 import { pushToast } from "../lib/toasts";

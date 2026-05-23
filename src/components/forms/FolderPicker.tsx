@@ -26,21 +26,15 @@ export default function FolderPicker({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
 
-  // Browsing position inside the modal — initialised from `value` each time
-  // the modal opens, then mutated by user navigation. Committing on "Use this
-  // folder" writes back to `onChange`.
-  const [browsePath, setBrowsePath] = useState(value);
-
+  // Imperative dialog sync only — no derived state here. The browsing
+  // position lives in <BrowserPanel>, which is conditionally rendered so it
+  // remounts (and re-initializes from `value`) every time the modal opens.
   useEffect(() => {
     const d = dialogRef.current;
     if (!d) return;
-    if (open) {
-      setBrowsePath(value);
-      if (!d.open) d.showModal();
-    } else if (d.open) {
-      d.close();
-    }
-  }, [open, value]);
+    if (open && !d.open) d.showModal();
+    else if (!open && d.open) d.close();
+  }, [open]);
 
   return (
     <>
@@ -68,15 +62,16 @@ export default function FolderPicker({
 
       <dialog ref={dialogRef} className="modal" onClose={() => setOpen(false)}>
         <div className="modal-box max-w-2xl">
-          <BrowserPanel
-            path={browsePath}
-            onNavigate={setBrowsePath}
-            onSelect={(p) => {
-              onChange(p);
-              setOpen(false);
-            }}
-            onCancel={() => setOpen(false)}
-          />
+          {open && (
+            <BrowserPanel
+              initialPath={value}
+              onSelect={(p) => {
+                onChange(p);
+                setOpen(false);
+              }}
+              onCancel={() => setOpen(false)}
+            />
+          )}
         </div>
         <form method="dialog" className="modal-backdrop">
           <button>close</button>
@@ -87,16 +82,16 @@ export default function FolderPicker({
 }
 
 function BrowserPanel({
-  path,
-  onNavigate,
+  initialPath,
   onSelect,
   onCancel,
 }: {
-  path: string;
-  onNavigate: (p: string) => void;
+  initialPath: string;
   onSelect: (p: string) => void;
   onCancel: () => void;
 }) {
+  const [path, setPath] = useState(initialPath);
+  const onNavigate = setPath;
   const browseQ = useQuery({
     queryKey: ["browser", path],
     queryFn: ({ signal }) =>
