@@ -45,6 +45,9 @@ const FailedReleases = lazy(() => import("../pages/manage/FailedReleases"));
 const BacklogOverview = lazy(() => import("../pages/manage/BacklogOverview"));
 const EpisodeStatuses = lazy(() => import("../pages/manage/EpisodeStatuses"));
 const BulkShows = lazy(() => import("../pages/manage/BulkShows"));
+const MissingSubtitles = lazy(
+  () => import("../pages/manage/MissingSubtitles"),
+);
 
 function Root() {
   return (
@@ -79,6 +82,7 @@ export const router = createBrowserRouter([
           { path: "manage/backlog", element: <BacklogOverview /> },
           { path: "manage/episode-statuses", element: <EpisodeStatuses /> },
           { path: "manage/bulk-shows", element: <BulkShows /> },
+          { path: "manage/missing-subtitles", element: <MissingSubtitles /> },
           { path: "schedule", element: <Schedule /> },
           { path: "history", element: <History /> },
           { path: "queue", element: <Queue /> },
