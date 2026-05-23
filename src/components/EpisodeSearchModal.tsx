@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import api from "../lib/api";
 import { formatBytes, formatRelative } from "../lib/time";
+import { LIVE_QUEUE_KEY } from "../lib/queryKeys";
 import {
   qualityName,
   type CachedRelease,
@@ -31,8 +32,6 @@ interface Props {
   open: boolean;
   onClose: () => void;
 }
-
-const LIVE_QUEUE_KEY = ["live-queue"] as const;
 
 function resolveInfoUrl(
   release: CachedRelease,

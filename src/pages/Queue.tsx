@@ -13,6 +13,7 @@ import {
 import api from "../lib/api";
 import { useWebSocket } from "../lib/websocket";
 import { formatRelative, parseMedusaIso } from "../lib/time";
+import { LIVE_QUEUE_KEY } from "../lib/queryKeys";
 import {
   categorizeLiveItem,
   searchTypeLabel,
@@ -23,7 +24,6 @@ import {
 } from "../types/medusa";
 
 const SYSTEM_KEY = ["config", "system"] as const;
-const LIVE_QUEUE_KEY = ["live-queue"] as const;
 
 export default function Queue() {
   const queryClient = useQueryClient();
