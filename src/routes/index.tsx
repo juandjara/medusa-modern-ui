@@ -37,6 +37,7 @@ const NotificationsSettings = lazy(
 const SubtitlesSettings = lazy(
   () => import("../pages/settings/SubtitlesSettings"),
 );
+const BackupRestore = lazy(() => import("../pages/settings/BackupRestore"));
 const ImportShows = lazy(() => import("../pages/show/ImportShows"));
 const Recommended = lazy(() => import("../pages/show/Recommended"));
 const Manage = lazy(() => import("../pages/manage/Manage"));
@@ -123,6 +124,10 @@ export const router = createBrowserRouter([
           {
             path: "settings/subtitles",
             element: <SubtitlesSettings />,
+          },
+          {
+            path: "settings/backup-restore",
+            element: <BackupRestore />,
           },
           { path: "*", element: <Navigate to="/" replace /> },
         ],
