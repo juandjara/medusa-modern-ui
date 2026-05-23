@@ -1,8 +1,13 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import api from "../lib/api";
+import { useWebSocket } from "../lib/websocket";
 import { formatRelative, parseActionDate } from "../lib/time";
 import { qualityName, type HistoryEntry } from "../types/medusa";
 import type { ConfigSubtitles } from "../types/config";
@@ -46,6 +51,16 @@ function buildHistoryPath(
 
 export default function History() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // Live updates: PyMedusa pushes one `historyUpdate` event per row inserted
+  // (medusa/history.py). Invalidate the whole `["history", …]` family — the
+  // new row may land on a different filter/page than the one we're viewing.
+  useWebSocket({
+    historyUpdate: () => {
+      queryClient.invalidateQueries({ queryKey: ["history"] });
+    },
+  });
 
   // URL is the source of truth for filter / paging state.
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
