@@ -17,7 +17,10 @@ import {
 import { useAuth } from "../lib/auth";
 import { useWebSocket } from "../lib/websocket";
 import { useLogCounts } from "../lib/logs";
+import { pushToast } from "../lib/toasts";
+import { LIVE_QUEUE_KEY } from "../lib/queryKeys";
 import LiveStatus from "./LiveStatus";
+import Toaster from "./Toaster";
 import type { LiveQueueItem } from "../types/medusa";
 
 // Defensive read; payload varies by action.
@@ -31,7 +34,13 @@ interface ShowEnvelope {
   id?: { slug?: string };
 }
 
-const LIVE_QUEUE_KEY = ["live-queue"] as const;
+// Shape pushed by medusa/ui.py:104 (Notification.data).
+interface NotificationData {
+  title?: string;
+  body?: string;
+  type?: "notice" | "error";
+  hash?: number;
+}
 
 // Post-process items already come through /config/system; don't double-track.
 function shouldTrackInLiveQueue(item: LiveQueueItem): boolean {
@@ -83,6 +92,16 @@ export default function Layout() {
     },
     showRemoved: () => {
       queryClient.invalidateQueries({ queryKey: ["series"] });
+    },
+    notification: (raw) => {
+      const n = raw as NotificationData;
+      if (!n.title) return;
+      pushToast({
+        title: n.title,
+        body: n.body || undefined,
+        type: n.type === "error" ? "error" : "notice",
+        hash: n.hash,
+      });
     },
     // Search / snatch / download-handler items live here as long as the
     // app is open — no HTTP endpoint exposes them.
@@ -155,6 +174,8 @@ export default function Layout() {
             <Outlet />
           </Suspense>
         </main>
+
+        <Toaster />
       </div>
 
       <div className="drawer-side z-40">
