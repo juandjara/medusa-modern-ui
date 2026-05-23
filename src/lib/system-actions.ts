@@ -61,9 +61,15 @@ export function useToggleBacklogPaused() {
 // AniList). Async on the backend — returns immediately, work happens in a
 // background job.
 export function useRefreshSceneExceptions() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
       api.post("/alias-source/all/operation", { type: "REFRESH" }),
+    onSuccess: () => {
+      // Bump the freshness list so the user sees the new lastRefresh stamps
+      // once the backend job lands.
+      queryClient.invalidateQueries({ queryKey: ["alias-source"] });
+    },
   });
 }
 
@@ -71,7 +77,11 @@ export function useRefreshSceneExceptions() {
 // re-fetch from the indexer. Destructive in the sense that until the next
 // refresh runs, scene-name matching will be limited to defaults.
 export function useCleanSceneExceptionCache() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => api.post("/internal/deleteSceneExceptions"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["alias-source"] });
+    },
   });
 }

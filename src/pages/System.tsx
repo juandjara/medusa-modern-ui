@@ -27,6 +27,25 @@ import type {
   SchedulerItem,
   SystemConfig,
 } from "../types/medusa";
+import type { ConfigSearch } from "../types/config";
+
+// /api/v2/alias-source — one row per scene-exception source. `lastRefresh` is
+// a unix timestamp in seconds (alias_source.py:20); 0 means never refreshed.
+interface AliasSourceRow {
+  id: string;
+  lastRefresh: number;
+}
+const ALIAS_SOURCE_META: Record<
+  string,
+  { label: string; url?: string }
+> = {
+  local: {
+    label: "Medusa's built-in exceptions",
+    url: "https://github.com/pymedusa/Medusa/wiki/Scene-exceptions-and-numbering",
+  },
+  xem: { label: "XEM", url: "http://thexem.info" },
+  anidb: { label: "AniDB" },
+};
 
 const SYSTEM_KEY = ["config", "system"] as const;
 
@@ -59,6 +78,28 @@ export default function System() {
       api.get<SystemConfig>("/config/system", { signal }).then((r) => r.data),
     // Schedulers tick forward; keep this fresh-ish without polling constantly.
     staleTime: 10_000,
+  });
+
+  // Shared cache key with Search settings; surfaces backlogDays under the
+  // backlog scheduler row.
+  const searchCfgQ = useQuery({
+    queryKey: ["config", "search"],
+    queryFn: ({ signal }) =>
+      api.get<ConfigSearch>("/config/search", { signal }).then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const backlogDays = searchCfgQ.data?.general?.backlogDays;
+
+  // Per-source scene-exception last-refresh timestamps. Same endpoint
+  // refreshScenes/cleanScenes mutate against — invalidating the system page
+  // would be too coarse, so we use the dedicated key here.
+  const aliasSourcesQ = useQuery({
+    queryKey: ["alias-source"],
+    queryFn: ({ signal }) =>
+      api
+        .get<AliasSourceRow[]>("/alias-source", { signal })
+        .then((r) => r.data),
+    staleTime: 60_000,
   });
 
   if (isLoading) {
@@ -113,7 +154,11 @@ export default function System() {
             </thead>
             <tbody>
               {schedulers.map((s) => (
-                <SchedulerRow key={s.key} item={s} />
+                <SchedulerRow
+                  key={s.key}
+                  item={s}
+                  backlogDays={backlogDays}
+                />
               ))}
             </tbody>
           </table>
@@ -179,20 +224,59 @@ export default function System() {
               </button>
             }
             note={
-              refreshScenes.isSuccess ? (
-                <>
-                  Queued. See{" "}
-                  <Link
-                    to="/logs?tab=activity"
-                    className="link link-hover font-medium"
-                  >
-                    activity logs
-                  </Link>{" "}
-                  for live progress.
-                </>
-              ) : refreshScenes.isError ? (
-                "Failed to queue refresh."
-              ) : null
+              <div className="not-italic space-y-1">
+                {refreshScenes.isSuccess && (
+                  <p className="italic">
+                    Queued. See{" "}
+                    <Link
+                      to="/logs?tab=activity"
+                      className="link link-hover font-medium"
+                    >
+                      activity logs
+                    </Link>{" "}
+                    for live progress.
+                  </p>
+                )}
+                {refreshScenes.isError && (
+                  <p className="italic text-error">
+                    Failed to queue refresh.
+                  </p>
+                )}
+                {aliasSourcesQ.data && aliasSourcesQ.data.length > 0 && (
+                  <ul className="space-y-0.5">
+                    {aliasSourcesQ.data.map((s) => {
+                      const meta = ALIAS_SOURCE_META[s.id] ?? {
+                        label: s.id,
+                      };
+                      const stamp =
+                        s.lastRefresh > 0
+                          ? formatRelative(
+                              new Date(s.lastRefresh * 1000).toISOString(),
+                            )
+                          : "never";
+                      return (
+                        <li key={s.id} className="flex items-center gap-1.5">
+                          <span className="text-base-content/70">
+                            {meta.label}
+                          </span>
+                          <span className="text-base-content/40">·</span>
+                          <span>last refreshed {stamp}</span>
+                          {meta.url && (
+                            <a
+                              href={meta.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="link link-hover text-base-content/50"
+                            >
+                              (source)
+                            </a>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             }
           />
           <MaintenanceRow
@@ -278,7 +362,13 @@ export default function System() {
   );
 }
 
-function SchedulerRow({ item }: { item: SchedulerItem }) {
+function SchedulerRow({
+  item,
+  backlogDays,
+}: {
+  item: SchedulerItem;
+  backlogDays: number | undefined;
+}) {
   const run = useRunScheduler();
   const togglePaused = useToggleBacklogPaused();
 
@@ -339,6 +429,12 @@ function SchedulerRow({ item }: { item: SchedulerItem }) {
             </span>
           )}
         </span>
+        {isBacklog && backlogDays != null && (
+          <div className="text-xs font-normal text-base-content/50 mt-0.5">
+            Scans the last {backlogDays} day{backlogDays === 1 ? "" : "s"} of
+            episodes
+          </div>
+        )}
       </td>
       <td>
         <span className={`badge badge-sm ${stateClass}`}>{stateLabel}</span>
