@@ -68,7 +68,7 @@ export default function Manage() {
           <li>
             <Link
               to="/manage/backlog"
-              className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors"
+              className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors border-b border-base-300"
             >
               <div>
                 <div className="font-medium inline-flex items-center gap-2 flex-wrap">
@@ -92,6 +92,24 @@ export default function Manage() {
                   across all shows. Here you can trigger{" "}
                   <strong>Backlog searches</strong> for all of them or for each
                   show individually
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-base-content/40" />
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/manage/episode-statuses"
+              className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-base-200/50 transition-colors"
+            >
+              <div>
+                <div className="font-medium">Episode statuses</div>
+                <div className="text-xs text-base-content/60">
+                  Episode statuses are the lifecycle markers (Wanted, Snatched,
+                  Downloaded, Failed, …) that drive what Medusa does on each
+                  search pass. Here you can bulk flip all episodes with a given
+                  status to a new one. This can be handy for retrying stalled
+                  snatches or cleaning up shows you no longer follow.
                 </div>
               </div>
               <ChevronRight size={16} className="text-base-content/40" />

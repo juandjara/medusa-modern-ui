@@ -37,6 +37,7 @@ const Recommended = lazy(() => import("../pages/show/Recommended"));
 const Manage = lazy(() => import("../pages/manage/Manage"));
 const FailedReleases = lazy(() => import("../pages/manage/FailedReleases"));
 const BacklogOverview = lazy(() => import("../pages/manage/BacklogOverview"));
+const EpisodeStatuses = lazy(() => import("../pages/manage/EpisodeStatuses"));
 
 function Root() {
   return (
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
           { path: "manage", element: <Manage /> },
           { path: "manage/failed", element: <FailedReleases /> },
           { path: "manage/backlog", element: <BacklogOverview /> },
+          { path: "manage/episode-statuses", element: <EpisodeStatuses /> },
           { path: "schedule", element: <Schedule /> },
           { path: "history", element: <History /> },
           { path: "queue", element: <Queue /> },
