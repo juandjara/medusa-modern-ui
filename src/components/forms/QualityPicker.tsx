@@ -2,9 +2,9 @@ import { Fragment } from "react";
 import { Info } from "lucide-react";
 import {
   QUALITY,
-  QUALITY_NAMES,
   QUALITY_PRESETS,
   detectQualityPreset,
+  qualityName,
 } from "../../types/medusa";
 
 const CUSTOM_SENTINEL = "__custom__";
@@ -171,8 +171,8 @@ function QualityExplanation({
   allowed: number[];
   preferred: number[];
 }) {
-  const allowedNames = allowed.map((q) => QUALITY_NAMES[q] ?? `Q-${q}`);
-  const preferredNames = preferred.map((q) => QUALITY_NAMES[q] ?? `Q-${q}`);
+  const allowedNames = allowed.map(qualityName);
+  const preferredNames = preferred.map(qualityName);
 
   if (allowed.length === 0 && preferred.length === 0) {
     return (

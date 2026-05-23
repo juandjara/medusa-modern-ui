@@ -148,7 +148,11 @@ export const INDEXER_ID_TO_SLUG: Record<number, string> = {
 
 // Numeric codes for PATCH /series/{slug}/episodes. Mirrors medusa/common.py;
 // note the gap between 7 and 9 (no 8) and that Subtitled is 10, not Failed.
-export const EPISODE_STATUS_CODE: Record<EpisodeStatus, number> = {
+//
+// `as const satisfies …` preserves the literal-number values (so consumers
+// can use `EpisodeStatusCode` as the precise union 1 | 2 | 3 | …) while still
+// failing the compile if any EpisodeStatus key is missing.
+export const EPISODE_STATUS_CODE = {
   Unaired: 1,
   Snatched: 2,
   Wanted: 3,
@@ -160,7 +164,17 @@ export const EPISODE_STATUS_CODE: Record<EpisodeStatus, number> = {
   Subtitled: 10,
   Failed: 11,
   "Snatched (Best)": 12,
-};
+} as const satisfies Record<EpisodeStatus, number>;
+
+// Union of the literal numbers above (1 | 2 | 3 | 4 | 5 | 6 | 7 | 9 | 10 | 11
+// | 12). Use this for API response fields whose values come from common.py's
+// status enum, rather than a bare `number`.
+export type EpisodeStatusCode = (typeof EPISODE_STATUS_CODE)[EpisodeStatus];
+
+// Union of the literal quality bitmask values (1 | 2 | 4 | 8 | …). Same role
+// as EpisodeStatusCode — communicates that the number is meant to be a member
+// of the Quality enum, not arbitrary.
+export type QualityCode = (typeof QUALITY)[keyof typeof QUALITY];
 
 export interface SeriesListResponse {
   data: Series[];
@@ -235,6 +249,10 @@ export const RECOMMENDED_SOURCES: {
 // Bitmask values from medusa/common.py:Quality.
 // Shifts start at `1 << 1`, so SDTV = 2, NOT 1
 export const QUALITY = {
+  // NA = 0 is an internal "no quality / default" value that shouldn't reach
+  // API responses in practice, but the backend's Quality.qualityStrings has a
+  // 'N/A' entry so we mirror it here for completeness.
+  NA: 0,
   UNKNOWN: 1,
   SDTV: 2, // 'SDTV'
   SDDVD: 4, // 'SD DVD'
@@ -248,6 +266,9 @@ export const QUALITY = {
   UHD_4K_TV: 1024, // '4K UHD TV'
   UHD_4K_WEBDL: 2048, // '4K UHD WEB-DL'
   UHD_4K_BLURAY: 4096, // '4K UHD BluRay'
+  UHD_8K_TV: 8192, // '8K UHD TV'
+  UHD_8K_WEBDL: 16384, // '8K UHD WEB-DL'
+  UHD_8K_BLURAY: 32768, // '8K UHD BluRay'
 } as const;
 
 // Default quality bitmasks: Any HD (TV / WEB / BluRay), no SD, no 4K
@@ -449,7 +470,12 @@ export interface HistoryEntry {
   partOfBatch: boolean;
 }
 
-export const QUALITY_NAMES: Record<number, string> = {
+// Mirrors backend Quality.qualityStrings exactly. `as const satisfies …`
+// preserves the literal-string values so we can derive a `QualityName` union
+// downstream while still failing the compile if a QualityCode entry is
+// missing from this map.
+export const QUALITY_NAMES = {
+  [QUALITY.NA]: "N/A",
   [QUALITY.UNKNOWN]: "Unknown",
   [QUALITY.SDTV]: "SDTV",
   [QUALITY.SDDVD]: "SD DVD",
@@ -463,14 +489,21 @@ export const QUALITY_NAMES: Record<number, string> = {
   [QUALITY.UHD_4K_TV]: "4K UHD TV",
   [QUALITY.UHD_4K_WEBDL]: "4K UHD WEB-DL",
   [QUALITY.UHD_4K_BLURAY]: "4K UHD BluRay",
-};
+  [QUALITY.UHD_8K_TV]: "8K UHD TV",
+  [QUALITY.UHD_8K_WEBDL]: "8K UHD WEB-DL",
+  [QUALITY.UHD_8K_BLURAY]: "8K UHD BluRay",
+} as const satisfies Record<QualityCode, string>;
 
-export function qualityName(value: number): string {
-  return QUALITY_NAMES[value] ?? `Q-${value}`;
+// Union of the literal display strings above. Mirrors what the backend's
+// `Quality.qualityStrings[quality]` lookup returns.
+export type QualityName = (typeof QUALITY_NAMES)[QualityCode];
+
+export function qualityName(value: number) {
+  return QUALITY_NAMES[value as QualityCode] ?? `Q-${value}`;
 }
 
 // Sorted-array comparison so storage order doesn't matter.
-export function detectQualityPreset(allowed: number[]): string | null {
+export function detectQualityPreset(allowed: number[]) {
   const a = [...allowed].sort((x, y) => x - y);
   for (const [key, preset] of Object.entries(QUALITY_PRESETS)) {
     const b = [...preset.allowed].sort((x, y) => x - y);
@@ -480,14 +513,14 @@ export function detectQualityPreset(allowed: number[]): string | null {
 }
 
 // Strips the trailing '(default)' suffix so it fits in tight badge chrome.
-export function qualitySummary(allowed: number[]): string {
+export function qualitySummary(allowed: number[]) {
   const key = detectQualityPreset(allowed);
   if (key) return QUALITY_PRESETS[key].label.replace(/\s*\([^)]+\)\s*$/, "");
   return "Custom";
 }
 
 // daisyUI classes for series status strings emitted by PyMedusa to be used in badges
-export function seriesStatusBadgeClass(status: string): string {
+export function seriesStatusBadgeClass(status: string) {
   const s = status.toLowerCase();
   if (s.includes("continu") || s.includes("running")) {
     return "badge-soft badge-success";
