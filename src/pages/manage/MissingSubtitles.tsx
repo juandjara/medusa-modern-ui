@@ -220,10 +220,10 @@ export default function MissingSubtitles() {
       <header className="space-y-1">
         <h1 className="text-2xl font-bold">Missing subtitles</h1>
         <p className="text-sm text-base-content/60">
-          Episodes that are downloaded and on disk but missing one or more of
-          your configured subtitle languages. Run a search per show or
-          library-wide; PyMedusa queries every enabled subtitle provider and
-          drops matching subs alongside the video.
+          Episodes that are downloaded, on disk and set to download subtitles
+          but missing one or more of your configured subtitle languages. Run a
+          search per show or library-wide; PyMedusa queries every enabled
+          subtitle provider and drops matching subs alongside the video.
         </p>
       </header>
 
