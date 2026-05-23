@@ -1,13 +1,31 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, TriangleAlert } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, Plus, TriangleAlert, X } from "lucide-react";
 import api from "../../lib/api";
+import { pushToast } from "../../lib/toasts";
 import { useEditSeries } from "../../lib/series-actions";
 import { DEFAULT_EPISODE_STATUSES, type Series } from "../../types/medusa";
 import Toggle from "../../components/forms/Toggle";
 import QualityPicker from "../../components/forms/QualityPicker";
 import FolderPicker from "../../components/forms/FolderPicker";
+
+// /api/v2/alias?series=<slug> returns one row per scene exception attached to
+// this show. `type === 'local'` means user-added (deletable); null means it
+// came from the global sync (XEM / AniDB / Medusa wiki) — read-only because
+// the next sync would re-add it.
+interface SceneAlias {
+  id: number;
+  series: string;
+  name: string;
+  season: number | null;
+  type: "local" | null;
+}
+
+function seasonLabel(s: number): string {
+  if (s === 0) return "Specials";
+  return `Season ${s}`;
+}
 
 export default function ShowSettings() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -92,7 +110,7 @@ function SettingsForm({ show }: { show: Series }) {
   };
 
   return (
-    <div className="max-w-lg mx-auto pt-8 space-y-6">
+    <div className="max-w-xl mx-auto pt-8 space-y-6">
       <div className="flex items-center justify-between">
         <Link
           to={`/show/${show.id.slug}`}
@@ -206,6 +224,8 @@ function SettingsForm({ show }: { show: Series }) {
         </div>
       </fieldset>
 
+      <SceneAliasesPanel show={show} />
+
       {editSeries.isError && (
         <div className="alert alert-soft alert-error text-sm">
           Failed to save changes. Try again.
@@ -238,5 +258,181 @@ function SettingsForm({ show }: { show: Series }) {
         </button>
       </div>
     </div>
+  );
+}
+
+function SceneAliasesPanel({ show }: { show: Series }) {
+  const queryClient = useQueryClient();
+  const slug = show.id.slug;
+
+  const aliasesQ = useQuery({
+    queryKey: ["aliases", slug],
+    queryFn: ({ signal }) =>
+      api
+        .get<SceneAlias[]>("/alias", { signal, params: { series: slug } })
+        .then((r) => r.data),
+    staleTime: 60_000,
+  });
+
+  // Sort: synced first (read-only, alpha by season then name), then custom
+  // (also alpha). Keeps the user's own additions grouped together at the
+  // bottom for quick scanning.
+  const aliases = [...(aliasesQ.data ?? [])].sort((a, b) => {
+    if (a.type !== b.type) return a.type === null ? -1 : 1;
+    const seasonA = a.season ?? -1;
+    const seasonB = b.season ?? -1;
+    if (seasonA !== seasonB) return seasonA - seasonB;
+    return a.name.localeCompare(b.name);
+  });
+
+  const [newName, setNewName] = useState("");
+  // -1 sentinel = "applies to all seasons" (backend default per alias.py:165).
+  const [newSeason, setNewSeason] = useState<number>(-1);
+
+  const addAlias = useMutation({
+    mutationFn: (payload: { name: string; season: number }) =>
+      api.post<SceneAlias>("/alias", {
+        series: slug,
+        name: payload.name,
+        season: payload.season,
+        type: "local",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["aliases", slug] });
+      setNewName("");
+      pushToast({ title: "Alias added", type: "notice" });
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't add alias",
+        body: "Check the server logs.",
+        type: "error",
+      });
+    },
+  });
+
+  const deleteAlias = useMutation({
+    mutationFn: (id: number) => api.delete(`/alias/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["aliases", slug] });
+      pushToast({ title: "Alias removed", type: "notice" });
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't remove alias",
+        body: "Check the server logs.",
+        type: "error",
+      });
+    },
+  });
+
+  const canAdd = newName.trim().length > 0 && !addAlias.isPending;
+
+  return (
+    <fieldset className="fieldset w-full">
+      <legend className="fieldset-legend">Scene aliases</legend>
+      <p className="text-xs text-base-content/70">
+        Alternative show titles Medusa will recognize when parsing release
+        filenames.<br></br> The <strong>synced</strong> entries come from
+        Medusa's wiki, XEM and AniDB and refresh on a schedule. <br></br>
+        The <strong>custom</strong> ones below are yours to add or remove.
+      </p>
+
+      {aliasesQ.isLoading ? (
+        <div className="flex justify-center py-4">
+          <span className="loading loading-spinner loading-sm" />
+        </div>
+      ) : aliases.length === 0 ? (
+        <div className="text-xs text-base-content/50 italic py-2">
+          No aliases for this show yet.
+        </div>
+      ) : (
+        <ul className="space-y-1 max-h-64 overflow-y-auto pr-1">
+          {aliases.map((a) => (
+            <li
+              key={a.id}
+              className="flex items-center gap-2 text-sm bg-base-200/40 rounded px-2 py-1"
+            >
+              <span className="flex-1 truncate" title={a.name}>
+                {a.name}
+              </span>
+              <span className="badge badge-xs badge-ghost whitespace-nowrap">
+                {a.season === null
+                  ? "all seasons"
+                  : `S${String(a.season).padStart(2, "0")}`}
+              </span>
+              <span
+                className={`badge badge-xs ${
+                  a.type === "local" ? "badge-info" : "badge-ghost"
+                }`}
+                title={
+                  a.type === "local"
+                    ? "Added by you on this Medusa install"
+                    : "Synced from external source — read-only (a refresh would re-add it)"
+                }
+              >
+                {a.type === "local" ? "custom" : "synced"}
+              </span>
+              {a.type === "local" && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs btn-square"
+                  aria-label={`Remove ${a.name}`}
+                  onClick={() => deleteAlias.mutate(a.id)}
+                  disabled={deleteAlias.isPending}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex flex-wrap items-end gap-2 pt-2">
+        <label className="flex flex-col gap-1 text-xs flex-1 min-w-48">
+          <span className="text-base-content/60">New alias</span>
+          <input
+            type="text"
+            className="input input-sm w-full"
+            value={newName}
+            placeholder="Alternative show title…"
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && canAdd) {
+                e.preventDefault();
+                addAlias.mutate({ name: newName.trim(), season: newSeason });
+              }
+            }}
+            spellCheck={false}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-base-content/60">Applies to</span>
+          <select
+            className="select select-sm"
+            value={newSeason}
+            onChange={(e) => setNewSeason(Number(e.target.value))}
+          >
+            <option value={-1}>All seasons</option>
+            {(show.seasonCount ?? []).map((s) => (
+              <option key={s.season} value={s.season}>
+                {seasonLabel(s.season)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="btn btn-sm gap-1"
+          disabled={!canAdd}
+          onClick={() =>
+            addAlias.mutate({ name: newName.trim(), season: newSeason })
+          }
+        >
+          <Plus size={14} /> Add
+        </button>
+      </div>
+    </fieldset>
   );
 }
