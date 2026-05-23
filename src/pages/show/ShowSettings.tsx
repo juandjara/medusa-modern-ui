@@ -163,7 +163,7 @@ function SettingsForm({ show }: { show: Series }) {
         <div className="space-y-3">
           <Toggle
             label="Paused"
-            hint="Pause searches and daily updates for this show. Useful when you're moving its folder on disk or just want to stop tracking it temporarily."
+            hint="Pause searches and daily updates for this show. Medusa will not download new episodes. Useful when you're moving its folder on disk or just want to stop tracking it temporarily."
             checked={form.paused}
             onChange={(v) => setForm((s) => ({ ...s, paused: v }))}
           />
