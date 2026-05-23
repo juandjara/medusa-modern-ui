@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useEffectEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   useMutation,
   useQueries,
@@ -258,20 +258,12 @@ export default function EpisodeSearchModal({
     else if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const handleNativeClose = useEffectEvent(() => onClose());
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const listener = () => handleNativeClose();
-    dialog.addEventListener("close", listener);
-    return () => dialog.removeEventListener("close", listener);
-  }, []);
-
   return (
     <dialog
       ref={dialogRef}
       className="modal"
       aria-labelledby="search-modal-title"
+      onClose={onClose}
     >
       <div className="modal-box w-11/12 max-w-5xl">
         <header className="flex items-center justify-between gap-3 mb-3">

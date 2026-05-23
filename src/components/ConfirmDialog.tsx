@@ -1,4 +1,4 @@
-import { useEffect, useRef, useEffectEvent, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 interface Props {
   open: boolean
@@ -28,20 +28,15 @@ export default function ConfirmDialog({
     else if (!open && dialog.open) dialog.close()
   }, [open])
 
-  // Sync parent when the dialog closes natively (ESC, backdrop click, or the
-  // Cancel button submitting the form). useEffectEvent keeps the listener
-  // attached once while always reading the latest onClose.
-  const handleNativeClose = useEffectEvent(() => onClose())
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-    const listener = () => handleNativeClose()
-    dialog.addEventListener('close', listener)
-    return () => dialog.removeEventListener('close', listener)
-  }, [])
-
   return (
-    <dialog ref={dialogRef} className="modal" aria-labelledby="confirm-title">
+    <dialog
+      ref={dialogRef}
+      className="modal"
+      aria-labelledby="confirm-title"
+      // Sync parent when the dialog closes natively (ESC, backdrop click, or
+      // the Cancel button submitting the form).
+      onClose={onClose}
+    >
       <div className="modal-box max-w-md">
         <h3 id="confirm-title" className="font-bold text-lg mb-2">
           {title}
