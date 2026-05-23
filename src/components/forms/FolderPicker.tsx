@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { Folder, FolderOpen, ChevronUp, X } from "lucide-react";
+import { File, Folder, FolderOpen, ChevronUp, X } from "lucide-react";
 
 // Shape of /browser/?path=… (Tornado endpoint, see medusa/browser.py:list_folders).
 // First entry is { currentPath }; if include_parent and not at FS root, a
 // { name: '..', path } entry follows; remaining entries are { name, path }.
-type BrowserEntry = { currentPath: string } | { name: string; path: string };
+// Files (when includeFiles=true) carry `isFile: true`.
+type BrowserEntry =
+  | { currentPath: string }
+  | { name: string; path: string; isFile?: boolean };
 
 interface FolderPickerProps {
   value: string;
@@ -14,6 +17,10 @@ interface FolderPickerProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  // When set, files are listed alongside folders and clicking a file selects
+  // it. Use for "pick a file" flows (e.g. restore-from-zip). Folders still
+  // navigate; the "Use this folder" commit is hidden in this mode.
+  includeFiles?: boolean;
 }
 
 export default function FolderPicker({
@@ -22,6 +29,7 @@ export default function FolderPicker({
   placeholder,
   className = "",
   disabled,
+  includeFiles = false,
 }: FolderPickerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
@@ -53,7 +61,7 @@ export default function FolderPicker({
           className="btn btn-sm join-item gap-1"
           onClick={() => setOpen(true)}
           disabled={disabled}
-          title="Browse for a folder"
+          title={includeFiles ? "Browse for a file" : "Browse for a folder"}
         >
           <FolderOpen size={14} />
           Browse
@@ -65,6 +73,7 @@ export default function FolderPicker({
           {open && (
             <BrowserPanel
               initialPath={value}
+              includeFiles={includeFiles}
               onSelect={(p) => {
                 onChange(p);
                 setOpen(false);
@@ -83,22 +92,24 @@ export default function FolderPicker({
 
 function BrowserPanel({
   initialPath,
+  includeFiles,
   onSelect,
   onCancel,
 }: {
   initialPath: string;
+  includeFiles: boolean;
   onSelect: (p: string) => void;
   onCancel: () => void;
 }) {
   const [path, setPath] = useState(initialPath);
   const onNavigate = setPath;
   const browseQ = useQuery({
-    queryKey: ["browser", path],
+    queryKey: ["browser", path, includeFiles],
     queryFn: ({ signal }) =>
       axios
         .get<BrowserEntry[]>("/browser/", {
           signal,
-          params: { path },
+          params: includeFiles ? { path, includeFiles: "true" } : { path },
         })
         .then((r) => r.data),
     // Each path is its own row; folder listings rarely change while the
@@ -112,15 +123,28 @@ function BrowserPanel({
   );
   const currentPath = currentEntry?.currentPath ?? path;
   const items = entries.filter(
-    (e): e is { name: string; path: string } => "name" in e,
+    (e): e is { name: string; path: string; isFile?: boolean } => "name" in e,
   );
   const parent = items.find((e) => e.name === "..");
-  const folders = items.filter((e) => e.name !== "..");
+  const rest = items.filter((e) => e.name !== "..");
+  // Folders first, then files; alpha within each group.
+  const folders = rest
+    .filter((e) => !e.isFile)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const files = rest
+    .filter((e) => e.isFile)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const emptyState = includeFiles
+    ? "Nothing here."
+    : "No subfolders here.";
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">Select folder</h3>
+        <h3 className="font-semibold">
+          {includeFiles ? "Select file" : "Select folder"}
+        </h3>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
@@ -156,9 +180,9 @@ function BrowserPanel({
             Couldn't list folder. Path may not exist or you're not
             authenticated.
           </div>
-        ) : folders.length === 0 ? (
+        ) : folders.length === 0 && files.length === 0 ? (
           <div className="p-6 text-sm text-base-content/50 text-center">
-            No subfolders here.
+            {emptyState}
           </div>
         ) : (
           <ul>
@@ -168,10 +192,25 @@ function BrowserPanel({
                   type="button"
                   className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-base-200 text-sm"
                   onClick={() => onNavigate(f.path)}
-                  onDoubleClick={() => onSelect(f.path)}
+                  onDoubleClick={() =>
+                    !includeFiles && onSelect(f.path)
+                  }
                   title={f.path}
                 >
                   <Folder size={14} className="text-base-content/50" />
+                  <span className="truncate">{f.name}</span>
+                </button>
+              </li>
+            ))}
+            {files.map((f) => (
+              <li key={f.path}>
+                <button
+                  type="button"
+                  className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-base-200 text-sm"
+                  onClick={() => onSelect(f.path)}
+                  title={f.path}
+                >
+                  <File size={14} className="text-base-content/50" />
                   <span className="truncate">{f.name}</span>
                 </button>
               </li>
@@ -188,13 +227,15 @@ function BrowserPanel({
         >
           Cancel
         </button>
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          onClick={() => onSelect(currentPath)}
-        >
-          Use this folder
-        </button>
+        {!includeFiles && (
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            onClick={() => onSelect(currentPath)}
+          >
+            Use this folder
+          </button>
+        )}
       </div>
     </div>
   );
