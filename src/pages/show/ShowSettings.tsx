@@ -9,6 +9,7 @@ import { DEFAULT_EPISODE_STATUSES, type Series } from "../../types/medusa";
 import Toggle from "../../components/forms/Toggle";
 import QualityPicker from "../../components/forms/QualityPicker";
 import FolderPicker from "../../components/forms/FolderPicker";
+import TagInput from "../../components/forms/TagInput";
 
 // /api/v2/alias?series=<slug> returns one row per scene exception attached to
 // this show. `type === 'local'` means user-added (deletable); null means it
@@ -62,6 +63,10 @@ interface FormState {
   seasonFolders: boolean;
   dvdOrder: boolean;
   airByDate: boolean;
+  ignoredWords: string[];
+  ignoredWordsExclude: boolean;
+  requiredWords: string[];
+  requiredWordsExclude: boolean;
 }
 
 function formFromShow(show: Series): FormState {
@@ -78,6 +83,10 @@ function formFromShow(show: Series): FormState {
     seasonFolders: c.seasonFolders ?? true,
     dvdOrder: !!c.dvdOrder,
     airByDate: !!c.airByDate,
+    ignoredWords: c.release?.ignoredWords ?? [],
+    ignoredWordsExclude: !!c.release?.ignoredWordsExclude,
+    requiredWords: c.release?.requiredWords ?? [],
+    requiredWordsExclude: !!c.release?.requiredWordsExclude,
   };
 }
 
@@ -99,6 +108,10 @@ function SettingsForm({ show }: { show: Series }) {
       "config.seasonFolders": form.seasonFolders,
       "config.dvdOrder": form.dvdOrder,
       "config.airByDate": form.airByDate,
+      "config.release.ignoredWords": form.ignoredWords,
+      "config.release.ignoredWordsExclude": form.ignoredWordsExclude,
+      "config.release.requiredWords": form.requiredWords,
+      "config.release.requiredWordsExclude": form.requiredWordsExclude,
     };
     // Only patch location when the user has actually changed it — saves a
     // potential refresh side effect when the field is just being saved with
@@ -224,6 +237,57 @@ function SettingsForm({ show }: { show: Series }) {
         </div>
       </fieldset>
 
+      <fieldset className="fieldset w-full">
+        <legend className="fieldset-legend">Release filters</legend>
+        <p className="text-xs text-base-content/50">
+          Per-show filter words layered on top of the global lists in{" "}
+          <Link to="/settings/search" className="link link-hover font-medium">
+            Search settings
+          </Link>
+          . Press Enter or comma to add a word; matching is case-insensitive.
+        </p>
+
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="label">Ignored words</label>
+            <TagInput
+              value={form.ignoredWords}
+              onChange={(v) => setForm((s) => ({ ...s, ignoredWords: v }))}
+              placeholder="e.g. CAM, SCREENER"
+            />
+            <p className="text-xs text-base-content/50">
+              Releases containing any of these words are skipped.
+            </p>
+          </div>
+          <Toggle
+            label="Override the global ignored list"
+            hint="When off (default), these words are added to the global ignored list for this show. When on, they are subtracted. Use this to allow words that the global list would otherwise filter out."
+            checked={form.ignoredWordsExclude}
+            onChange={(v) => setForm((s) => ({ ...s, ignoredWordsExclude: v }))}
+          />
+
+          <div className="space-y-1 pt-3 border-t border-base-300/60">
+            <label className="label">Required words</label>
+            <TagInput
+              value={form.requiredWords}
+              onChange={(v) => setForm((s) => ({ ...s, requiredWords: v }))}
+              placeholder="e.g. PROPER, REPACK"
+            />
+            <p className="text-xs text-base-content/50">
+              A release must contain at least one of these to be considered.
+            </p>
+          </div>
+          <Toggle
+            label="Override the global required list"
+            hint="When off, these words are appended to the global required list for this show. When on, they are subtracted. Use this to relax a global requirement just for this show."
+            checked={form.requiredWordsExclude}
+            onChange={(v) =>
+              setForm((s) => ({ ...s, requiredWordsExclude: v }))
+            }
+          />
+        </div>
+      </fieldset>
+
       <SceneAliasesPanel show={show} />
 
       {editSeries.isError && (
@@ -331,7 +395,7 @@ function SceneAliasesPanel({ show }: { show: Series }) {
   return (
     <fieldset className="fieldset w-full">
       <legend className="fieldset-legend">Scene aliases</legend>
-      <p className="text-xs text-base-content/70">
+      <p className="text-xs text-base-content/50">
         Alternative show titles Medusa will recognize when parsing release
         filenames.<br></br> The <strong>synced</strong> entries come from
         Medusa's wiki, XEM and AniDB and refresh on a schedule. <br></br>

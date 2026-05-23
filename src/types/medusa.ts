@@ -32,6 +32,16 @@ export interface SeriesConfig {
   defaultEpisodeStatus: string;
   airdateOffset: number;
   showLists: string[];
+  // Per-show release filters. Optional because older API responses (or
+  // detail=false fetches) may omit the `release` envelope entirely.
+  release?: {
+    requiredWords?: string[];
+    ignoredWords?: string[];
+    // When true, the words above are *subtracted* from the global list for
+    // this show (override mode) rather than appended to it (additive mode).
+    requiredWordsExclude?: boolean;
+    ignoredWordsExclude?: boolean;
+  };
 }
 
 export interface Series {
