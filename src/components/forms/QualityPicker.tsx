@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Info } from "lucide-react";
 import {
   QUALITY,
@@ -73,13 +73,25 @@ export default function QualityPicker({
   preferred,
   onChange,
 }: QualityPickerProps) {
+  // Explicit "Custom…" intent — set when the user picks Custom from the
+  // dropdown so the matrix appears even though the current allowed/preferred
+  // still happens to match a preset (e.g. they just opened Custom to add a
+  // preferred quality without changing the allowed list yet).
+  const [customMode, setCustomMode] = useState(false);
+
   const matchingPreset = detectQualityPreset(allowed);
-  // Preset is considered active only if it matches AND there are no preferred
-  // qualities (presets never set preferred). Otherwise we're in custom mode.
-  const presetActive = matchingPreset !== null && preferred.length === 0;
+  // Preset is "active" only when it matches the underlying state AND the user
+  // hasn't opted into Custom AND no preferred qualities are set (presets
+  // never set preferred).
+  const presetActive =
+    !customMode && matchingPreset !== null && preferred.length === 0;
 
   const onPresetChange = (key: string) => {
-    if (key === CUSTOM_SENTINEL) return;
+    if (key === CUSTOM_SENTINEL) {
+      setCustomMode(true);
+      return;
+    }
+    setCustomMode(false);
     onChange({
       allowed: [...QUALITY_PRESETS[key].allowed].sort((a, b) => a - b),
       preferred: [],
@@ -114,52 +126,57 @@ export default function QualityPicker({
 
       <QualityExplanation allowed={allowed} preferred={preferred} />
 
-      <div className="rounded-box bg-base-100 px-4 py-2 border-2 border-base-300 overflow-hidden">
-        <table className="table table-xs">
-          <thead>
-            <tr>
-              <th></th>
-              <th className="text-center w-24">Allowed</th>
-              <th className="text-center w-24">Preferred</th>
-            </tr>
-          </thead>
-          <tbody>
-            {QUALITY_GROUPS.map((group) => (
-              <Fragment key={group.label}>
-                <tr className="bg-base-200/40">
-                  <td
-                    colSpan={3}
-                    className="pt-4 text-xs font-semibold uppercase text-base-content/60"
-                  >
-                    {group.label}
-                  </td>
-                </tr>
-                {group.rows.map((row) => (
-                  <tr key={row.value}>
-                    <td>{row.label}</td>
-                    <td className="text-center">
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-sm"
-                        checked={allowed.includes(row.value)}
-                        onChange={() => toggle(row.value, "allowed")}
-                      />
-                    </td>
-                    <td className="text-center">
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-sm"
-                        checked={preferred.includes(row.value)}
-                        onChange={() => toggle(row.value, "preferred")}
-                      />
+      {/* The Allowed / Preferred matrix is only meaningful in Custom mode —
+          presets fully describe their own selection and toggling individual
+          rows under a preset would silently kick you into Custom anyway. */}
+      {!presetActive && (
+        <div className="rounded-box bg-base-100 px-4 py-2 border-2 border-base-300 overflow-hidden">
+          <table className="table table-xs">
+            <thead>
+              <tr>
+                <th></th>
+                <th className="text-center w-24">Allowed</th>
+                <th className="text-center w-24">Preferred</th>
+              </tr>
+            </thead>
+            <tbody>
+              {QUALITY_GROUPS.map((group) => (
+                <Fragment key={group.label}>
+                  <tr className="bg-base-200/40">
+                    <td
+                      colSpan={3}
+                      className="pt-4 text-xs font-semibold uppercase text-base-content/60"
+                    >
+                      {group.label}
                     </td>
                   </tr>
-                ))}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  {group.rows.map((row) => (
+                    <tr key={row.value}>
+                      <td>{row.label}</td>
+                      <td className="text-center">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm"
+                          checked={allowed.includes(row.value)}
+                          onChange={() => toggle(row.value, "allowed")}
+                        />
+                      </td>
+                      <td className="text-center">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm"
+                          checked={preferred.includes(row.value)}
+                          onChange={() => toggle(row.value, "preferred")}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
