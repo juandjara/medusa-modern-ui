@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import api from "../lib/api";
+import { useWebSocket } from "../lib/websocket";
 import { formatBytes, formatRelative } from "../lib/time";
 import { LIVE_QUEUE_KEY } from "../lib/queryKeys";
 import {
@@ -177,7 +178,41 @@ export default function EpisodeSearchModal({
     },
   });
 
-  // 5) WS completion via Layout's live-queue cache (read-only here).
+  // 5) Streamed results via `addManualSearchResult` (classes.py:253).
+  // PyMedusa pushes one event per cached result as providers respond, so the
+  // user sees rows appear as the search round runs instead of waiting for the
+  // queue item to finish. The completion refetch (below) still runs as a
+  // safety net for any dropped events.
+  useWebSocket({
+    addManualSearchResult: (raw) => {
+      if (!open) return;
+      const r = raw as Partial<CachedRelease>;
+      if (!r.identifier || !r.provider) return;
+      if (r.showSlug !== seriesSlug) return;
+      if (r.season !== season) return;
+      // An empty `episodes` list signals a season pack — keep those; otherwise
+      // require an explicit match on the open episode.
+      if (r.episodes && r.episodes.length > 0 && !r.episodes.includes(episode)) {
+        return;
+      }
+      const key = [
+        "provider-results",
+        r.provider.id,
+        seriesSlug,
+        season,
+        episode,
+      ];
+      queryClient.setQueryData<CachedRelease[]>(key, (prev = []) => {
+        if (prev.some((p) => p.identifier === r.identifier)) return prev;
+        // The WS payload doesn't carry `infoUrl` (computed at REST time from
+        // the provider's info_url template). Default to null; the completion
+        // refetch fills it in.
+        return [...prev, { infoUrl: null, ...r } as CachedRelease];
+      });
+    },
+  });
+
+  // 6) WS completion via Layout's live-queue cache (read-only here).
   const { data: liveItems = [] } = useQuery<LiveQueueItem[]>({
     queryKey: LIVE_QUEUE_KEY,
     queryFn: () =>
