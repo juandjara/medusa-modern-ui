@@ -258,8 +258,15 @@ export default function PostProcess() {
               Run post-process
             </button>
             {run.isSuccess && (
-              <span className="text-xs text-success inline-flex items-center gap-1">
-                <Check size={12} /> Queued
+              <span className="text-xs text-success inline-flex items-center gap-1 flex-wrap">
+                <Check size={12} /> Queued. See{" "}
+                <Link
+                  to="/logs?tab=activity"
+                  className="link link-hover font-medium"
+                >
+                  activity logs
+                </Link>{" "}
+                for live progress.
               </span>
             )}
             {run.isError && (

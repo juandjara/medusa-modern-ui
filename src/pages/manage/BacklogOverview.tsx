@@ -218,7 +218,11 @@ export default function BacklogOverview() {
       {runAllBacklog.isSuccess && (
         <div className="alert alert-soft alert-success text-sm py-2">
           Backlog search queued for every show. It will run in the background;
-          new snatches will land on the History page as they're processed.
+          new snatches will land on the History page as they're processed. See{" "}
+          <Link to="/logs?tab=activity" className="link link-hover font-medium">
+            activity logs
+          </Link>{" "}
+          for live progress.
         </div>
       )}
 
@@ -456,7 +460,11 @@ function ShowSection({
 
       {forceBacklog.isSuccess && (
         <div className="px-4 py-2 text-xs text-success bg-success/10">
-          Backlog search queued for this show.
+          Backlog search queued for this show. See{" "}
+          <Link to="/logs?tab=activity" className="link link-hover font-medium">
+            activity logs
+          </Link>{" "}
+          for live progress.
         </div>
       )}
 

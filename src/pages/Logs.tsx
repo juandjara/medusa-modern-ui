@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { RefreshCw, TriangleAlert, Info, Trash2 } from "lucide-react";
 import {
   useReporterLogs,
@@ -17,8 +18,27 @@ type IssueFilter = "all" | "errors" | "warnings";
 
 type Row = ParsedLog & { _kind: "ERROR" | "WARNING" };
 
+// URL param `?tab=activity` (or `?tab=issues`) makes the current tab
+// shareable / linkable from elsewhere in the app — e.g. the backlog page
+// pointing users at the activity log after queueing a search.
+function parseView(raw: string | null): View {
+  return raw === "activity" ? "activity" : "issues";
+}
+
 export default function Logs() {
-  const [view, setView] = useState<View>("issues");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = parseView(searchParams.get("tab"));
+  const setView = (next: View) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (next === "issues") p.delete("tab");
+        else p.set("tab", next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -213,8 +233,8 @@ function ActivityView() {
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
-        <label className="form-control">
-          <span className="label-text text-xs">Level</span>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs text-base-content/60">Level</span>
           <select
             className="select select-sm"
             value={level}
@@ -228,8 +248,8 @@ function ActivityView() {
           </select>
         </label>
 
-        <label className="form-control">
-          <span className="label-text text-xs">Thread</span>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs text-base-content/60">Thread</span>
           <select
             className="select select-sm min-w-44"
             value={thread}
@@ -243,8 +263,8 @@ function ActivityView() {
           </select>
         </label>
 
-        <label className="form-control">
-          <span className="label-text text-xs">Period</span>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs text-base-content/60">Period</span>
           <select
             className="select select-sm"
             value={period}
@@ -258,8 +278,8 @@ function ActivityView() {
           </select>
         </label>
 
-        <label className="form-control flex-1 min-w-48">
-          <span className="label-text text-xs">Search</span>
+        <label className="flex flex-col gap-1 text-sm flex-1 min-w-48">
+          <span className="text-xs text-base-content/60">Search</span>
           <input
             className="input input-sm"
             placeholder="Filter messages…"

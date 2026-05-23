@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   RefreshCw,
@@ -178,11 +179,20 @@ export default function System() {
               </button>
             }
             note={
-              refreshScenes.isSuccess
-                ? "Queued."
-                : refreshScenes.isError
-                  ? "Failed to queue refresh."
-                  : null
+              refreshScenes.isSuccess ? (
+                <>
+                  Queued. See{" "}
+                  <Link
+                    to="/logs?tab=activity"
+                    className="link link-hover font-medium"
+                  >
+                    activity logs
+                  </Link>{" "}
+                  for live progress.
+                </>
+              ) : refreshScenes.isError ? (
+                "Failed to queue refresh."
+              ) : null
             }
           />
           <MaintenanceRow
@@ -397,7 +407,7 @@ function MaintenanceRow({
   title: string;
   description: string;
   action: React.ReactNode;
-  note: string | null;
+  note: React.ReactNode;
 }) {
   return (
     <div className="flex items-start gap-4 p-4">
