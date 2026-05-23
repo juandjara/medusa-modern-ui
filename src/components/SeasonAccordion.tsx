@@ -248,11 +248,9 @@ export default function SeasonAccordion({
                           {SNATCHED_STATUSES.has(ep.status) && (
                             <li>
                               <button
-                                onClick={() =>
-                                  markFailed.mutate(ep.identifier)
-                                }
+                                onClick={() => markFailed.mutate(ep.identifier)}
                                 disabled={markFailed.isPending}
-                                title="Add the current release to the failed list and search again"
+                                title="Add the current release to the release blacklist and search again"
                               >
                                 <AlertTriangle
                                   size={14}
