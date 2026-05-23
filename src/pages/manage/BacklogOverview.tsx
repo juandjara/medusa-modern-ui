@@ -99,20 +99,26 @@ export default function BacklogOverview() {
   const period = parsePeriod(searchParams.get("period"));
 
   const setStatus = (next: StatusFilter) => {
-    setSearchParams((prev) => {
-      const p = new URLSearchParams(prev);
-      if (next === "all") p.delete("status");
-      else p.set("status", next);
-      return p;
-    });
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (next === "all") p.delete("status");
+        else p.set("status", next);
+        return p;
+      },
+      { replace: true },
+    );
   };
   const setPeriod = (next: PeriodFilter) => {
-    setSearchParams((prev) => {
-      const p = new URLSearchParams(prev);
-      if (next === "all") p.delete("period");
-      else p.set("period", next);
-      return p;
-    });
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (next === "all") p.delete("period");
+        else p.set("period", next);
+        return p;
+      },
+      { replace: true },
+    );
   };
 
   const backlogQ = useQuery({
