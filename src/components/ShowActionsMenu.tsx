@@ -135,11 +135,11 @@ export default function ShowActionsMenu({
               <button onClick={onTogglePause} disabled={isPausePending}>
                 {series.config.paused ? (
                   <>
-                    <Play size={14} /> Resume
+                    <Play size={14} /> Resume show
                   </>
                 ) : (
                   <>
-                    <Pause size={14} /> Pause
+                    <Pause size={14} /> Pause show
                   </>
                 )}
               </button>

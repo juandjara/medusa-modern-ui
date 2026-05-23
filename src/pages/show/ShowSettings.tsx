@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, TriangleAlert } from "lucide-react";
 import api from "../../lib/api";
 import { useEditSeries } from "../../lib/series-actions";
 import { DEFAULT_EPISODE_STATUSES, type Series } from "../../types/medusa";
 import Toggle from "../../components/forms/Toggle";
 import QualityPicker from "../../components/forms/QualityPicker";
+import FolderPicker from "../../components/forms/FolderPicker";
 
 export default function ShowSettings() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -32,6 +33,7 @@ export default function ShowSettings() {
 }
 
 interface FormState {
+  location: string;
   defaultEpisodeStatus: string;
   qualityAllowed: number[];
   qualityPreferred: number[];
@@ -46,6 +48,7 @@ interface FormState {
 function formFromShow(show: Series): FormState {
   const c = show.config;
   return {
+    location: c.location ?? "",
     defaultEpisodeStatus: c.defaultEpisodeStatus ?? "Skipped",
     qualityAllowed: c.qualities?.allowed ?? [],
     qualityPreferred: c.qualities?.preferred ?? [],
@@ -76,6 +79,12 @@ function SettingsForm({ show }: { show: Series }) {
       "config.dvdOrder": form.dvdOrder,
       "config.airByDate": form.airByDate,
     };
+    // Only patch location when the user has actually changed it — saves a
+    // potential refresh side effect when the field is just being saved with
+    // the rest of the form unchanged.
+    if (form.location !== show.config.location) {
+      body["config.location"] = form.location;
+    }
     editSeries.mutate(body);
   };
 
@@ -91,6 +100,24 @@ function SettingsForm({ show }: { show: Series }) {
       </div>
 
       <h1 className="text-2xl font-bold">Show settings</h1>
+
+      <fieldset className="fieldset w-full">
+        <legend className="fieldset-legend">Location</legend>
+        <FolderPicker
+          value={form.location}
+          onChange={(v) => setForm((s) => ({ ...s, location: v }))}
+        />
+        {form.location !== show.config.location && (
+          <div className="alert alert-soft alert-warning text-xs mt-2 items-start">
+            <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+            <span>
+              Medusa won't move the files. To move a show: pause it so other
+              background jobs will not interfere, move the folder on disk
+              yourself, update this path, then trigger a refresh.
+            </span>
+          </div>
+        )}
+      </fieldset>
 
       <fieldset className="fieldset w-full">
         <legend className="fieldset-legend">Default Episode Status</legend>
