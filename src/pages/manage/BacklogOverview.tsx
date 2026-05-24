@@ -20,6 +20,7 @@ import type {
   QualityCode,
   QualityName,
 } from "../../types/medusa";
+import type { ConfigSearch } from "../../types/config";
 
 // -----------------------------------------------------------------------------
 // Backend response from GET /api/v2/internal/getEpisodeBacklog
@@ -167,6 +168,16 @@ export default function BacklogOverview() {
     return [...shows].sort((a, b) => lastAired(b) - lastAired(a));
   }, [backlogQ.data]);
 
+  // Shared cache key with Search settings; surfaces backlogDays under the
+  // backlog scheduler row on the System page.
+  const searchCfgQ = useQuery({
+    queryKey: ["config", "search"],
+    queryFn: ({ signal }) =>
+      api.get<ConfigSearch>("/config/search", { signal }).then((r) => r.data),
+    staleTime: 30_000,
+  });
+  const backlogDays = searchCfgQ.data?.general?.backlogDays;
+
   // Per-row Manual search target (passed into EpisodeSearchModal).
   const [searchTarget, setSearchTarget] = useState<{
     seriesSlug: string;
@@ -193,7 +204,7 @@ export default function BacklogOverview() {
       <header className="space-y-1">
         <h1 className="text-2xl font-bold">Backlog overview</h1>
         <p className="text-sm text-base-content/60">
-          A <strong>backlog search</strong> asks your search providers for
+          A <strong>Backlog search</strong> asks your search providers for
           episodes you should have but don't, episodes that are either missing
           entirely (wanted) or downloaded at a lower quality than what you have
           in your show settings (upgrade candidates). This page lists every
@@ -215,10 +226,10 @@ export default function BacklogOverview() {
           className="btn btn-sm gap-1"
           onClick={() => setConfirmAll(true)}
           disabled={runAllBacklog.isPending}
-          title="Queue a backlog search across every non-paused show"
+          title={`Queue a backlog search across every non-paused show (limited to episodes aired within the last ${backlogDays ?? 7} days)`}
         >
           <Play size={14} />
-          {runAllBacklog.isPending ? "Queueing…" : "Run backlog for all shows"}
+          {runAllBacklog.isPending ? "Queueing…" : "Backlog search all shows"}
         </button>
       </div>
 
@@ -236,9 +247,9 @@ export default function BacklogOverview() {
       <div className="alert alert-soft alert-info text-xs py-2">
         <Lightbulb size={14} />
         <span>
-          <strong>Run backlog search</strong> queues one search per season, not
-          per episode.<br></br> Each provider tries the season pack first when
-          its <em>backlog search mode</em> is set to "Season packs only" in{" "}
+          <strong>Backlog search</strong> queues one search per season, not per
+          episode. Each provider tries the season pack first when its{" "}
+          <em>backlog search mode</em> is set to "Season packs only" in{" "}
           <Link
             to="/settings/providers"
             className="link link-hover font-semibold"
@@ -323,30 +334,33 @@ export default function BacklogOverview() {
 
       <ConfirmDialog
         open={confirmAll}
-        title="Run backlog search for every show?"
+        title="Run a backlog search for every show?"
         body={
           <>
             <p>
               This queues a backlog search across{" "}
-              <strong>every non-paused show</strong> in your library. Depending
-              on size, it can run for a long time and use a fair chunk of your
-              indexer rate-limit budget and your machine resources.
+              <strong>every non-paused show</strong> in your library.{backlogDays != null ? (
+                <> Searches are limited to episodes that aired within the
+                last <strong>{backlogDays}</strong> day
+                {backlogDays === 1 ? "" : "s"}.</>
+              ) : null}
             </p>
             <p className="mt-2">
-              The scheduled backlog runs automatically on the interval
-              configured in{" "}
+              Depending on size, it can run for a long time and use a fair
+              chunk of your indexer rate-limit budget and your machine
+              resources. The scheduled backlog runs automatically on the
+              interval configured in{" "}
               <Link
                 to="/settings/search"
                 className="link link-hover text-primary-content font-semibold"
               >
                 Search settings
               </Link>
-              . Manual runs are useful after tweaking quality profiles or adding
-              several shows at once, but not as routine.
+              .
             </p>
           </>
         }
-        confirmLabel="Run backlog for all shows"
+        confirmLabel="Run backlog searches"
         variant="normal"
         onConfirm={() => runAllBacklog.mutate()}
         onClose={() => setConfirmAll(false)}
@@ -454,7 +468,7 @@ function ShowSection({
           </Link>
           <div className="text-xs text-base-content/60 inline-flex items-center gap-2 mt-0.5 flex-wrap">
             {show.episodeCount.wanted > 0 && (
-              <span className="badge badge-xs badge-warning">
+              <span className="badge badge-xs badge-warning whitespace-nowrap">
                 {show.episodeCount.wanted} wanted
               </span>
             )}
@@ -475,7 +489,7 @@ function ShowSection({
           title="Queue a backlog search for this whole show"
         >
           <Play size={14} />
-          {forceBacklog.isPending ? "Queueing…" : "Run backlog search"}
+          {forceBacklog.isPending ? "Queueing…" : "Backlog search"}
         </button>
       </header>
 
