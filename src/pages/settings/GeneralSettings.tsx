@@ -110,6 +110,7 @@ export default function GeneralSettings() {
       <ProxySection get={get} set={set} />
       <CalendarSection get={get} set={set} />
       <IndexerSection get={get} set={set} />
+      <LoggingSection get={get} set={set} />
       <PerformanceSection get={get} set={set} />
       <UpdatesSection get={get} set={set} />
     </div>
@@ -502,6 +503,41 @@ function ProxySection({ get, set }: { get: Getter; set: Setter }) {
           />
         </div>
       )}
+    </Section>
+  );
+}
+
+function getLogLevel(get: Getter): string {
+  if (get<boolean>("logs.dbDebug")) return "DB";
+  if (get<boolean>("logs.debug")) return "DEBUG";
+  return "INFO";
+}
+
+function setLogLevel(set: Setter, level: string) {
+  set("logs.debug", level === "DEBUG" || level === "DB");
+  set("logs.dbDebug", level === "DB");
+}
+
+function LoggingSection({ get, set }: { get: Getter; set: Setter }) {
+  return (
+    <Section
+      title="Logging"
+      hint="Verbosity of the server log files. Higher levels print more detail; DEBUG and DB are useful for troubleshooting but produce a lot of output."
+    >
+      <Field label="Log level">
+        <select
+          className="select select-sm w-full max-w-xs"
+          value={getLogLevel(get)}
+          onChange={(e) => setLogLevel(set, e.target.value)}
+        >
+          <option value="INFO">INFO</option>
+          <option value="DEBUG">DEBUG</option>
+          <option value="DB">DB (debug + database queries)</option>
+        </select>
+      </Field>
+      <p className="text-xs text-base-content/60">
+        Changing the log level requires a server restart to take effect.
+      </p>
     </Section>
   );
 }
