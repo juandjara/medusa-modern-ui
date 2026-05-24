@@ -82,10 +82,10 @@ export default function ShowList() {
             <Link to="/add" className="btn btn-primary btn-sm gap-1 join-item">
               <Plus size={14} /> Add show
             </Link>
-            <div className="dropdown dropdown-end join-item">
+            <div className="dropdown dropdown-end">
               <button
                 tabIndex={0}
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm join-item"
                 aria-label="More ways to add shows"
               >
                 <ChevronDown size={14} />
