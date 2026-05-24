@@ -60,9 +60,15 @@ export default function PostProcess() {
     queryKey: PP_QUEUE_KEY,
     queryFn: ({ signal }) =>
       api
-        .get<PostProcessQueueItem[]>("/postprocess", { signal })
+        .get<
+          PostProcessQueueItem | PostProcessQueueItem[]
+        >("/postprocess", { signal })
         .then((r) => r.data),
   });
+
+  const history = Array.isArray(historyQ.data)
+    ? historyQ.data
+    : [historyQ.data].filter((x) => !!x);
 
   // The PP queue emits QueueItemUpdate WS events with name === 'Post Process'.
   // Layout's live-queue subscriber filters these out, so we listen here too
@@ -283,7 +289,7 @@ export default function PostProcess() {
           <h2 className="font-semibold flex items-center gap-2">
             <Clock size={16} /> Recent runs
             <span className="text-xs font-normal text-base-content/50">
-              {historyQ.data?.length ?? 0}
+              {history.length}
             </span>
           </h2>
           <button
@@ -304,7 +310,7 @@ export default function PostProcess() {
           <div className="flex justify-center py-8">
             <span className="loading loading-spinner" />
           </div>
-        ) : !historyQ.data || historyQ.data.length === 0 ? (
+        ) : history.length === 0 ? (
           <div className="text-sm text-base-content/50 text-center py-6 border border-dashed border-base-300 rounded-box">
             Nothing in the post-process queue history yet.
           </div>
@@ -322,7 +328,7 @@ export default function PostProcess() {
                 </tr>
               </thead>
               <tbody>
-                {[...historyQ.data]
+                {[...history]
                   .sort((a, b) => {
                     const ta = a.queueTime ? parseMedusaIso(a.queueTime) : 0;
                     const tb = b.queueTime ? parseMedusaIso(b.queueTime) : 0;
