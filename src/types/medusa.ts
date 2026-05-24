@@ -131,6 +131,26 @@ export const DEFAULT_EPISODE_STATUSES = [
   "Archived",
 ] as const;
 
+// ISO 639-1 codes; unknown codes 500 the request. Empty = server default.
+export const LANGUAGE_OPTIONS = [
+  { code: "", label: "Default" },
+  { code: "en", label: "English" },
+  { code: "es", label: "Spanish" },
+  { code: "fr", label: "French" },
+  { code: "de", label: "German" },
+  { code: "it", label: "Italian" },
+  { code: "pt", label: "Portuguese" },
+  { code: "ja", label: "Japanese" },
+  { code: "ko", label: "Korean" },
+  { code: "zh", label: "Chinese" },
+  { code: "ru", label: "Russian" },
+  { code: "nl", label: "Dutch" },
+  { code: "sv", label: "Swedish" },
+  { code: "pl", label: "Polish" },
+  { code: "ar", label: "Arabic" },
+  { code: "tr", label: "Turkish" },
+] as const;
+
 // Slug = INDEXER_ID_TO_SLUG[indexerId] + seriesId, e.g. "tmdb" + 125935.
 export interface ShowStat {
   indexerId: number;

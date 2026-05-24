@@ -13,7 +13,11 @@ import api from "../../lib/api";
 import useDebouncedValue from "../../lib/useDebouncedValue";
 import { useWebSocket } from "../../lib/websocket";
 import type { SearchResult, SystemConfig } from "../../types/medusa";
-import { EPISODE_STATUS_CODE, QUALITY_PRESETS } from "../../types/medusa";
+import {
+  EPISODE_STATUS_CODE,
+  LANGUAGE_OPTIONS,
+  QUALITY_PRESETS,
+} from "../../types/medusa";
 
 interface AddShowQueueItem {
   identifier: string;
@@ -35,26 +39,6 @@ const INDEXER_OPTIONS = [
   { id: 4, label: "TMDB" },
   { id: 3, label: "TVMaze" },
   { id: 10, label: "IMDB" },
-];
-
-// ISO 639-1 codes; unknown codes 500 the request. Empty = server default.
-const LANGUAGE_OPTIONS = [
-  { code: "", label: "Default" },
-  { code: "en", label: "English" },
-  { code: "es", label: "Spanish" },
-  { code: "fr", label: "French" },
-  { code: "de", label: "German" },
-  { code: "it", label: "Italian" },
-  { code: "pt", label: "Portuguese" },
-  { code: "ja", label: "Japanese" },
-  { code: "ko", label: "Korean" },
-  { code: "zh", label: "Chinese" },
-  { code: "ru", label: "Russian" },
-  { code: "nl", label: "Dutch" },
-  { code: "sv", label: "Swedish" },
-  { code: "pl", label: "Polish" },
-  { code: "ar", label: "Arabic" },
-  { code: "tr", label: "Turkish" },
 ];
 
 type SearchResultTuple = [
