@@ -284,26 +284,6 @@ export default function EpisodeSearchModal({
     refetchAllResults();
   }, [completionKey, refetchAllResults]);
 
-  // Auto-run a search when every provider's cache came back empty. Fires
-  // at most once per open; the ref resets on unmount.
-  const forceSearchMutate = forceSearch.mutate;
-  const autoSearchedRef = useRef(false);
-  useEffect(() => {
-    if (autoSearchedRef.current) return;
-    if (resultsLoading) return;
-    if (manualProviders.length === 0) return;
-    if (results.length > 0) return;
-    if (liveSearchActive) return;
-    autoSearchedRef.current = true;
-    forceSearchMutate();
-  }, [
-    resultsLoading,
-    manualProviders.length,
-    results.length,
-    liveSearchActive,
-    forceSearchMutate,
-  ]);
-
   // Wire the dialog element to the `open` prop.
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -412,13 +392,27 @@ export default function EpisodeSearchModal({
               )}
               {!resultsLoading && results.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="text-center py-8 text-base-content/50 italic"
-                  >
-                    {searching
-                      ? "Waiting for results…"
-                      : "No cached results. Try Re-run search."}
+                  <td colSpan={7} className="text-center py-8">
+                    {searching ? (
+                      <span className="text-base-content/50 italic">
+                        Waiting for results…
+                      </span>
+                    ) : (
+                      <div>
+                        <p className="text-base-content/50 italic mb-2">
+                          No releases saved for this episode.
+                        </p>
+                        <button
+                          type="button"
+                          className="btn btn-soft gap-2"
+                          onClick={() => forceSearch.mutate()}
+                          disabled={searching}
+                        >
+                          <Zap size={14} />
+                          Search for releases
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )}
