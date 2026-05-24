@@ -142,14 +142,14 @@ export default function PostProcess() {
       <header>
         <h1 className="text-2xl font-bold">Manual post-process</h1>
         <p className="text-sm text-base-content/60 mt-1">
-          Queue a folder for post-processing right now. Same code path the
-          scheduled scanner and download handler use — just triggered by you.
-          Hits <code>POST /api/v2/postprocess</code>; the worker thread
-          ("Post-process · Queue worker" on the{" "}
-          <Link to="/system" className="link link-hover text-primary">
+          Queue a folder for post-processing right now. Same flow the scheduled
+          scanner and download handler use, just triggered by you. This sends a
+          message to the server for the "Post-process · Queue worker" scheduler
+          on the{" "}
+          <Link to="/system" className="link link-hover text-base-content">
             System page
-          </Link>
-          ) consumes it on its next tick.
+          </Link>{" "}
+          to consume it on its next tick.
         </p>
       </header>
 
