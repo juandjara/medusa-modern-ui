@@ -24,7 +24,19 @@ export interface WebInterfaceCfg {
   handleReverseProxy: boolean;
 }
 
+export interface ConfigLogs {
+  debug: boolean;
+  dbDebug: boolean;
+  loggingLevels: Record<string, number>;
+  actualLogDir: string;
+  nr: number;
+  size: number;
+  subliminalLog: boolean;
+  privacyLevel: string;
+}
+
 export interface ConfigMain {
+  logs: ConfigLogs;
   webInterface: WebInterfaceCfg;
   // Wire shape: [defaultIndexAsString, path0, path1, ...]. Empty means no dirs.
   rootDirs: string[];
