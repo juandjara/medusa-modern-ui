@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { RefreshCw, TriangleAlert, Info, Trash2 } from "lucide-react";
 import {
   useReporterLogs,
@@ -13,67 +12,16 @@ import {
 } from "../lib/logs";
 import { parseMedusaIso } from "../lib/time";
 
-type View = "issues" | "activity";
-type IssueFilter = "all" | "errors" | "warnings";
+type Tab = "activity" | "errors" | "warnings";
 
 type Row = ParsedLog & { _kind: "ERROR" | "WARNING" };
 
-// URL param `?tab=activity` (or `?tab=issues`) makes the current tab
-// shareable / linkable from elsewhere in the app — e.g. the backlog page
-// pointing users at the activity log after queueing a search.
-function parseView(raw: string | null): View {
-  return raw === "activity" ? "activity" : "issues";
-}
-
 export default function Logs() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const view = parseView(searchParams.get("tab"));
-  const setView = (next: View) => {
-    setSearchParams(
-      (prev) => {
-        const p = new URLSearchParams(prev);
-        if (next === "issues") p.delete("tab");
-        else p.set("tab", next);
-        return p;
-      },
-      { replace: true },
-    );
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-2xl font-bold">Logs</h1>
-        <div role="tablist" className="tabs tabs-box w-fit">
-          <button
-            role="tab"
-            className={`tab ${view === "issues" ? "tab-active" : ""}`}
-            onClick={() => setView("issues")}
-          >
-            Issues
-          </button>
-          <button
-            role="tab"
-            className={`tab ${view === "activity" ? "tab-active" : ""}`}
-            onClick={() => setView("activity")}
-          >
-            Activity
-          </button>
-        </div>
-      </div>
-
-      {view === "issues" ? <IssuesView /> : <ActivityView />}
-    </div>
-  );
-}
-
-function IssuesView() {
+  const [tab, setTab] = useState<Tab>("activity");
   const errors = useReporterLogs("ERROR");
   const warnings = useReporterLogs("WARNING");
   const clear = useClearReporter();
-  const [filter, setFilter] = useState<IssueFilter>("all");
 
-  // Interleave + sort desc; unparseable entries sort oldest.
   const combined = useMemo<Row[]>(() => {
     const items: Row[] = [];
     for (const s of errors.data ?? [])
@@ -87,13 +35,73 @@ function IssuesView() {
     });
   }, [errors.data, warnings.data]);
 
-  const visible = combined.filter((row) => {
-    if (filter === "errors") return row._kind === "ERROR";
-    if (filter === "warnings") return row._kind === "WARNING";
-    return true;
-  });
+  const errorCount = errors.data?.length ?? 0;
+  const warningCount = warnings.data?.length ?? 0;
 
-  const isLoading = errors.isLoading || warnings.isLoading;
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Logs</h1>
+
+      <div role="tablist" className="tabs tabs-box">
+        <button
+          role="tab"
+          className={`tab ${tab === "activity" ? "tab-active" : ""}`}
+          onClick={() => setTab("activity")}
+        >
+          Activity
+        </button>
+        <button
+          role="tab"
+          className={`tab ${tab === "errors" ? "tab-active" : ""}`}
+          onClick={() => setTab("errors")}
+        >
+          Errors
+          <span className="badge badge-xs badge-error ml-1.5">
+            {errorCount}
+          </span>
+        </button>
+        <button
+          role="tab"
+          className={`tab ${tab === "warnings" ? "tab-active" : ""}`}
+          onClick={() => setTab("warnings")}
+        >
+          Warnings
+          <span className="badge badge-xs badge-warning ml-1.5">
+            {warningCount}
+          </span>
+        </button>
+      </div>
+
+      {tab === "activity" ? (
+        <ActivityView />
+      ) : (
+        <IssuesView
+          tab={tab}
+          errors={errors}
+          warnings={warnings}
+          clear={clear}
+          combined={combined}
+        />
+      )}
+    </div>
+  );
+}
+
+function IssuesView({
+  tab,
+  errors,
+  warnings,
+  clear,
+  combined,
+}: {
+  tab: "errors" | "warnings";
+  errors: ReturnType<typeof useReporterLogs>;
+  warnings: ReturnType<typeof useReporterLogs>;
+  clear: ReturnType<typeof useClearReporter>;
+  combined: Row[];
+}) {
+  const visible = combined.filter((row) => row._kind === tab.toUpperCase());
+
   const isFetching = errors.isFetching || warnings.isFetching;
   const errorCount = errors.data?.length ?? 0;
   const warningCount = warnings.data?.length ?? 0;
@@ -106,46 +114,45 @@ function IssuesView() {
           Issues reported during this Medusa session. Cleared on server restart.
           Polls every 30 seconds.
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm gap-2"
-            onClick={() => clear.mutate("ERROR")}
-            disabled={errorCount === 0 || clear.isPending}
-            title="Clear errors"
-          >
-            <Trash2
-              size={14}
-              className={pendingLevel === "ERROR" ? "animate-pulse" : ""}
-            />
-            Clear errors
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm gap-2"
-            onClick={() => clear.mutate("WARNING")}
-            disabled={warningCount === 0 || clear.isPending}
-            title="Clear warnings"
-          >
-            <Trash2
-              size={14}
-              className={pendingLevel === "WARNING" ? "animate-pulse" : ""}
-            />
-            Clear warnings
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm gap-2"
-            onClick={() => {
-              errors.refetch();
-              warnings.refetch();
-            }}
-            disabled={isFetching}
-          >
-            <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
-            Refresh
-          </button>
-        </div>
+        <div className="grow"></div>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm gap-2"
+          onClick={() => clear.mutate("ERROR")}
+          disabled={errorCount === 0 || clear.isPending}
+          title="Clear errors"
+        >
+          <Trash2
+            size={14}
+            className={pendingLevel === "ERROR" ? "animate-pulse" : ""}
+          />
+          Clear errors
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm gap-2"
+          onClick={() => clear.mutate("WARNING")}
+          disabled={warningCount === 0 || clear.isPending}
+          title="Clear warnings"
+        >
+          <Trash2
+            size={14}
+            className={pendingLevel === "WARNING" ? "animate-pulse" : ""}
+          />
+          Clear warnings
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm gap-2"
+          onClick={() => {
+            errors.refetch();
+            warnings.refetch();
+          }}
+          disabled={isFetching}
+        >
+          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+          Refresh
+        </button>
       </div>
 
       {clear.isError && (
@@ -154,47 +161,14 @@ function IssuesView() {
         </div>
       )}
 
-      <div role="tablist" className="tabs tabs-box w-fit">
-        <button
-          role="tab"
-          className={`tab ${filter === "all" ? "tab-active" : ""}`}
-          onClick={() => setFilter("all")}
-        >
-          All
-          <span className="badge badge-xs badge-ghost ml-1.5">
-            {combined.length}
-          </span>
-        </button>
-        <button
-          role="tab"
-          className={`tab ${filter === "errors" ? "tab-active" : ""}`}
-          onClick={() => setFilter("errors")}
-        >
-          Errors
-          <span className="badge badge-xs badge-error ml-1.5">
-            {errorCount}
-          </span>
-        </button>
-        <button
-          role="tab"
-          className={`tab ${filter === "warnings" ? "tab-active" : ""}`}
-          onClick={() => setFilter("warnings")}
-        >
-          Warnings
-          <span className="badge badge-xs badge-warning ml-1.5">
-            {warningCount}
-          </span>
-        </button>
-      </div>
-
-      {isLoading ? (
+      {errors.isLoading || warnings.isLoading ? (
         <div className="flex justify-center py-20">
           <span className="loading loading-spinner loading-lg" />
         </div>
       ) : visible.length === 0 ? (
         <div className="text-center py-16 text-base-content/50 space-y-2">
           <Info size={28} className="mx-auto" />
-          <div>No {filter === "all" ? "issues" : filter} reported.</div>
+          <div>No {tab} reported.</div>
         </div>
       ) : (
         <ul className="space-y-2">
