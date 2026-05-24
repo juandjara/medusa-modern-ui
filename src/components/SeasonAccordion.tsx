@@ -46,6 +46,7 @@ export default function SeasonAccordion({
 }: Props) {
   const queryClient = useQueryClient();
   const [searchTarget, setSearchTarget] = useState<number | null>(null);
+  const [seasonSearchOpen, setSeasonSearchOpen] = useState(false);
 
   // `USE_FAILED_DOWNLOADS` short-circuits the entire failure path on the
   // backend (process_tv.py:980), so "Mark release as failed" is dead when
@@ -126,32 +127,6 @@ export default function SeasonAccordion({
     },
   });
 
-  // Fire-and-forget season search. Backend returns 202 immediately and the
-  // queue item drives progress via QueueItemUpdate WS events; we don't pop a
-  // results modal here, the user can browse cached releases per-episode after.
-  const searchSeason = useMutation({
-    mutationFn: () => {
-      const seasonSlug = `s${String(season).padStart(2, "0")}`;
-      return api.put("/search/manual", {
-        showSlug: seriesSlug,
-        season: [seasonSlug],
-      });
-    },
-    onSuccess: () => {
-      pushToast({
-        title: `Search queued for season ${season === 0 ? "Specials" : season}`,
-        type: "notice",
-      });
-    },
-    onError: () => {
-      pushToast({
-        title: "Couldn't queue the season search",
-        body: "Check the server logs.",
-        type: "error",
-      });
-    },
-  });
-
   const allIdentifiers = episodes.map((e) => e.identifier);
 
   return (
@@ -191,12 +166,11 @@ export default function SeasonAccordion({
             <li className="menu-title text-xs">Search</li>
             <li>
               <button
-                onClick={() => searchSeason.mutate()}
-                disabled={searchSeason.isPending}
-                title="Queue a manual search across providers for season packs"
+                onClick={() => setSeasonSearchOpen(true)}
+                title="View cached releases and search across providers for season packs"
               >
                 <Search size={12} />
-                {searchSeason.isPending ? "Starting…" : "Search whole season"}
+                Search whole season
               </button>
             </li>
             <li className="menu-title text-xs">Set status for all</li>
@@ -361,6 +335,15 @@ export default function SeasonAccordion({
           episode={searchTarget}
           open={searchTarget !== null}
           onClose={() => setSearchTarget(null)}
+        />
+      )}
+
+      {seasonSearchOpen && (
+        <EpisodeSearchModal
+          seriesSlug={seriesSlug}
+          season={season}
+          open={seasonSearchOpen}
+          onClose={() => setSeasonSearchOpen(false)}
         />
       )}
     </div>

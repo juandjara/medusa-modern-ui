@@ -30,7 +30,7 @@ import {
 interface Props {
   seriesSlug: string;
   season: number;
-  episode: number;
+  episode?: number;
   open: boolean;
   onClose: () => void;
 }
@@ -48,6 +48,10 @@ function epSlug(season: number, episode: number): string {
   return `s${String(season).padStart(2, "0")}e${String(episode).padStart(2, "0")}`;
 }
 
+function seasonSlug(season: number): string {
+  return `s${String(season).padStart(2, "0")}`;
+}
+
 export default function EpisodeSearchModal({
   seriesSlug,
   season,
@@ -55,6 +59,7 @@ export default function EpisodeSearchModal({
   open,
   onClose,
 }: Props) {
+  const isSeasonSearch = episode === undefined;
   const dialogRef = useRef<HTMLDialogElement>(null);
   const queryClient = useQueryClient();
 
@@ -87,26 +92,20 @@ export default function EpisodeSearchModal({
   // block the others.
   const resultQueries = useQueries({
     queries: manualProviders.map((p) => ({
-      queryKey: [
-        "provider-results",
-        p.id,
-        seriesSlug,
-        season,
-        episode,
-      ] as const,
+      queryKey: isSeasonSearch
+        ? (["provider-results", p.id, seriesSlug, season] as const)
+        : (["provider-results", p.id, seriesSlug, season, episode] as const),
       queryFn: async ({ signal }: { signal: AbortSignal }) => {
         try {
+          const params: Record<string, unknown> = {
+            showslug: seriesSlug,
+            season,
+            limit: 100,
+          };
+          if (!isSeasonSearch) params.episode = episode;
           const res = await api.get<CachedRelease[]>(
             `/providers/${p.id}/results`,
-            {
-              signal,
-              params: {
-                showslug: seriesSlug,
-                season,
-                episode,
-                limit: 100,
-              },
-            },
+            { signal, params },
           );
           return res.data;
         } catch (err) {
@@ -143,20 +142,23 @@ export default function EpisodeSearchModal({
       queryKey: ["provider-results"],
       predicate: (q) => {
         const k = q.queryKey as unknown[];
-        return k[2] === seriesSlug && k[3] === season && k[4] === episode;
+        if (k[2] !== seriesSlug || k[3] !== season) return false;
+        return isSeasonSearch ? k.length === 4 : k[4] === episode;
       },
     });
-  }, [queryClient, seriesSlug, season, episode]);
+  }, [queryClient, seriesSlug, season, episode, isSeasonSearch]);
 
   // 3) Re-run mutation. Variable name `forceSearch` matches Medusa's
   // `forced_search_queue_scheduler`; UI label is "Re-run search". Completion
   // arrives via the QueueItemUpdate WS event, not the HTTP response.
   const forceSearch = useMutation({
     mutationFn: () =>
-      api.put("/search/manual", {
-        showSlug: seriesSlug,
-        episodes: [epSlug(season, episode)],
-      }),
+      api.put(
+        "/search/manual",
+        isSeasonSearch
+          ? { showSlug: seriesSlug, season: [seasonSlug(season)] }
+          : { showSlug: seriesSlug, episodes: [epSlug(season, episode!)] },
+      ),
   });
 
   // 4) Snatch. Legacy `/home/pickManualSearch` is outside /api/v2 — uses
@@ -208,19 +210,22 @@ export default function EpisodeSearchModal({
       // An empty `episodes` list signals a season pack — keep those; otherwise
       // require an explicit match on the open episode.
       if (
+        !isSeasonSearch &&
         r.episodes &&
         r.episodes.length > 0 &&
-        !r.episodes.includes(episode)
+        !r.episodes.includes(episode!)
       ) {
         return;
       }
-      const key = [
-        "provider-results",
-        r.provider.id,
-        seriesSlug,
-        season,
-        episode,
-      ];
+      const key = isSeasonSearch
+        ? (["provider-results", r.provider.id, seriesSlug, season] as const)
+        : ([
+            "provider-results",
+            r.provider.id,
+            seriesSlug,
+            season,
+            episode,
+          ] as const);
       queryClient.setQueryData<CachedRelease[]>(key, (prev = []) => {
         if (prev.some((p) => p.identifier === r.identifier)) return prev;
         // The WS payload doesn't carry `infoUrl` (computed at REST time from
@@ -240,18 +245,19 @@ export default function EpisodeSearchModal({
     enabled: open,
   });
 
-  // Live queue items relevant to this episode — manual search or snatch.
+  // Live queue items relevant to this search — manual search or snatch.
   const relevantItems = useMemo(
     () =>
       liveItems.filter(
         (i) =>
           (i.name.startsWith("MANUAL-") || i.name.startsWith("SNATCH-")) &&
           (i.segment?.some(
-            (s) => s.season === season && s.episode === episode,
+            (s) =>
+              s.season === season && (isSeasonSearch || s.episode === episode),
           ) ??
             false),
       ),
-    [liveItems, season, episode],
+    [liveItems, season, episode, isSeasonSearch],
   );
 
   const liveManualSearch = relevantItems.find((i) =>
@@ -302,8 +308,9 @@ export default function EpisodeSearchModal({
       <div className="modal-box w-11/12 max-w-5xl">
         <header className="flex items-center justify-between gap-3 mb-3">
           <h3 id="search-modal-title" className="font-bold text-lg">
-            Episode search · S{String(season).padStart(2, "0")}E
-            {String(episode).padStart(2, "0")}
+            {isSeasonSearch
+              ? `Season search · Season ${season === 0 ? "Specials" : season}`
+              : `Episode search · S${String(season).padStart(2, "0")}E${String(episode!).padStart(2, "0")}`}
           </h3>
           <form method="dialog">
             <button
@@ -399,8 +406,10 @@ export default function EpisodeSearchModal({
                       </span>
                     ) : (
                       <div>
-                        <p className="text-base-content/50 italic mb-2">
-                          No releases saved for this episode.
+                        <p className="text-base-content/50 italic mb-3">
+                          {isSeasonSearch
+                            ? "No releases saved for this season."
+                            : "No releases saved for this episode."}
                         </p>
                         <button
                           type="button"
