@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search,
   History,
@@ -13,6 +13,7 @@ import api from "../lib/api";
 import { pushToast } from "../lib/toasts";
 import type { Episode, EpisodeStatus } from "../types/medusa";
 import { EPISODE_STATUS_CODE } from "../types/medusa";
+import type { ConfigSearch } from "../types/config";
 import StatusBadge from "./StatusBadge";
 import EpisodeSearchModal from "./EpisodeSearchModal";
 
@@ -45,6 +46,18 @@ export default function SeasonAccordion({
 }: Props) {
   const queryClient = useQueryClient();
   const [searchTarget, setSearchTarget] = useState<number | null>(null);
+
+  // `USE_FAILED_DOWNLOADS` short-circuits the entire failure path on the
+  // backend (process_tv.py:980), so "Mark release as failed" is dead when
+  // the setting's off. Share the query key with PostProcess + SearchSettings.
+  const searchCfgQ = useQuery({
+    queryKey: ["config", "search"],
+    queryFn: ({ signal }) =>
+      api.get<ConfigSearch>("/config/search", { signal }).then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const failedTrackingEnabled =
+    searchCfgQ.data?.general?.failedDownloads?.enabled ?? true;
   // Replaces daisyUI's <input type="checkbox" class="peer"> + .collapse pair.
   // The .collapse class sets overflow:hidden on the wrapper for its grid
   // animation, which clips popover dropdowns in the header — go with a
@@ -286,9 +299,20 @@ export default function SeasonAccordion({
                           {SNATCHED_STATUSES.has(ep.status) && (
                             <li>
                               <button
+                                className={
+                                  markFailed.isPending || !failedTrackingEnabled
+                                    ? "opacity-50"
+                                    : ""
+                                }
                                 onClick={() => markFailed.mutate(ep.identifier)}
-                                disabled={markFailed.isPending}
-                                title="Add the current release to the release blacklist and search again"
+                                disabled={
+                                  markFailed.isPending || !failedTrackingEnabled
+                                }
+                                title={
+                                  failedTrackingEnabled
+                                    ? "Add the current release to the release blacklist and search again"
+                                    : 'Option disabled because "Track failed releases" is off in Search settings'
+                                }
                               >
                                 <AlertTriangle
                                   size={14}
