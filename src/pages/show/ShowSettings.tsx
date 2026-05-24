@@ -5,7 +5,7 @@ import { ChevronLeft, Plus, TriangleAlert, X } from "lucide-react";
 import api from "../../lib/api";
 import { pushToast } from "../../lib/toasts";
 import { useEditSeries } from "../../lib/series-actions";
-import { DEFAULT_EPISODE_STATUSES, type Series } from "../../types/medusa";
+import { DEFAULT_EPISODE_STATUSES, LANGUAGE_OPTIONS, type Series } from "../../types/medusa";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Toggle from "../../components/forms/Toggle";
 import QualityPicker from "../../components/forms/QualityPicker";
@@ -55,6 +55,7 @@ export default function ShowSettings() {
 interface FormState {
   location: string;
   paused: boolean;
+  language: string;
   defaultEpisodeStatus: string;
   qualityAllowed: number[];
   qualityPreferred: number[];
@@ -75,6 +76,7 @@ function formFromShow(show: Series): FormState {
   return {
     location: c.location ?? "",
     paused: !!c.paused,
+    language: show.language ?? "",
     defaultEpisodeStatus: c.defaultEpisodeStatus ?? "Skipped",
     qualityAllowed: c.qualities?.allowed ?? [],
     qualityPreferred: c.qualities?.preferred ?? [],
@@ -99,6 +101,7 @@ function SettingsForm({ show }: { show: Series }) {
 
   const handleSave = () => {
     const body: Record<string, unknown> = {
+      language: form.language,
       "config.paused": form.paused,
       "config.defaultEpisodeStatus": form.defaultEpisodeStatus,
       "config.qualities.allowed": form.qualityAllowed,
@@ -152,6 +155,27 @@ function SettingsForm({ show }: { show: Series }) {
             </span>
           </div>
         )}
+      </fieldset>
+
+      <fieldset className="fieldset w-full">
+        <legend className="fieldset-legend">Info Language</legend>
+        <select
+          className="select w-full"
+          value={form.language}
+          onChange={(e) =>
+            setForm((s) => ({ ...s, language: e.target.value }))
+          }
+        >
+          {LANGUAGE_OPTIONS.map((o) => (
+            <option key={o.code} value={o.code}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <p className="label whitespace-normal">
+          This only applies to episode filenames and the contents of metadata
+          files.
+        </p>
       </fieldset>
 
       <fieldset className="fieldset w-full">
