@@ -12,7 +12,7 @@ import {
 import api from "../lib/api";
 import { pushToast } from "../lib/toasts";
 import type { Episode, EpisodeStatus } from "../types/medusa";
-import { EPISODE_STATUS_CODE } from "../types/medusa";
+import { EPISODE_STATUS_CODE, qualityName } from "../types/medusa";
 import type { ConfigSearch } from "../types/config";
 import StatusBadge from "./StatusBadge";
 import EpisodeSearchModal from "./EpisodeSearchModal";
@@ -262,7 +262,14 @@ export default function SeasonAccordion({
                     {ep.airDate ? ep.airDate.split("T")[0] : "—"}
                   </td>
                   <td>
-                    <StatusBadge status={ep.status} />
+                    {ep.quality &&
+                    (ep.status === "Downloaded" || ep.status === "Archived") ? (
+                      <span className="font-semibold badge badge-xs badge-success">
+                        {qualityName(ep.quality)}
+                      </span>
+                    ) : (
+                      <StatusBadge status={ep.status} />
+                    )}
                   </td>
                   <td>
                     <div className="flex items-center gap-1 justify-end">

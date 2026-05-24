@@ -93,6 +93,7 @@ export interface Episode {
   description: string;
   subtitles: string[];
   status: EpisodeStatus;
+  quality: number;
   release?: {
     name: string;
     group: string;
