@@ -86,7 +86,7 @@ export default function SeasonAccordion({
   // POST /search/failed kicks off a FailedQueueItem on the backend: logs the
   // current release to failed.db so the search won't pick it again, reverts
   // the episode to Wanted, and immediately runs a fresh search excluding the
-  // blocklisted release. The action only makes sense when the episode is in
+  // blacklisted release. The action only makes sense when the episode is in
   // a Snatched/Downloaded state — otherwise there's no current release to flag.
   const markFailed = useMutation({
     mutationFn: (identifier: string) =>
@@ -100,7 +100,7 @@ export default function SeasonAccordion({
       });
       pushToast({
         title: "Release marked as failed",
-        body: "The release was blocklisted and a fresh search was queued.",
+        body: "The release was blacklisted and a fresh search was queued.",
         type: "notice",
       });
     },
