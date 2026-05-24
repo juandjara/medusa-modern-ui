@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useMutation,
   useQueries,
@@ -21,11 +21,25 @@ import { pushToast } from "../lib/toasts";
 import { formatBytes, formatRelative } from "../lib/time";
 import { LIVE_QUEUE_KEY } from "../lib/queryKeys";
 import {
+  QUALITY,
+  QUALITY_NAMES,
   qualityName,
   type CachedRelease,
   type LiveQueueItem,
   type ProviderSummary,
 } from "../types/medusa";
+
+// Derived from QUALITY_NAMES (which mirrors the backend's Quality.qualityStrings).
+const QUALITY_FILTER_OPTIONS: { value: number | null; label: string }[] = [
+  { value: null, label: "All qualities" },
+  ...Object.entries(QUALITY_NAMES)
+    .filter(([key]) => {
+      const q = Number(key);
+      return q !== QUALITY.NA && q !== QUALITY.UNKNOWN;
+    })
+    .map(([key, label]) => ({ value: Number(key), label }))
+    .sort((a, b) => a.value - b.value),
+];
 
 interface Props {
   seriesSlug: string;
@@ -131,6 +145,20 @@ export default function EpisodeSearchModal({
         Math.max(b.seeders, 0) - Math.max(a.seeders, 0),
     );
   }, [resultQueries]);
+
+  const [qualityFilter, setQualityFilter] = useState<number | null>(null);
+  const [seasonPackOnly, setSeasonPackOnly] = useState(false);
+
+  const filteredResults = useMemo(() => {
+    let filtered = results;
+    if (qualityFilter !== null) {
+      filtered = filtered.filter((r) => r.quality === qualityFilter);
+    }
+    if (seasonPackOnly) {
+      filtered = filtered.filter((r) => r.seasonPack);
+    }
+    return filtered;
+  }, [results, qualityFilter, seasonPackOnly]);
 
   const resultsLoading =
     providersQ.isLoading || resultQueries.some((q) => q.isLoading);
@@ -305,7 +333,7 @@ export default function EpisodeSearchModal({
       aria-labelledby="search-modal-title"
       onClose={onClose}
     >
-      <div className="modal-box w-11/12 max-w-5xl">
+      <div className="modal-box w-11/12 max-w-5xl max-h-[90vh]">
         <header className="flex items-center justify-between gap-3 mb-3">
           <h3 id="search-modal-title" className="font-bold text-lg">
             {isSeasonSearch
@@ -347,11 +375,43 @@ export default function EpisodeSearchModal({
             Re-run search
           </button>
 
-          <div className="text-xs text-base-content/60 ml-auto">
-            {results.length} cached release
-            {results.length === 1 ? "" : "s"} from {manualProviders.length}{" "}
-            provider{manualProviders.length === 1 ? "" : "s"}
-          </div>
+          <div className="grow"></div>
+
+          {isSeasonSearch ? (
+            <label className="flex items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                className="toggle toggle-xs"
+                checked={seasonPackOnly}
+                onChange={(e) => setSeasonPackOnly(e.target.checked)}
+              />
+              Season packs only
+            </label>
+          ) : null}
+
+          <select
+            className="select select-xs w-38"
+            value={qualityFilter ?? ""}
+            onChange={(e) =>
+              setQualityFilter(
+                e.target.value === "" ? null : Number(e.target.value),
+              )
+            }
+          >
+            {QUALITY_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value ?? "all"} value={opt.value ?? ""}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="text-xs text-base-content/60 p-2">
+          {filteredResults.length === results.length
+            ? `${results.length} release${results.length === 1 ? "" : "s"}`
+            : `${filteredResults.length} / ${results.length} release${results.length === 1 ? "" : "s"}`}
+          {" from "}
+          {manualProviders.length} provider
+          {manualProviders.length === 1 ? "" : "s"}
         </div>
 
         {searching && (
@@ -425,7 +485,18 @@ export default function EpisodeSearchModal({
                   </td>
                 </tr>
               )}
-              {results.map((r) => {
+              {!resultsLoading &&
+                results.length > 0 &&
+                filteredResults.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8">
+                      <span className="text-base-content/50 italic">
+                        No results match the current filters.
+                      </span>
+                    </td>
+                  </tr>
+                )}
+              {filteredResults.map((r) => {
                 // Only the latest snatch shows a per-row indicator; earlier
                 // rows fall back to idle.
                 const isLatest = snatch.variables?.identifier === r.identifier;
