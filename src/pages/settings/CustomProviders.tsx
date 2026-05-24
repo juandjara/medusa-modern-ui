@@ -139,7 +139,7 @@ function CapsPanel({ subType }: { subType: "newznab" | "torznab" }) {
       </fieldset>
 
       {selectedId === "#add" ? (
-        <section className="card bg-base-100 border border-base-300 rounded-box">
+        <section className="card bg-base-100 border-2 border-base-300 rounded-box">
           <div className="card-body p-4 space-y-3">
             <h2 className="font-semibold">Add a new {subType} provider</h2>
             <fieldset className="fieldset">
@@ -270,7 +270,7 @@ function EditCaps({
     apikey !== (provider.config.apikey ?? "");
 
   return (
-    <section className="card bg-base-100 border border-base-300 rounded-box">
+    <section className="card bg-base-100 border-2 border-base-300 rounded-box">
       <div className="card-body p-4 space-y-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h2 className="font-semibold">{provider.name}</h2>
@@ -462,7 +462,7 @@ function TorrentRssPanel() {
       </fieldset>
 
       {selectedId === "#add" ? (
-        <section className="card bg-base-100 border border-base-300 rounded-box">
+        <section className="card bg-base-100 border-2 border-base-300 rounded-box">
           <div className="card-body p-4 space-y-3">
             <h2 className="font-semibold">Add a TorrentRSS provider</h2>
             <fieldset className="fieldset">
@@ -537,7 +537,7 @@ function TorrentRssPanel() {
           </div>
         </section>
       ) : selected ? (
-        <section className="card bg-base-100 border border-base-300 rounded-box">
+        <section className="card bg-base-100 border-2 border-base-300 rounded-box">
           <div className="card-body p-4 space-y-3">
             <h2 className="font-semibold">{selected.name}</h2>
             <p className="text-xs text-base-content/60">

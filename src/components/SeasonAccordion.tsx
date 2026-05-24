@@ -196,11 +196,7 @@ export default function SeasonAccordion({
                 title="Queue a manual search across providers for season packs"
               >
                 <Search size={12} />
-                {searchSeason.isPending
-                  ? "Starting…"
-                  : searchSeason.isSuccess
-                    ? "Search queued"
-                    : "Search whole season"}
+                {searchSeason.isPending ? "Starting…" : "Search whole season"}
               </button>
             </li>
             <li className="menu-title text-xs">Set status for all</li>

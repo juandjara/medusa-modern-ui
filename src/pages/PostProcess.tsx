@@ -147,7 +147,7 @@ export default function PostProcess() {
         </p>
       </header>
 
-      <section className="card bg-base-100 border border-base-300 rounded-box">
+      <section className="card bg-base-100 border-2 border-base-300 rounded-box">
         <div className="card-body p-4 space-y-3">
           <Field
             label="Folder to process"

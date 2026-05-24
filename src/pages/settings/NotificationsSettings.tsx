@@ -66,9 +66,11 @@ export default function NotificationsSettings() {
       <header>
         <h1 className="text-2xl font-bold">Notifications</h1>
         <p className="text-sm text-base-content/60 mt-1">
-          Tick to enable; click a name to expand its settings. Additional
-          services available in Medusa's legacy UI; the most common ones live
-          here.
+          Tick to enable; click a name to expand its settings. Media servers
+          (Kodi / Plex / Emby), push services (Pushbullet, Pushover, Telegram,
+          Discord, Slack), Synology DSM and Trakt are covered here. A handful
+          of niche notifiers from the legacy UI (Boxcar2, Pushalot, Growl,
+          Prowl, libnotify, PyTivo) aren't ported.
         </p>
       </header>
 

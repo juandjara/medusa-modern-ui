@@ -191,7 +191,7 @@ function NzbSection({ get, set }: { get: Getter; set: Setter }) {
   const method = get<string>("nzb.method") || "blackhole";
 
   return (
-    <section className="card bg-base-100 border border-base-300 rounded-box">
+    <section className="card bg-base-100 border-2 border-base-300 rounded-box">
       <div className="card-body p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-lg">NZB</h2>
@@ -505,7 +505,7 @@ function TorrentSection({ get, set }: { get: Getter; set: Setter }) {
     /success|^test successful|connected/i.test(test.data);
 
   return (
-    <section className="card bg-base-100 border border-base-300 rounded-box">
+    <section className="card bg-base-100 border-2 border-base-300 rounded-box">
       <div className="card-body p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-lg">Torrent</h2>

@@ -6,7 +6,7 @@ export default function Settings() {
     <div className="space-y-6 max-w-2xl">
       <h1 className="text-2xl font-bold">Settings</h1>
 
-      <div className="bg-base-100 border border-base-300 rounded-box">
+      <div className="bg-base-100 border-2 border-base-300 rounded-box">
         <div className="px-4 py-3 font-semibold border-b border-base-300">
           General
         </div>
@@ -29,7 +29,7 @@ export default function Settings() {
         </ul>
       </div>
 
-      <div className="bg-base-100 border border-base-300 rounded-box">
+      <div className="bg-base-100 border-2 border-base-300 rounded-box">
         <div className="px-4 py-3 font-semibold border-b border-base-300">
           Search
         </div>
@@ -96,7 +96,7 @@ export default function Settings() {
         </ul>
       </div>
 
-      <div className="bg-base-100 border border-base-300 rounded-box">
+      <div className="bg-base-100 border-2 border-base-300 rounded-box">
         <div className="px-4 py-3 font-semibold border-b border-base-300">
           Download clients
         </div>
@@ -119,7 +119,7 @@ export default function Settings() {
         </ul>
       </div>
 
-      <div className="bg-base-100 border border-base-300 rounded-box">
+      <div className="bg-base-100 border-2 border-base-300 rounded-box">
         <div className="px-4 py-3 font-semibold border-b border-base-300">
           Post-processing
         </div>
@@ -142,7 +142,7 @@ export default function Settings() {
         </ul>
       </div>
 
-      <div className="bg-base-100 border border-base-300 rounded-box">
+      <div className="bg-base-100 border-2 border-base-300 rounded-box">
         <div className="px-4 py-3 font-semibold border-b border-base-300">
           Subtitles
         </div>
@@ -165,7 +165,7 @@ export default function Settings() {
         </ul>
       </div>
 
-      <div className="bg-base-100 border border-base-300 rounded-box">
+      <div className="bg-base-100 border-2 border-base-300 rounded-box">
         <div className="px-4 py-3 font-semibold border-b border-base-300">
           Notifications
         </div>
@@ -188,7 +188,7 @@ export default function Settings() {
         </ul>
       </div>
 
-      <div className="bg-base-100 border border-base-300 rounded-box">
+      <div className="bg-base-100 border-2 border-base-300 rounded-box">
         <div className="px-4 py-3 font-semibold border-b border-base-300">
           Data
         </div>

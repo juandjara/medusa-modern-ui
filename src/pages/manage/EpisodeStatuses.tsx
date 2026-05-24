@@ -427,7 +427,7 @@ function Results({
           return (
             <section
               key={show.slug}
-              className="card bg-base-100 border border-base-300 rounded-box overflow-hidden"
+              className="card bg-base-100 border-2 border-base-300 rounded-box overflow-hidden"
             >
               <header className="flex items-center gap-3 px-4 py-2">
                 <input

@@ -2,9 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   RefreshCw,
-  RefreshCcw,
   ChevronDown,
-  Pencil,
   Image as ImageIcon,
   Languages,
   Eraser,
@@ -12,7 +10,9 @@ import {
   Play,
   Pause,
   History,
-  Edit2Icon,
+  Edit3Icon,
+  SettingsIcon,
+  HardDriveIcon,
 } from "lucide-react";
 import type { Series } from "../types/medusa";
 import type { MassUpdateAction } from "../lib/series-actions";
@@ -94,18 +94,14 @@ export default function ShowActionsMenu({
   return (
     <>
       <div className="join">
-        <button
+        <Link
+          to={`/show/${series.id.slug}/settings`}
           className="btn btn-sm gap-2 join-item"
-          onClick={() => onAction("update")}
-          disabled={refreshIsActive}
-          title="Re-fetch metadata from the indexer (TMDB/TVDB)"
+          title="Edit this show's settings"
         >
-          <RefreshCw
-            size={14}
-            className={refreshIsActive ? "animate-spin" : ""}
-          />
-          {queued === "update" ? "Refresh queued" : "Refresh metadata"}
-        </button>
+          <SettingsIcon size={14} />
+          Edit settings
+        </Link>
 
         <div className="dropdown dropdown-end join-item">
           <button
@@ -121,16 +117,23 @@ export default function ShowActionsMenu({
             className="dropdown-content menu bg-base-100 rounded-box z-10 shadow-lg border border-base-300 p-2 w-60 mt-1"
           >
             <li>
+              <button
+                onClick={() => onAction("update")}
+                disabled={refreshIsActive}
+                title="Re-fetch metadata from the indexer (TMDB/TVDB)"
+              >
+                <RefreshCw
+                  size={14}
+                  className={refreshIsActive ? "animate-spin" : ""}
+                />
+                {queued === "update" ? "Refresh queued" : "Refresh metadata"}
+              </button>
+            </li>
+            <li>
               <Link to={`/history?show=${series.id.slug}`}>
                 <History size={14} /> View history
               </Link>
             </li>
-            <li>
-              <Link to={`/show/${series.id.slug}/settings`}>
-                <Edit2Icon size={14} /> Edit settings
-              </Link>
-            </li>
-            <div className="divider my-1" />
             <li>
               <button onClick={onTogglePause} disabled={isPausePending}>
                 {series.config.paused ? (
@@ -144,15 +147,14 @@ export default function ShowActionsMenu({
                 )}
               </button>
             </li>
-            <div className="divider my-1" />
             <li>
               <button onClick={() => trigger("rescan")}>
-                <RefreshCcw size={14} /> Rescan files
+                <HardDriveIcon size={14} /> Rescan files on disk
               </button>
             </li>
             <li>
               <button onClick={() => trigger("rename")}>
-                <Pencil size={14} /> Rename episodes
+                <Edit3Icon size={14} /> Rename episodes
               </button>
             </li>
             <li>

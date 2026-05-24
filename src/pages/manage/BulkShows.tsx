@@ -4,12 +4,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   ChevronLeft,
+  Edit3,
+  Eraser,
+  HardDrive,
+  Image as ImageIcon,
   Inbox,
+  Languages,
   Pause,
+  RefreshCw,
   Search,
   Settings as SettingsIcon,
   Play,
+  Trash2,
   TriangleAlert,
+  type LucideIcon,
 } from "lucide-react";
 import api, { getAssetUrl } from "../../lib/api";
 import QualityPicker from "../../components/forms/QualityPicker";
@@ -101,6 +109,7 @@ interface JobAction {
     | "delete";
   label: string;
   hint: string;
+  icon: LucideIcon;
   destructive?: boolean;
 }
 
@@ -109,37 +118,44 @@ const JOB_ACTIONS: JobAction[] = [
     key: "update",
     label: "Update info from indexer",
     hint: "Re-fetch metadata for each show (titles, descriptions, season layout).",
+    icon: RefreshCw,
   },
   {
     key: "rescan",
     label: "Rescan files on disk",
     hint: "Walk each show's folder to refresh which episodes Medusa thinks are on disk.",
+    icon: HardDrive,
   },
   {
     key: "rename",
     label: "Rename files",
     hint: "Apply the configured naming pattern to every episode file.",
+    icon: Edit3,
   },
   {
     key: "subtitle",
     label: "Search subtitles",
     hint: "Look for missing subtitles in the configured languages.",
+    icon: Languages,
   },
   {
     key: "image",
     label: "Refresh images",
     hint: "Re-fetch posters, banners and fan art from the cache.",
+    icon: ImageIcon,
   },
   {
     key: "remove",
     label: "Remove from Medusa",
     hint: "Stop tracking each show and remove its metadata from your library. Files on disk are untouched.",
+    icon: Eraser,
     destructive: true,
   },
   {
     key: "delete",
     label: "Delete show & files",
     hint: "Stop tracking, remove metadata AND delete the files from disk. This cannot be undone.",
+    icon: Trash2,
     destructive: true,
   },
 ];
@@ -333,22 +349,28 @@ export default function BulkShows() {
                   tabIndex={0}
                   className="dropdown-content menu z-10 bg-base-100 rounded-box w-80 p-1 shadow-lg border border-base-300"
                 >
-                  {JOB_ACTIONS.map((action) => (
-                    <li key={action.key}>
-                      <button
-                        type="button"
-                        onClick={() => triggerJob(action)}
-                        className={`flex flex-col items-start gap-0.5 py-2 ${
-                          action.destructive ? "text-error" : ""
-                        }`}
-                      >
-                        <span className="font-medium">{action.label}</span>
-                        <span className="text-xs opacity-70 font-normal whitespace-normal">
-                          {action.hint}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                  {JOB_ACTIONS.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <li key={action.key}>
+                        <button
+                          type="button"
+                          onClick={() => triggerJob(action)}
+                          className={`flex items-start gap-2 py-2 ${
+                            action.destructive ? "text-error" : ""
+                          }`}
+                        >
+                          <Icon size={14} className="shrink-0 mt-0.5" />
+                          <div className="flex flex-col items-start gap-0.5 min-w-0">
+                            <span className="font-medium">{action.label}</span>
+                            <span className="text-xs opacity-70 font-normal whitespace-normal">
+                              {action.hint}
+                            </span>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>
