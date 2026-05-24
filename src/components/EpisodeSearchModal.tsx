@@ -450,7 +450,7 @@ export default function EpisodeSearchModal({
                         provider={providersById.get(r.provider.id)}
                       />
                       {r.seasonPack && (
-                        <span className="badge badge-xs badge-ghost mt-0.5">
+                        <span className="badge badge-xs badge-ghost ml-0.5">
                           season pack
                         </span>
                       )}
@@ -521,7 +521,8 @@ function ReleaseName({
   provider: ProviderSummary | undefined;
 }) {
   const info = resolveInfoUrl(release, provider);
-  const baseCls = "text-xs font-mono truncate inline-flex items-center gap-1";
+  const baseCls =
+    "max-w-full text-xs font-mono truncate inline-flex items-center gap-1";
   if (!info) {
     return (
       <div className={baseCls} title={release.release}>
