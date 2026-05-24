@@ -6,6 +6,7 @@ import api from "../../lib/api";
 import { pushToast } from "../../lib/toasts";
 import { useEditSeries } from "../../lib/series-actions";
 import { DEFAULT_EPISODE_STATUSES, type Series } from "../../types/medusa";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import Toggle from "../../components/forms/Toggle";
 import QualityPicker from "../../components/forms/QualityPicker";
 import FolderPicker from "../../components/forms/FolderPicker";
@@ -290,6 +291,8 @@ function SettingsForm({ show }: { show: Series }) {
 
       <SceneAliasesPanel show={show} />
 
+      <ChangeIndexerPanel show={show} />
+
       {editSeries.isError && (
         <div className="alert alert-soft alert-error text-sm">
           Failed to save changes. Try again.
@@ -497,6 +500,178 @@ function SceneAliasesPanel({ show }: { show: Series }) {
           <Plus size={14} /> Add
         </button>
       </div>
+    </fieldset>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Change indexer
+// -----------------------------------------------------------------------------
+
+// Allowed targets (matches legacy slim's manage/select-indexer.vue:29). Other
+// keys on `externals` (e.g. tvrage) aren't supported as indexers.
+const INDEXER_CHOICES: readonly (keyof Series["externals"])[] = [
+  "tvdb",
+  "tmdb",
+  "tvmaze",
+  "imdb",
+] as const;
+
+// IMDB IDs round-trip as the `tt0903747` form on `externals`. The slug the
+// backend expects is `imdb` + numeric suffix, so strip the prefix here. All
+// other indexers carry a plain integer.
+function externalIdToSlugSuffix(
+  indexer: keyof Series["externals"],
+  raw: number | string,
+): string {
+  if (indexer === "imdb") {
+    return String(raw).replace(/^tt0*/, "");
+  }
+  return String(raw);
+}
+
+function indexerLabel(slug: string): string {
+  switch (slug) {
+    case "tvdb":
+      return "TheTVDB";
+    case "tmdb":
+      return "TMDB";
+    case "tvmaze":
+      return "TVmaze";
+    case "imdb":
+      return "IMDb";
+    default:
+      return slug;
+  }
+}
+
+function ChangeIndexerPanel({ show }: { show: Series }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const oldSlug = show.id.slug;
+  const currentIndexer = show.indexer;
+
+  // Targets are indexers we *already have mappings for* in `externals` and
+  // that aren't the current one. v1 doesn't offer the "search manually"
+  // escape hatch — most shows have these auto-mapped from TheTVDB.
+  const targets = INDEXER_CHOICES.filter((key) => {
+    if (key === currentIndexer) return false;
+    const id = show.externals[key];
+    return id !== undefined && id !== null && id !== "";
+  });
+
+  const [target, setTarget] = useState<keyof Series["externals"] | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const newSlugSuffix =
+    target && show.externals[target]
+      ? externalIdToSlugSuffix(target, show.externals[target])
+      : "";
+  const newSlug = newSlugSuffix ? `${String(target)}${newSlugSuffix}` : "";
+
+  const change = useMutation({
+    mutationFn: async () => {
+      if (!newSlug) {
+        throw new Error("Missing external id for that indexer");
+      }
+      if (newSlug === oldSlug) {
+        throw new Error("Same slug");
+      }
+      const { data } = await api.post<{ identifier: string }>(
+        "/changeindexer",
+        { oldSlug, newSlug },
+      );
+      return { ...data, newSlug, target };
+    },
+    onSuccess: () => {
+      pushToast({
+        title: "Indexer change queued",
+        body: `Switching from ${oldSlug} to ${newSlug}.`,
+        type: "notice",
+      });
+      // Make the show-list page pick up the new slug on next visit.
+      queryClient.invalidateQueries({ queryKey: ["series"] });
+      // Bounce to the show list since the current slug will become stale.
+      navigate("/");
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't queue the indexer change",
+        body: "Check the server logs.",
+        type: "error",
+      });
+    },
+  });
+
+  return (
+    <fieldset className="fieldset w-full">
+      <legend className="fieldset-legend">Change indexer</legend>
+      <p className="text-xs text-base-content/50">
+        Re-map this show from <strong>{indexerLabel(currentIndexer)}</strong> to
+        a different indexer with another valid ID. Metadata is re-fetched from
+        the new indexer on the next refresh; episode files on disk are
+        untouched.
+      </p>
+
+      {targets.length === 0 ? (
+        <div className="text-xs text-base-content/50 italic py-2">
+          No alternate indexers are mapped for this show in{" "}
+          <code>externals</code>. Nothing to switch to.
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-end gap-2 pt-1">
+          <label className="flex flex-col gap-1 text-xs flex-1 min-w-48">
+            <span className="text-base-content/60">Switch to</span>
+            <select
+              className="select select-sm"
+              value={target ?? undefined}
+              onChange={(e) =>
+                setTarget(e.target.value as keyof Series["externals"])
+              }
+            >
+              <option>Pick an indexer…</option>
+              {targets.map((key) => (
+                <option key={key} value={key}>
+                  {indexerLabel(String(key))} (id: {show.externals[key]})
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn btn-sm btn-warning"
+            disabled={!target || change.isPending}
+            onClick={() => setConfirmOpen(true)}
+          >
+            {change.isPending ? "Queueing…" : "Change indexer"}
+          </button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={`Change indexer to ${target ? indexerLabel(String(target)) : ""}?`}
+        body={
+          <>
+            <p>
+              The show's identifier changes from <code>{oldSlug}</code> to{" "}
+              <code>{newSlug}</code>. Existing episode files and statuses are
+              kept; metadata, posters and aliases are re-fetched from the new
+              indexer.
+            </p>
+            <p className="mt-2">
+              The URL for this show and its settings will change once the swap
+              completes. You will be sent back to the show list.
+            </p>
+          </>
+        }
+        confirmLabel="Change indexer"
+        onConfirm={() => {
+          change.mutate();
+          setConfirmOpen(false);
+        }}
+        onClose={() => setConfirmOpen(false)}
+      />
     </fieldset>
   );
 }

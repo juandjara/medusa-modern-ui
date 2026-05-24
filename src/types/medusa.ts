@@ -11,6 +11,7 @@ export interface SeriesExternals {
   tvdb?: number;
   tvrage?: number;
   tvmaze?: number;
+  tmdb?: number;
 }
 
 export interface SeriesConfig {
