@@ -1,9 +1,16 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { ChevronLeft, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  ExternalLink,
+} from "lucide-react";
 import useDraftConfig from "../../lib/useDraftConfig";
+import { pushToast } from "../../lib/toasts";
 import Field from "../../components/forms/Field";
 import Toggle from "../../components/forms/Toggle";
 import SaveBar from "../../components/forms/SaveBar";
@@ -85,6 +92,7 @@ export default function NotificationsSettings() {
         <DiscordRow {...rowProps("discord")} />
         <SlackRow {...rowProps("slack")} />
         <EmailRow {...rowProps("email")} />
+        <TraktRow {...rowProps("trakt")} />
       </ul>
     </div>
   );
@@ -1133,6 +1141,245 @@ function SynologyNotifierRow({ get, set, expanded, onToggleExpand }: RowProps) {
       onToggleExpand={onToggleExpand}
     >
       <NotifyOnGroup prefix="synology" get={get} set={set} />
+    </NotifierRow>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Trakt
+// -----------------------------------------------------------------------------
+
+// Endpoint responses from the legacy /home/ Trakt OAuth handlers. These are
+// JSON-body returns (not the v2 envelope), so we type them inline.
+interface TraktDeviceCodeResponse {
+  user_code: string;
+  device_code: string;
+  verification_url: string;
+  expires_in: number;
+  interval: number;
+}
+interface TraktTokenCheckResponse {
+  result: string;
+  error?: boolean;
+}
+
+// Polling cap. Trakt's device codes expire after 10 minutes (`expires_in`),
+// but most users finish in seconds; cap UI polling at this many attempts so
+// a stale tab doesn't sit there forever. Each tick is `interval` seconds
+// from the device-code response.
+const TRAKT_POLL_MAX_TICKS = 24;
+// Hard fallback if the response's `interval` is missing or zero.
+const TRAKT_POLL_INTERVAL_FALLBACK_MS = 5_000;
+
+interface TraktPolling {
+  userCode: string;
+  verificationUrl: string;
+  intervalMs: number;
+  remainingTicks: number;
+  message: string | null;
+}
+
+function TraktRow({ get, set, expanded, onToggleExpand }: RowProps) {
+  const queryClient = useQueryClient();
+  const enabled = !!get<boolean>("trakt.enabled");
+  const username = (get<string>("trakt.username") ?? "").trim();
+  const accessToken = (get<string>("trakt.accessToken") ?? "").trim();
+  const isConnected = accessToken.length > 0;
+
+  const [polling, setPolling] = useState<TraktPolling | null>(null);
+
+  // Polling timer — outlives renders, cleared on unmount, success, or cancel.
+  // Each tick hits /home/checkTrakTokenOauth; on success the config query is
+  // invalidated so the new username/accessToken render; on a still-pending
+  // response we decrement and let the effect re-arm with the new state.
+  useEffect(() => {
+    if (!polling) return;
+    const handle = window.setTimeout(async () => {
+      let result: TraktTokenCheckResponse;
+      try {
+        const { data } = await axios.get<TraktTokenCheckResponse>(
+          "/home/checkTrakTokenOauth",
+        );
+        result = data;
+      } catch {
+        result = {
+          result: "Couldn't reach the server while polling.",
+          error: true,
+        };
+      }
+      if (!result.error) {
+        setPolling(null);
+        queryClient.invalidateQueries({ queryKey: ["config", "notifiers"] });
+        pushToast({
+          title: "Trakt connected",
+          body: result.result || "Access token received.",
+          type: "notice",
+        });
+        return;
+      }
+      // Decrement; if we ran out, surface a timeout and end the loop.
+      setPolling((prev) => {
+        if (!prev) return prev;
+        if (prev.remainingTicks <= 1) {
+          pushToast({
+            title: "Trakt authorization timed out",
+            body: "Click Connect again to start a new code.",
+            type: "error",
+          });
+          return null;
+        }
+        return {
+          ...prev,
+          remainingTicks: prev.remainingTicks - 1,
+          message: result.result,
+        };
+      });
+    }, polling.intervalMs);
+    return () => window.clearTimeout(handle);
+  }, [polling, queryClient]);
+
+  const startAuth = useMutation({
+    mutationFn: async () => {
+      const { data } = await axios.get<TraktDeviceCodeResponse>(
+        "/home/requestTraktDeviceCodeOauth",
+      );
+      if (!data?.user_code || !data?.verification_url) {
+        throw new Error("Trakt device-code request returned no code");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      // Pop the trakt.tv verification page so the user can authorize there.
+      window.open(
+        data.verification_url,
+        "trakt-auth",
+        "toolbar=no,scrollbars=no,resizable=no,top=200,left=200,width=650,height=550",
+      );
+      setPolling({
+        userCode: data.user_code,
+        verificationUrl: data.verification_url,
+        intervalMs:
+          (data.interval ?? 0) > 0
+            ? data.interval * 1000
+            : TRAKT_POLL_INTERVAL_FALLBACK_MS,
+        remainingTicks: TRAKT_POLL_MAX_TICKS,
+        message: "Waiting for Trakt authorization…",
+      });
+    },
+    onError: () => {
+      pushToast({
+        title: "Couldn't start Trakt authorization",
+        body: "Check that Medusa can reach trakt.tv.",
+        type: "error",
+      });
+    },
+  });
+
+  // Disconnect = clear the access token locally; the user still needs to
+  // hit Save for the change to land server-side. Username is cleared too so
+  // the "Connected as …" pill flips off immediately.
+  const disconnect = () => {
+    set("trakt.accessToken", "");
+    set("trakt.username", "");
+  };
+
+  return (
+    <NotifierRow
+      title="Trakt"
+      icon="trakt"
+      hint={
+        <>
+          Authorize Medusa with your Trakt account to sync your library and
+          watchlist. Authorization uses Trakt's device-code flow: a popup opens
+          on trakt.tv where you enter the code shown below.
+        </>
+      }
+      enabled={enabled}
+      onEnabledChange={(v) => set("trakt.enabled", v)}
+      expanded={expanded}
+      onToggleExpand={onToggleExpand}
+    >
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {isConnected ? (
+            <span className="badge badge-success gap-1">
+              <CheckCircle2 size={12} />
+              Connected{username ? ` as ${username}` : ""}
+            </span>
+          ) : (
+            <span className="badge badge-ghost">Not authorized</span>
+          )}
+          {isConnected ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={disconnect}
+              disabled={polling !== null}
+              title="Clear the saved access token. Hit Save to persist."
+            >
+              Disconnect
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => startAuth.mutate()}
+              disabled={startAuth.isPending || polling !== null}
+            >
+              {startAuth.isPending
+                ? "Requesting code…"
+                : "Connect Trakt account"}
+            </button>
+          )}
+        </div>
+
+        {polling && (
+          <div className="rounded border border-base-300 bg-base-200/50 p-3 space-y-2">
+            <div className="text-xs text-base-content/60">
+              On the trakt.tv page that just opened, enter this code:
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <code className="font-mono text-2xl tracking-widest bg-base-100 rounded px-3 py-1.5 select-all">
+                {polling.userCode}
+              </code>
+              <a
+                href={polling.verificationUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-ghost btn-sm gap-1"
+              >
+                <ExternalLink size={12} /> Re-open trakt.tv
+              </a>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPolling(null)}
+              >
+                Cancel
+              </button>
+            </div>
+            <div className="text-xs text-base-content/60 inline-flex items-center gap-2">
+              <span className="loading loading-spinner loading-xs" />
+              {polling.message ?? "Waiting for Trakt authorization…"}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-base-300/60">
+          <Toggle
+            label="Sync libraries"
+            hint="Push your Medusa show list to Trakt as a collection."
+            checked={!!get<boolean>("trakt.sync")}
+            onChange={(v) => set("trakt.sync", v)}
+          />
+          <Toggle
+            label="Sync watchlist"
+            hint="Add Wanted/Snatched episodes to your Trakt watchlist; remove on download."
+            checked={!!get<boolean>("trakt.syncWatchlist")}
+            onChange={(v) => set("trakt.syncWatchlist", v)}
+          />
+        </div>
+      </div>
     </NotifierRow>
   );
 }

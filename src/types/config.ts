@@ -386,11 +386,20 @@ export interface EmailCfg extends NotifyOnTriggersCfg {
   subject: string;
 }
 
-// Watchlist sync rather than a notifier — the full Trakt block has ~15 more
-// fields (OAuth pin flow, sync policy). We only need `enabled` here to gate
-// the Recommended page; the rest stays unmodeled and round-trips on PATCH.
+// Watchlist sync rather than a notifier — the full Trakt block has ~15
+// fields. We model the auth + sync subset that the UI reads or writes; the
+// rest (methodAdd, blacklistName, startPaused, …) stays unmodeled and
+// round-trips on PATCH untouched.
 export interface TraktCfg {
   enabled: boolean;
+  // Filled in by /home/checkTrakTokenOauth after a successful device-code
+  // exchange. Their presence (server-side) is what the UI uses to render
+  // "Connected as <username>".
+  username?: string;
+  accessToken?: string;
+  // Library sync toggles.
+  sync?: boolean;
+  syncWatchlist?: boolean;
 }
 
 // Refreshes DSM's media index (DLNA etc.) via the local `synoindex` binary.
