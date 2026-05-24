@@ -28,7 +28,7 @@ interface ConfirmConfig {
 const CONFIRMS: Partial<Record<MassUpdateAction, ConfirmConfig>> = {
   rename: {
     title: "Rename episode files?",
-    body: "PyMedusa will rename files in this show's folder to match the configured naming pattern. Files on disk will change.",
+    body: "Medusa will rename files in this show's folder to match the configured naming pattern. Files on disk will change.",
     confirmLabel: "Rename",
     variant: "normal",
   },
@@ -36,7 +36,7 @@ const CONFIRMS: Partial<Record<MassUpdateAction, ConfirmConfig>> = {
     title: "Remove show from Medusa?",
     body: (
       <>
-        <p>PyMedusa will forget about this show.</p>
+        <p>Medusa will forget about this show.</p>
         <p>
           Episode files on disk are <strong>kept</strong>. You can re-add the
           show later to resume tracking.
@@ -51,7 +51,7 @@ const CONFIRMS: Partial<Record<MassUpdateAction, ConfirmConfig>> = {
     body: (
       <>
         <p>
-          PyMedusa will remove this show <strong>and permanently delete</strong>{" "}
+          Medusa will remove this show <strong>and permanently delete</strong>{" "}
           every episode file from disk.
         </p>
         <p className="text-error">This cannot be undone.</p>

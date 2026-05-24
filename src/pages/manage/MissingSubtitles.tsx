@@ -222,8 +222,8 @@ export default function MissingSubtitles() {
         <p className="text-sm text-base-content/60">
           Episodes that are downloaded, on disk and set to download subtitles
           but missing one or more of your configured subtitle languages. Run a
-          search per show or library-wide; PyMedusa queries every enabled
-          subtitle provider and drops matching subs alongside the video.
+          search per show or library-wide; Medusa queries every enabled subtitle
+          provider and drops matching subs alongside the video.
         </p>
       </header>
 

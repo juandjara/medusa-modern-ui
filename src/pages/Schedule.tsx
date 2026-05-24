@@ -178,7 +178,7 @@ function CalendarSubscribe() {
 
   // window.location.origin already reflects what the user typed into the
   // browser bar — works behind a reverse proxy or with a non-standard port.
-  // PyMedusa serves the iCal feed at /<webRoot>/calendar. We don't know the
+  // Medusa serves the iCal feed at /<webRoot>/calendar. We don't know the
   // webRoot client-side, so we read it from the current pathname's leading
   // segments — but in practice it's the root or matches the SPA mount.
   const icalUrl = `${window.location.origin}/calendar`;
@@ -252,10 +252,7 @@ function CalendarSubscribe() {
         </div>
         <p className="text-xs text-base-content/50">
           By default the feed requires the same login as Medusa. Toggle{" "}
-          <Link
-            to="/settings/general"
-            className="link link-hover text-primary"
-          >
+          <Link to="/settings/general" className="link link-hover text-primary">
             Public calendar (no auth)
           </Link>{" "}
           on if you want a credential-free URL.

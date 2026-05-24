@@ -13,7 +13,7 @@ import { useAuth } from "./useAuth";
 //   closed     — socket dropped; auto-reconnect timer pending if token present
 export type WsStatus = "idle" | "connecting" | "open" | "closed";
 
-// Message envelope from PyMedusa's WebSocket. The Python side emits via
+// Message envelope from Medusa's WebSocket. The Python side emits via
 // `ws.Message(event, data).push()` (medusa/ws/__init__.py); the JSON shape is
 // `{ event: '<name>', data: <payload> }`.
 interface WsMessage {
@@ -52,7 +52,7 @@ function getStatusSnapshot(): WsStatus {
   return currentStatus;
 }
 
-// PyMedusa's WS handler is mounted at `{WEB_ROOT}/ws/ui` per
+// Medusa's WS handler is mounted at `{WEB_ROOT}/ws/ui` per
 // medusa/server/core.py:215 — not at `/ws`. We assume the default
 // empty WEB_ROOT; if a user runs Medusa behind a subpath, this needs
 // to become configurable.

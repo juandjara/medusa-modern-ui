@@ -103,8 +103,8 @@ function IssuesView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="text-sm text-base-content/60">
-          Issues reported during this PyMedusa session. Cleared on server
-          restart. Polls every 30 seconds.
+          Issues reported during this Medusa session. Cleared on server restart.
+          Polls every 30 seconds.
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -229,7 +229,7 @@ function ActivityView() {
   return (
     <div className="space-y-4">
       <div className="text-sm text-base-content/60">
-        Live activity from the PyMedusa server log. Filters apply server-side.
+        Live activity from the Medusa server log. Filters apply server-side.
       </div>
 
       <div className="flex flex-wrap items-end gap-3">

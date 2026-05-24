@@ -110,17 +110,14 @@ export default function Layout() {
       if (!item.identifier || !item.name) return;
       if (!shouldTrackInLiveQueue(item)) return;
 
-      queryClient.setQueryData<LiveQueueItem[]>(
-        LIVE_QUEUE_KEY,
-        (prev = []) => {
-          const others = prev.filter((i) => i.identifier !== item.identifier);
-          return [...others, item];
-        },
-      );
+      queryClient.setQueryData<LiveQueueItem[]>(LIVE_QUEUE_KEY, (prev = []) => {
+        const others = prev.filter((i) => i.identifier !== item.identifier);
+        return [...others, item];
+      });
 
       // Auto-clean successful items only — failures linger until the user
       // dismisses them from the Queue page. Gate on `success === true`
-      // alone: PyMedusa keeps `inProgress` true through completion, so
+      // alone: Medusa keeps `inProgress` true through completion, so
       // checking it would mean nothing ever gets cleaned. Re-check on
       // timer fire to avoid clearing a reactivated item.
       if (item.success === true) {

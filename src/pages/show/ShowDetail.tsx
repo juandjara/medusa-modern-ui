@@ -150,8 +150,8 @@ export default function ShowDetail() {
         <div className="alert alert-soft alert-warning text-sm">
           <Pause size={16} />
           <div>
-            This show is paused. PyMedusa won't search for new episodes until
-            you resume it.
+            This show is paused. Medusa won't search for new episodes until you
+            resume it.
           </div>
         </div>
       )}
@@ -317,7 +317,7 @@ export default function ShowDetail() {
         <div className="alert alert-soft alert-warning text-sm">
           <AlertTriangle size={16} />
           <div>
-            PyMedusa reports <strong>{reportedSeasons}</strong> seasons for this
+            Medusa reports <strong>{reportedSeasons}</strong> seasons for this
             show, but only <strong>{renderedSeasons}</strong> were returned via
             the episodes endpoint. The two views disagree — likely a backend
             data issue, not a UI bug.

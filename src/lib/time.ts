@@ -1,6 +1,6 @@
 const RTF = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 
-// PyMedusa uses `str(datetime.utcnow())` — a naive UTC string. JS's
+// Medusa uses `str(datetime.utcnow())` — a naive UTC string. JS's
 // Date.parse reads that as *local* time per ES2017, so without this
 // normalisation a "just now" event displays N hours off by the viewer's
 // UTC offset.
@@ -21,7 +21,7 @@ export function formatRelative(iso: string): string {
   return RTF.format(Math.round(diff / 86400), "day");
 }
 
-// PyMedusa history's `actionDate` is a YYYYMMDDHHMMSS integer
+// Medusa history's `actionDate` is a YYYYMMDDHHMMSS integer
 // (sbdatetime.encode). Returns null on bad input.
 export function parseActionDate(n: number): Date | null {
   const s = String(n).padStart(14, "0");

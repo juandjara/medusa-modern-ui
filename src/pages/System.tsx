@@ -35,13 +35,10 @@ interface AliasSourceRow {
   id: string;
   lastRefresh: number;
 }
-const ALIAS_SOURCE_META: Record<
-  string,
-  { label: string; url?: string }
-> = {
+const ALIAS_SOURCE_META: Record<string, { label: string; url?: string }> = {
   local: {
     label: "Medusa's built-in exceptions",
-    url: "https://github.com/pymedusa/Medusa/wiki/Scene-exceptions-and-numbering",
+    url: "https://github.com/Medusa/Medusa/wiki/Scene-exceptions-and-numbering",
   },
   xem: { label: "XEM", url: "http://thexem.info" },
   anidb: { label: "AniDB" },
@@ -154,11 +151,7 @@ export default function System() {
             </thead>
             <tbody>
               {schedulers.map((s) => (
-                <SchedulerRow
-                  key={s.key}
-                  item={s}
-                  backlogDays={backlogDays}
-                />
+                <SchedulerRow key={s.key} item={s} backlogDays={backlogDays} />
               ))}
             </tbody>
           </table>
@@ -208,7 +201,7 @@ export default function System() {
         <div className="bg-base-100 border-2 border-base-300 rounded-box divide-y divide-base-300">
           <MaintenanceRow
             title="Scene exceptions"
-            description="Refresh aliases from XEM, AniDB and AniList. Helps PyMedusa match releases that use alternate show names."
+            description="Refresh aliases from XEM, AniDB and AniList. Helps Medusa match releases that use alternate show names."
             action={
               <button
                 className="btn btn-ghost btn-sm gap-1"
@@ -238,9 +231,7 @@ export default function System() {
                   </p>
                 )}
                 {refreshScenes.isError && (
-                  <p className="italic text-error">
-                    Failed to queue refresh.
-                  </p>
+                  <p className="italic text-error">Failed to queue refresh.</p>
                 )}
                 {aliasSourcesQ.data && aliasSourcesQ.data.length > 0 && (
                   <ul className="space-y-0.5">
@@ -313,7 +304,7 @@ export default function System() {
         body={
           <>
             <p>
-              This drops the cached scene exceptions from PyMedusa's database.
+              This drops the cached scene exceptions from Medusa's database.
               Until the next Refresh runs, scene-name matching will be limited
               to indexer defaults.
             </p>

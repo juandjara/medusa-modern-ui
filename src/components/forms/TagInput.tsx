@@ -6,7 +6,7 @@ interface TagInputProps {
   onChange: (next: string[]) => void;
   placeholder?: string;
   // Optional case-insensitive uniqueness check. Defaults to true to match how
-  // PyMedusa stores word filters (matches lowercased content).
+  // Medusa stores word filters (matches lowercased content).
   uniqueCi?: boolean;
 }
 

@@ -169,7 +169,7 @@ function SettingsForm({ show }: { show: Series }) {
           ))}
         </select>
         <p className="label whitespace-normal">
-          Applied to newly aired episodes once PyMedusa picks them up from the
+          Applied to newly aired episodes once Medusa picks them up from the
           indexer.
         </p>
       </fieldset>

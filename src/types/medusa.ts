@@ -72,7 +72,7 @@ export interface Series {
   countries: string[];
   countryCodes: string[];
   config: SeriesConfig;
-  // Present when fetched with ?detailed=true — what PyMedusa thinks the
+  // Present when fetched with ?detailed=true — what Medusa thinks the
   // season layout is, independent of which episodes it actually has stored.
   seasonCount?: { season: number; episodeCount: number }[];
 }
@@ -206,7 +206,7 @@ export interface SearchResult {
   firstAired: string | null; // 'YYYY-MM-DD' or null when unknown
   network: string | null;
   showUrl: string;
-  // When the show already exists in PyMedusa's library, the backend returns
+  // When the show already exists in Medusa's library, the backend returns
   // [indexerName, seriesId] at tuple position 8; we collapse it into the slug
   // ("tvdb12345") so the UI can link straight to /show/{slug}.
   alreadyAddedSlug: string | null;
@@ -409,7 +409,7 @@ export interface CachedRelease {
   url: string;
   infoUrl: string | null;
   time: string;
-  // PyMedusa quality bitmask (see QUALITY constants).
+  // Medusa quality bitmask (see QUALITY constants).
   quality: number;
   releaseGroup: string | null;
   dateAdded: string;
@@ -529,7 +529,7 @@ export function qualitySummary(allowed: number[]) {
   return "Custom";
 }
 
-// daisyUI classes for series status strings emitted by PyMedusa to be used in badges
+// daisyUI classes for series status strings emitted by Medusa to be used in badges
 export function seriesStatusBadgeClass(status: string) {
   const s = status.toLowerCase();
   if (s.includes("continu") || s.includes("running")) {
@@ -656,7 +656,7 @@ export type LiveQueueCategory =
   | "downloadHandler"
   | "other";
 
-// Keep in sync with PyMedusa's queue-name emitters if new types are added.
+// Keep in sync with Medusa's queue-name emitters if new types are added.
 export function categorizeLiveItem(name: string): LiveQueueCategory {
   if (name === "DOWNLOADHANDLER") return "downloadHandler";
   if (name.startsWith("SNATCH-")) return "snatch";

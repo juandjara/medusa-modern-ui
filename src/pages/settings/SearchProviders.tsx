@@ -726,7 +726,7 @@ function ProviderOptions({ provider }: { provider: ProviderSummary }) {
                 <p className="mt-1">
                   Captcha-protected providers:{" "}
                   <a
-                    href="https://github.com/pymedusa/Medusa/wiki/Configure-Providers-with-captcha-protection"
+                    href="https://github.com/Medusa/Medusa/wiki/Configure-Providers-with-captcha-protection"
                     target="_blank"
                     rel="noreferrer"
                     className="link link-hover text-primary"

@@ -148,7 +148,7 @@ export default function EpisodeSearchModal({
     });
   }, [queryClient, seriesSlug, season, episode]);
 
-  // 3) Re-run mutation. Variable name `forceSearch` matches PyMedusa's
+  // 3) Re-run mutation. Variable name `forceSearch` matches Medusa's
   // `forced_search_queue_scheduler`; UI label is "Re-run search". Completion
   // arrives via the QueueItemUpdate WS event, not the HTTP response.
   const forceSearch = useMutation({
@@ -194,7 +194,7 @@ export default function EpisodeSearchModal({
   });
 
   // 5) Streamed results via `addManualSearchResult` (classes.py:253).
-  // PyMedusa pushes one event per cached result as providers respond, so the
+  // Medusa pushes one event per cached result as providers respond, so the
   // user sees rows appear as the search round runs instead of waiting for the
   // queue item to finish. The completion refetch (below) still runs as a
   // safety net for any dropped events.
@@ -207,7 +207,11 @@ export default function EpisodeSearchModal({
       if (r.season !== season) return;
       // An empty `episodes` list signals a season pack — keep those; otherwise
       // require an explicit match on the open episode.
-      if (r.episodes && r.episodes.length > 0 && !r.episodes.includes(episode)) {
+      if (
+        r.episodes &&
+        r.episodes.length > 0 &&
+        !r.episodes.includes(episode)
+      ) {
         return;
       }
       const key = [
@@ -254,7 +258,7 @@ export default function EpisodeSearchModal({
     i.name.startsWith("MANUAL-"),
   );
 
-  // "Active" = success still null. `inProgress` is unreliable — PyMedusa
+  // "Active" = success still null. `inProgress` is unreliable — Medusa
   // keeps it true through a successful completion.
   const liveSearchActive =
     !!liveManualSearch && liveManualSearch.success == null;

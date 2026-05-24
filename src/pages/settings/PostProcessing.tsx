@@ -54,9 +54,7 @@ export default function PostProcessing() {
   const clientsQ = useQuery({
     queryKey: ["config", "clients"],
     queryFn: ({ signal }) =>
-      api
-        .get<ConfigClients>("/config/clients", { signal })
-        .then((r) => r.data),
+      api.get<ConfigClients>("/config/clients", { signal }).then((r) => r.data),
   });
 
   if (isLoading || !saved) {
@@ -347,7 +345,7 @@ function FileHandlingSection({ get, set }: { get: Getter; set: Setter }) {
               target="_blank"
               rel="noreferrer"
               className="link link-hover text-primary"
-              href="https://github.com/pymedusa/Medusa/wiki/Post-Processing#extra-scripts"
+              href="https://github.com/Medusa/Medusa/wiki/Post-Processing#extra-scripts"
             >
               the wiki
             </a>{" "}

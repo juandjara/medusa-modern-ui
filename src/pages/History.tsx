@@ -53,7 +53,7 @@ export default function History() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Live updates: PyMedusa pushes one `historyUpdate` event per row inserted
+  // Live updates: Medusa pushes one `historyUpdate` event per row inserted
   // (medusa/history.py). Invalidate the whole `["history", …]` family — the
   // new row may land on a different filter/page than the one we're viewing.
   useWebSocket({
@@ -325,7 +325,9 @@ function HistoryRow({
       <td className="whitespace-nowrap">
         <span
           className={`badge badge-xs ${isSubtitle ? "badge-ghost opacity-50" : ""}`}
-          title={isSubtitle ? "Quality of the episode, not the subtitle" : undefined}
+          title={
+            isSubtitle ? "Quality of the episode, not the subtitle" : undefined
+          }
         >
           {qualityName(entry.quality)}
         </span>

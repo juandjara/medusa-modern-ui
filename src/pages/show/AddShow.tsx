@@ -251,7 +251,7 @@ export default function AddShow() {
   // the success+slug.
   const queueItemId = addShow.data?.identifier;
 
-  // PyMedusa composes slugs as `${indexer}${showId}` (indexers/utils.py).
+  // Medusa composes slugs as `${indexer}${showId}` (indexers/utils.py).
   const expectedSlug = selected
     ? `${selected.indexer}${selected.showId}`
     : null;
@@ -344,7 +344,7 @@ export default function AddShow() {
                 Couldn't add {selected.title}
               </div>
               <p className="text-sm text-base-content/70">
-                The indexer fetch or save step failed. Check PyMedusa's logs for
+                The indexer fetch or save step failed. Check Medusa's logs for
                 details, then try again.
               </p>
             </div>
@@ -587,8 +587,7 @@ export default function AddShow() {
           <span className="loading loading-spinner loading-sm" />
         ) : (
           <p className="label whitespace-normal text-warning">
-            No root directories configured. Add one in PyMedusa's settings
-            first.
+            No root directories configured. Add one in Medusa's settings first.
           </p>
         )}
       </fieldset>
