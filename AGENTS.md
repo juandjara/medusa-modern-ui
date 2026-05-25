@@ -4,12 +4,11 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## Repository layout
 
-This workspace is a **two-process rewrite of Medusa**: the existing Python/Tornado backend (`pymedusa/`) is kept as-is and a new React UI (`medusa-ui/`) is being built against its HTTP/WebSocket API. The two are coupled but live in independent git repos with their own toolchains. Always confirm which side a request lives on before editing.
+This workspace is the **standalone React frontend** for [Medusa](https://github.com/juandjara/medusa-modern-ui) — a modern UI rewrite of the Medusa media server. The backend lives in a separate project at `git@github.com:juandjara/pymedusa.git` (private fork). The two are coupled via HTTP/WebSocket API but are independent repos with their own toolchains. Always confirm which side a request lives on before editing.
 
-- `pymedusa/` — upstream Medusa fork. Python 3.9–3.13 + Tornado web server. Manages shows, providers, downloads, post-processing, scheduling, notifications. Serves the API the new UI talks to. Default port `8081`.
-- `medusa-ui/` — the React rewrite. Vite + React 19 + TS + Tailwind v4 + DaisyUI v5 + TanStack Query + React Router 7. Replaces the legacy `themes-default/slim` Vue UI for everything in `src/pages/`.
-- `medusa-frontend-guide.md` — the *original* design doc. Scope drifted wider than the guide's "skipped" list as the rewrite filled in (see "Rewrite scope" below). Keep it for historical context; trust this file + the code for what's actually shipped.
-- `pymedusa/themes-default/slim/` and `pymedusa/themes/{dark,light}/` — the legacy Vue frontend. Still exercised by CI (`node-frontend.yml`) but **not** part of the rewrite. Don't change it unless explicitly asked.
+- `.` — the React frontend. Vite + React 19 + TS + Tailwind v4 + DaisyUI v5 + TanStack Query + React Router 7. Everything in `src/pages/`.
+- `medusa-frontend-guide.md` — the original design doc. Scope drifted wider than the guide's "skipped" list as the rewrite filled in (see "Rewrite scope" below). Keep it for historical context; trust this file + the code for what's actually shipped.
+- `backend` — the **Medusa backend** is **not in this repo**. It's the separate private fork at `git@github.com:juandjara/pymedusa.git`. Python 3.9–3.13 + Tornado web server, default port `8081`. The public upstream is at `github.com/pymedusa/Medusa`.
 
 ### Rewrite scope (current state)
 
@@ -26,37 +25,9 @@ Niche legacy notifiers not ported: Boxcar2, Pushalot, Growl, Prowl, libnotify, P
 
 ## Commands
 
-### Backend (`pymedusa/`)
-
-Uses `uv` for dependency management; `setup.py test` (legacy) wraps pytest.
-
-```bash
-# Install deps (first time / after pyproject changes)
-uv sync                                # or: uv add -r requirements.txt -r test_requirements.txt
-
-# Run the server (data dir, port, etc. via flags; see medusa/__main__.py)
-uv run python start.py                 # serves on http://localhost:8081 by default
-uv run python start.py --port 8888 --nolaunch --datadir ./data
-
-# Tests (matches CI in .github/workflows/python-backend.yml)
-uv run python setup.py test -a "tests -vv --cov=medusa --cov-report=xml"
-uv run pytest tests/test_helpers.py    # single file
-uv run pytest tests/test_helpers.py::test_specific_thing   # single test
-uv run pytest -k "scene_exceptions"    # by keyword
-
-# Lint (flake8 with project rules in setup.cfg)
-uv run python setup.py test -a "medusa --flake8"
-
-# Tornado API contract tests (Dredd, against a running server on :8081)
-yarn install && yarn test-api          # uses dredd/dredd.yml
-```
-
-### Frontend (`medusa-ui/`)
-
 Package manager is **pnpm** (pinned via `packageManager` in `package.json`; Corepack picks it up automatically). `.npmrc` enforces `minimum-release-age=10080` (7d) for supply-chain hardening and `engine-strict=true` for version pinning. Don't shell out to `npm`/`yarn`.
 
 ```bash
-cd medusa-ui
 pnpm install
 pnpm dev           # Vite dev server (proxies /api, /ws, /login, /logout, /token, /home, /errorlogs, /browser, /images, /config/* to localhost:8081 — see vite.config.ts)
 pnpm build         # tsc -b && vite build → dist/
@@ -64,7 +35,7 @@ pnpm lint          # eslint with typescript-eslint + react-hooks/react-refresh
 pnpm preview       # serve built dist/
 ```
 
-For day-to-day work both must run together: backend on `:8081`, frontend on Vite's default `:5173`. If the backend listens on a different host/port, edit `SERVER_URL` in `medusa-ui/vite.config.ts`.
+For day-to-day work the backend must be running on `:8081` (see the `pymedusa` repo for how to start it). If the backend listens on a different host/port, edit `SERVER_URL` in `vite.config.ts`.
 
 ## Architecture you have to know to be productive
 
@@ -72,13 +43,13 @@ For day-to-day work both must run together: backend on `:8081`, frontend on Vite
 
 The frontend talks to **three different surfaces on the same backend**, and changes to any of them must respect all three:
 
-1. **`/api/v2/*` — modern JSON API** (`pymedusa/medusa/server/api/v2/`). Each resource has a `*Handler` registered in `medusa/server/core.py` (`get_apiv2_handlers`). All handlers extend `BaseRequestHandler` (`v2/base.py`) which runs each request on a `ThreadPoolExecutor` and enforces JWT auth (`x-auth: Bearer <jwt>`). New UI features should go here.
+1. **`/api/v2/*` — modern JSON API** (`medusa/server/api/v2/` in the backend repo). Each resource has a `*Handler` registered in `medusa/server/core.py` (`get_apiv2_handlers`). All handlers extend `BaseRequestHandler` (`v2/base.py`) which runs each request on a `ThreadPoolExecutor` and enforces JWT auth (`x-auth: Bearer <jwt>`). New UI features should go here.
 2. **Legacy proxied endpoints** — `/login`, `/logout`, `/token`, `/home`, `/errorlogs`, `/browser`, `/config/general`, `/config/postProcessing`, `/images`. These are old Cheetah/Tornado handlers under `medusa/server/web/`. The UI still depends on them: `/login` sets the `SECURE_TOKEN` cookie that the WebSocket needs; `/token` is the JWT silent-refresh endpoint; `/images` serves cached art. Removing one will break the UI even if the v2 API looks fine.
-3. **WebSocket `/ws/ui`** — `medusa/ws/handler.py` (`WebSocketUIHandler`). Uses `@authenticated` against the `SECURE_TOKEN` cookie, **not** the JWT. Messages are pushed via `ws.Message(event, data).push()` and arrive as `{ event, data }` JSON envelopes — the key is `event`, not `type`. The frontend hook `medusa-ui/src/lib/websocket.ts` is a module-singleton (one socket per tab, fan-out to N subscribers) with 5s reconnect while a JWT is in storage.
+3. **WebSocket `/ws/ui`** — `medusa/ws/handler.py` (`WebSocketUIHandler`). Uses `@authenticated` against the `SECURE_TOKEN` cookie, **not** the JWT. Messages are pushed via `ws.Message(event, data).push()` and arrive as `{ event, data }` JSON envelopes — the key is `event`, not `type`. The frontend hook `src/lib/websocket.ts` is a module-singleton (one socket per tab, fan-out to N subscribers) with 5s reconnect while a JWT is in storage.
 
 ### WebSocket event names
 
-Every event the backend can push, where it's emitted, and what the new UI currently does with it. When adding a feature that needs live updates, check this list first — most server-driven state changes already fire something, so reach for an existing event before inventing a new one.
+Every event the backend can push, where it's emitted, and what the frontend currently does with it. When adding a feature that needs live updates, check this list first — most server-driven state changes already fire something, so reach for an existing event before inventing a new one.
 
 | Event | Pushed from | Payload | UI subscribers |
 |---|---|---|---|
@@ -96,11 +67,11 @@ Every event the backend can push, where it's emitted, and what the new UI curren
 Notes:
 - Event names are **case-sensitive** and **not consistent** (`QueueItemShow` vs `showAdded` vs `historyUpdate`). Match the existing casing exactly when pushing or subscribing — the dispatcher silently drops misspellings.
 - The dispatcher is a flat key match (`handlers[event]?.(data)` in `websocket.ts:115`). There's no wildcard, no pattern, no namespace.
-- If you push a brand-new event from the backend, the WS handler also buffers messages while no clients are connected — see the `backlogged_msgs` list in `ws/handler.py`. The buffer is currently disabled (`@TODO` in `ws/__init__.py:55`), so events emitted before the first client connects are dropped.
+- If you push a brand-new event from the backend, the WS handler also buffers messages while no clients are connected — see the `backlogged_msgs` list in `ws/handler.py`. The buffer is currently disabled (`@TODO` in `ws/__init__.py:55`), so events emitted before the first client connect are dropped.
 
 ### Frontend dual-auth, dual-storage
 
-`medusa-ui/src/lib/api.ts` is the only place that owns auth state. Important invariants when changing it:
+`src/lib/api.ts` is the only place that owns auth state. Important invariants when changing it:
 
 - Tokens live in **either** `localStorage` (Remember me) **or** `sessionStorage` (default), never both. `writeToken` enforces this; reads prefer `localStorage`.
 - Initial sign-in hits **both** `/api/v2/authenticate` (JWT in JSON body, controls `exp`) and the legacy `/login` (sets `SECURE_TOKEN` cookie for `/ws/ui` + legacy handlers). Dropping the legacy call breaks live updates.
@@ -116,7 +87,7 @@ Notes:
 - Component conventions: forms reuse the helpers in `src/components/forms/` (`Field`, `Section`, `SaveBar`, `Toggle`, `TagInput`, `SecretInput`, `FolderPicker`). Don't reinvent these.
 - Settings pages use `useDraftConfig<T>({ section })` from `lib/useDraftConfig.ts` — it wraps the GET + PATCH + dirty/saved/error state and renders cleanly under `<SaveBar>`. Don't roll a separate form state manager for a new settings page; extend the hook if needed.
 - Cross-file query-key constants live in `lib/queryKeys.ts` (`LIVE_QUEUE_KEY` is the canonical example). Local single-file keys stay co-located.
-- Config section queries use `["config", <section>]` as their query key (e.g. `["config", "search"]` is shared by System.tsx for backlogDays and BacklogOverview.tsx for the backlog N-day limit display). The `useDraftConfig` hook also uses this convention internally.
+- Config section queries use `["config", <section>]` as their query key (e.g. `["config", "search"]` is shared by `System.tsx` for backlogDays and `BacklogOverview.tsx` for the backlog N-day limit display). The `useDraftConfig` hook also uses this convention internally.
 
 ### UI patterns that solidified
 
@@ -132,22 +103,22 @@ These are the conventions the rewrite settled on; deviating from them needs a re
 - **External stores** subscribe via `useSyncExternalStore` (see `useWebSocketStatus` in `lib/websocket.ts`). Don't roll your own `useEffect` + `setState` subscription pattern — the React lint rule will reject it.
 - **Match destructive action labels** in bulk surfaces to the per-show ones — `Remove from Medusa` / `Delete show & files` appear identically in `ShowActionsMenu`, BulkShows' Run-job dropdown, and confirmation dialogs.
 
-### Backend things easy to get wrong
-
-- **Three SQLite DBs**: `main.db` (shows/episodes/config), `cache.db`, `failed.db`. Schemas in `medusa/databases/{main_db,cache_db,failed_db,recommended_db}.py`. `DBConnection` (`medusa/db.py`) is a hand-rolled wrapper around `sqlite3` with per-file locks; don't reach for SQLAlchemy.
-- **Provider system**: every torrent/NZB provider inherits `medusa/providers/generic_provider.py`. Prowlarr (`providers/prowlarr.py`) is the meta-provider that proxies to a user-configured Prowlarr instance. See the Prowlarr scope note below.
-- **Naming/post-processing/search** are largely heuristic and rely on `guessit` (vendored in `lib/guessit/`). When changing parser behavior, run `tests/test_postprocessor_parse_info.py` and `tests/test_guessit.py`.
-- **Backlog search N-day limit**: The "Backlog search all shows" button (`PUT /search/backlog {}`) is limited by `BACKLOG_DAYS` (default 7, configurable in Search settings). Per-show "Backlog search" (`PUT /search/backlog {showSlug}`) runs a full historical scan. The scheduler's normal cycle also runs full scans, but `BacklogSearcher.forced` is never reset to `False` after a forced run (see `medusa/search/backlog.py` — bug since `e252daad4`), so one forced run leaks into all subsequent scheduled cycles until server restart.
-- **Parser `series_name` priority**: `series_name = guess.get('title') or guess.get('alias')` in `name_parser/parser.py:515`. `title` is guessit's canonical name (without year/country); `alias` includes disambiguation (e.g. "Show Name US"). Scene exceptions still work regardless because they're matched via the name cache (Tier 1) and `get_scene_exception_by_name()` fallback (Tier 3) in `helpers.get_show()`.
-- A lot of Python files have **per-file flake8 suppressions** in `setup.cfg`'s `flake8-ignore`. Don't strip these without understanding why — many are working around docstring/naming rules in vendored or legacy modules.
-
 ### Prowlarr integration scope (project-specific constraint)
 
-The Prowlarr settings panel in `medusa-ui` consumes **only `GET /api/v1/indexer`** (indexers the user has already configured in Prowlarr). Do **not** call `GET /api/v1/indexer/schema` and do **not** surface Prowlarr's full catalog (~600 definitions) anywhere. Configuring a brand-new indexer in Prowlarr requires per-indexer credentials/captchas and belongs in Prowlarr's own UI — Medusa acts purely as a consumer. The "Available" tab means "configured in Prowlarr, not yet imported to Medusa." Nothing else.
+The Prowlarr settings panel consumes **only `GET /api/v1/indexer`** (indexers the user has already configured in Prowlarr). Do **not** call `GET /api/v1/indexer/schema` and do **not** surface Prowlarr's full catalog (~600 definitions) anywhere. Configuring a brand-new indexer in Prowlarr requires per-indexer credentials/captchas and belongs in Prowlarr's own UI — Medusa acts purely as a consumer. The "Available" tab means "configured in Prowlarr, not yet imported to Medusa." Nothing else.
+
+### Backend reference
+
+The backend lives in a separate repo at `git@github.com:juandjara/pymedusa.git`. When debugging API issues you'll need to look there. Key areas:
+
+- **Three SQLite DBs**: `main.db` (shows/episodes/config), `cache.db`, `failed.db`. Schemas in `medusa/databases/{main_db,cache_db,failed_db,recommended_db}.py`. `DBConnection` (`medusa/db.py`) is a hand-rolled wrapper around `sqlite3` with per-file locks.
+- **Provider system**: every torrent/NZB provider inherits `medusa/providers/generic_provider.py`. Prowlarr (`providers/prowlarr.py`) is the meta-provider that proxies to a user-configured Prowlarr instance.
+- **Naming/post-processing/search** are largely heuristic and rely on `guessit` (vendored in `lib/guessit/`). When changing parser behavior, run `tests/test_postprocessor_parse_info.py` and `tests/test_guessit.py`.
+- **API v2 handlers**: all live under `medusa/server/api/v2/`, each extends `BaseRequestHandler` (`v2/base.py`).
+- **WebSocket**: `medusa/ws/handler.py` — `WebSocketUIHandler` with `@authenticated` against the `SECURE_TOKEN` cookie. Messages pushed via `ws.Message(event, data).push()`.
+- **Setup/run**: uses `uv` for dependency management. `uv run python start.py` serves on `:8081` by default.
 
 ## Conventions
 
-- **Python**: project follows flake8 with `flake8-import-order` (cryptography style), `flake8-quotes` (single inline, double docstrings), `flake8-docstrings`. Max line length 160. Don't change the import ordering scheme casually — pre-existing files rely on it.
 - **TypeScript**: ESLint config is `typescript-eslint` recommended + `react-hooks` + `react-refresh/vite`. The codebase already uses React 19 features (`useEffectEvent` in `websocket.ts`) — assume React 19 idioms, not 18.
-- **Commit/branch model on the backend**: `develop` is the base branch for upstream Medusa; `master` is release-only. PRs go off topic branches based on `develop`. The frontend repo is independent.
-- **The legacy Vue UI in `themes-default/slim/` is still wired into CI** (`node-frontend.yml`). Don't accidentally break it; if you do touch it, run `yarn lint && yarn lint-css && yarn test` in that directory.
+- **Git**: This is a standalone repo (`origin: git@github.com:juandjara/medusa-modern-ui.git`). The backend lives in its own repo.
