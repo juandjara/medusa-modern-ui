@@ -46,33 +46,10 @@ Ship `dist/` behind any reverse-proxy, routing API/WebSocket paths to the runnin
 
 ### Docker Compose
 
-The frontend is published as `ghcr.io/juandjara/medusa-modern-ui:latest`. Pair it with a pymedusa container like this:
+See the `deploy/` folder for an example on how to deploy this project with Docker Compose and Caddy:
 
-```yaml
-services:
-  pymedusa:
-    build: /path/to/pymedusa
-    container_name: pymedusa
-    restart: unless-stopped
-    ports:
-      - 8081:8081
-    volumes:
-      - ./config:/config
-    networks:
-      - web
-
-  pymedusa_ui:
-    image: ghcr.io/juandjara/medusa-modern-ui:latest
-    container_name: pymedusa_ui
-    restart: unless-stopped
-    networks:
-      - web
-```
-
-Then run a reverse-proxy (e.g. Caddy) on the same network that routes:
-
-- `/api/* /token /login /logout /images/* /cache/* /home/* /errorlogs/* /browser/* /config/* /ws/*` → `pymedusa:8081`
-- Everything else → `pymedusa_ui:80`
+- `deploy/docker-compose.yml` — wires up pymedusa + medusa-modern-ui on a shared `web` network (requires an external reverse-proxy like Caddy).
+- `deploy/Caddyfile` — example Caddy v2 config that routes API/WebSocket paths to pymedusa and everything else to the frontend.
 
 ## Tech stack
 

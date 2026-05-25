@@ -1,0 +1,35 @@
+# Medusa homelab stack — pymedusa backend + medusa-modern-ui frontend,
+# routed externally by the existing Caddy using the `web` network
+#
+# this docker-compose.yml file is supposed to be placed in the root folder
+# where a local installation of pymedusa is present
+
+services:
+  pymedusa:
+    build: .
+    container_name: pymedusa
+    restart: unless-stopped
+    ports:
+      - 8888:8081 # expose the backend port if you want to connect a local frontend
+    environment:
+      # setting PUID and GUID will help adjusting the file permission of bind volumes like /config
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/UTC # Define your timezone here
+    volumes:
+      # persist the database and configuration for the backend
+      - ./config:/config
+      # configure here other volumes for mounting your media and downloads into the backend filesystem
+    networks:
+      - web
+
+  pymedusa_ui:
+    image: ghcr.io/juandjara/medusa-modern-ui:latest
+    container_name: pymedusa_ui
+    restart: unless-stopped
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

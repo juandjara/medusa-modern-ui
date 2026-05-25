@@ -1,0 +1,9 @@
+medusa.your.domain {
+  @api path /api/* /token /login /logout /images/* /cache/* /home/* /errorlogs/* /browser/* /config/* /ws/*
+  handle @api {
+    reverse_proxy pymedusa:8081
+  }
+  handle {
+    reverse_proxy pymedusa_ui:80
+  }
+}
