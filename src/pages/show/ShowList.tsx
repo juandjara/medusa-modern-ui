@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   FolderInput,
   Plus,
   Search,
@@ -18,11 +20,29 @@ import {
   type ShowStatsResponse,
 } from "../../types/medusa";
 
-function useSeries() {
-  return useQuery({
-    queryKey: ["series"],
+const PAGE_SIZE = 24;
+
+interface SeriesPage {
+  items: Series[];
+  totalPages: number;
+  totalItems: number;
+}
+
+function useSeries(page: number) {
+  return useQuery<SeriesPage>({
+    queryKey: ["series", page],
     queryFn: ({ signal }) =>
-      api.get<Series[]>("/series", { signal }).then((r) => r.data),
+      api
+        .get<Series[]>("/series", {
+          signal,
+          params: { page, limit: PAGE_SIZE },
+        })
+        .then((r) => ({
+          items: r.data,
+          totalPages: Number(r.headers["x-pagination-total"]) || 1,
+          totalItems: Number(r.headers["x-pagination-count"]) || r.data.length,
+        })),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -36,9 +56,34 @@ function useShowStats() {
 }
 
 export default function ShowList() {
-  const { data: shows, isLoading } = useSeries();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const search = searchParams.get("q") ?? "";
+
+  const { data, isLoading, isFetching } = useSeries(page);
   const { data: statsData } = useShowStats();
-  const [search, setSearch] = useState("");
+
+  const setPage = (next: number) => {
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      if (next <= 1) params.delete("page");
+      else params.set("page", String(next));
+      return params;
+    });
+  };
+
+  const setSearch = (value: string) => {
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        if (value) params.set("q", value);
+        else params.delete("q");
+        params.delete("page");
+        return params;
+      },
+      { replace: true },
+    );
+  };
 
   const statsBySlug = useMemo(() => {
     const map: Record<string, ShowStat> = {};
@@ -50,6 +95,9 @@ export default function ShowList() {
     return map;
   }, [statsData]);
 
+  const shows = data?.items;
+  const totalPages = data?.totalPages ?? 1;
+  const totalItems = data?.totalItems ?? 0;
   const filtered = shows?.filter((s) =>
     s.title.toLowerCase().includes(search.toLowerCase()),
   );
@@ -162,7 +210,9 @@ export default function ShowList() {
       {filtered?.length === 0 && (
         <div className="text-center py-16 space-y-3 text-base-content/50">
           {search ? (
-            <p>No shows match your filter.</p>
+            <p>No shows match your filter on this page.</p>
+          ) : totalItems > 0 ? (
+            <p>No shows on this page.</p>
           ) : (
             <>
               <Tv className="mx-auto" size={32} />
@@ -177,6 +227,30 @@ export default function ShowList() {
               </Link>
             </>
           )}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-base-content/70 pt-2">
+          <div>
+            Page {page} of {totalPages} · {totalItems.toLocaleString()} shows
+          </div>
+          <div className="join">
+            <button
+              className="btn btn-sm join-item"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1 || isFetching}
+            >
+              <ChevronLeft size={14} /> Prev
+            </button>
+            <button
+              className="btn btn-sm join-item"
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page >= totalPages || isFetching}
+            >
+              Next <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
       )}
     </div>
