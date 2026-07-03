@@ -28,9 +28,10 @@ interface SeriesPage {
   totalItems: number;
 }
 
-function useSeries(page: number) {
+function useSeries(page: number, enabled: boolean) {
   return useQuery<SeriesPage>({
     queryKey: ["series", page],
+    enabled,
     queryFn: ({ signal }) =>
       api
         .get<Series[]>("/series", {
@@ -43,6 +44,32 @@ function useSeries(page: number) {
           totalItems: Number(r.headers["x-pagination-count"]) || r.data.length,
         })),
     placeholderData: keepPreviousData,
+  });
+}
+
+// The backend has no title-filter param on /series, so global search fetches
+// the whole library once (the server returns pages of a globally title-sorted
+// list) and filters client-side. Only enabled while a search query is active.
+function useAllSeries(enabled: boolean) {
+  return useQuery<Series[]>({
+    queryKey: ["series", "all"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: async ({ signal }) => {
+      const all: Series[] = [];
+      let page = 1;
+      let totalPages: number;
+      do {
+        const r = await api.get<Series[]>("/series", {
+          signal,
+          params: { page, limit: 1000 },
+        });
+        all.push(...r.data);
+        totalPages = Number(r.headers["x-pagination-total"]) || 1;
+        page++;
+      } while (page <= totalPages);
+      return all;
+    },
   });
 }
 
@@ -60,7 +87,9 @@ export default function ShowList() {
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const search = searchParams.get("q") ?? "";
 
-  const { data, isLoading, isFetching } = useSeries(page);
+  const searching = search.trim().length > 0;
+  const pageQuery = useSeries(page, !searching);
+  const allQuery = useAllSeries(searching);
   const { data: statsData } = useShowStats();
 
   const setPage = (next: number) => {
@@ -95,12 +124,33 @@ export default function ShowList() {
     return map;
   }, [statsData]);
 
-  const shows = data?.items;
-  const totalPages = data?.totalPages ?? 1;
-  const totalItems = data?.totalItems ?? 0;
-  const filtered = shows?.filter((s) =>
-    s.title.toLowerCase().includes(search.toLowerCase()),
+  const searchTerm = search.trim().toLowerCase();
+  const matches = useMemo(
+    () =>
+      searching
+        ? allQuery.data?.filter((s) =>
+            s.title.toLowerCase().includes(searchTerm),
+          )
+        : undefined,
+    [searching, allQuery.data, searchTerm],
   );
+
+  // While searching, paginate the globally-filtered list client-side;
+  // otherwise show the server-paginated page as-is.
+  const totalItems = searching
+    ? (matches?.length ?? 0)
+    : (pageQuery.data?.totalItems ?? 0);
+
+  const totalPages = searching
+    ? Math.max(1, Math.ceil((matches?.length ?? 0) / PAGE_SIZE))
+    : (pageQuery.data?.totalPages ?? 1);
+
+  const visible = searching
+    ? matches?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    : pageQuery.data?.items;
+
+  const isLoading = searching ? allQuery.isLoading : pageQuery.isLoading;
+  const isFetching = searching ? allQuery.isFetching : pageQuery.isFetching;
 
   if (isLoading)
     return (
@@ -159,7 +209,7 @@ export default function ShowList() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {filtered?.map((show) => (
+        {visible?.map((show) => (
           <Link
             key={show.id.slug}
             to={`/show/${show.id.slug}`}
@@ -207,10 +257,10 @@ export default function ShowList() {
         ))}
       </div>
 
-      {filtered?.length === 0 && (
+      {visible?.length === 0 && (
         <div className="text-center py-16 space-y-3 text-base-content/50">
-          {search ? (
-            <p>No shows match your filter on this page.</p>
+          {searching ? (
+            <p>No shows match your filter.</p>
           ) : totalItems > 0 ? (
             <p>No shows on this page.</p>
           ) : (
@@ -233,7 +283,8 @@ export default function ShowList() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-base-content/70 pt-2">
           <div>
-            Page {page} of {totalPages} · {totalItems.toLocaleString()} shows
+            Page {page} of {totalPages} · {totalItems.toLocaleString()}{" "}
+            {searching ? "matches" : "shows"}
           </div>
           <div className="join">
             <button
