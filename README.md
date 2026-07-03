@@ -2,7 +2,9 @@
 
 A complete frontend rewrite of [Medusa](https://github.com/pymedusa/Medusa) — the automatic TV show library manager — replacing the legacy Vue 2 UI with React 19 + TypeScript. The Python/Tornado backend runs unchanged; this is a drop-in replacement for the frontend only.
 
-> **Project status: beta.** The author has been running it daily as his primary Medusa UI since late May 2026, but it has not yet had wide community testing. It runs *alongside* the legacy UI, not instead of it — the backend keeps serving the old frontend on its own port, so you can [switch back](#reverting-to-the-legacy-ui) at any time. See [Compatibility](#compatibility) for the exact backend commit it was developed against.
+> **Project status: beta.** The author has been running it daily as his primary Medusa UI since late May 2026, but it has not yet had wide community testing. It runs _alongside_ the legacy UI, not instead of it — the backend keeps serving the old frontend on its own port, so you can [switch back](#reverting-to-the-legacy-ui) at any time. See [Compatibility](#compatibility) for the exact backend commit it was developed against.
+
+![Show list](docs/screenshots/show-list.webp)
 
 ## What's different from the original Medusa?
 
@@ -33,18 +35,28 @@ Some legacy surfaces were intentionally left out, either because they are rarely
 - **Test rename** page
 - **Manage Searches** page — its useful parts (scheduler status, backlog pause, forced searches) were folded into the System page
 - Per-show **advanced search templates** CRUD
-- Niche notifiers: Boxcar2, Pushalot, Growl, Prowl, libnotify, PyTivo — the mainstream ones (Kodi, Plex, Emby/Jellyfin, Synology, Pushbullet, Pushover, Telegram, Discord, Slack, Email, Trakt) *are* implemented
+- Niche notifiers: Boxcar2, Pushalot, Growl, Prowl, libnotify, PyTivo — the mainstream ones (Kodi, Plex, Emby/Jellyfin, Synology, Pushbullet, Pushover, Telegram, Discord, Slack, Email, Trakt) _are_ implemented
 - The UI must be served at the domain root — Medusa's `web_root` prefix option is not supported
 
 If one of these is a blocker for you, the [legacy UI remains available](#reverting-to-the-legacy-ui) — both frontends can be used against the same backend at the same time.
 
+## Screenshots
+
+| Show detail                                       | Schedule                                    |
+| ------------------------------------------------- | ------------------------------------------- |
+| ![Show detail](docs/screenshots/show-detail.webp) | ![Schedule](docs/screenshots/schedule.webp) |
+
+| History (live-updating)                   | Settings                                                  |
+| ----------------------------------------- | --------------------------------------------------------- |
+| ![History](docs/screenshots/history.webp) | ![Settings](docs/screenshots/settings-notifications.webp) |
+
 ## Compatibility
 
-| Backend | Status |
-| --- | --- |
-| `pymedusa/Medusa` `develop` @ [`ecc1a23`](https://github.com/pymedusa/Medusa/commit/ecc1a2392c744a18f763f0eff0b7baed006977d0) (2026-05-17, internal version 1.0.25) | Developed and daily-driven against this commit |
-| `develop` commits after `ecc1a23` | Expected to work (the apiv2 surface changes rarely) but not yet tested |
-| `master` releases | Not tested |
+| Backend                                                                                                                                                             | Status                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `pymedusa/Medusa` `develop` @ [`ecc1a23`](https://github.com/pymedusa/Medusa/commit/ecc1a2392c744a18f763f0eff0b7baed006977d0) (2026-05-17, internal version 1.0.25) | Developed and daily-driven against this commit                         |
+| `develop` commits after `ecc1a23`                                                                                                                                   | Expected to work (the apiv2 surface changes rarely) but not yet tested |
+| `master` releases                                                                                                                                                   | Not tested                                                             |
 
 One optional feature degrades on a stock backend: release **info links** in the manual episode search results come from a small backend patch (adding `infoUrl` to Newznab/Torznab results) that has not been upstreamed yet. On an unpatched backend those links simply don't render — everything else uses stock apiv2 and legacy endpoints.
 
@@ -83,7 +95,7 @@ See the `deploy/` folder for an example on how to deploy this project with Docke
 This project is purely additive: it never modifies the backend, and the backend keeps serving the legacy Vue UI on its own port the whole time. All state (shows, history, settings) lives in the backend database, so there is nothing to migrate in either direction — you can even use both UIs simultaneously.
 
 - **Dev / preview setup**: just browse to the backend port (default `http://<host>:8081`) instead of the Vite/preview port.
-- **Reverse-proxy setup** (like the Caddy example): point *all* paths at the backend instead of splitting them between backend and frontend, or simply expose the backend port and browse to it directly.
+- **Reverse-proxy setup** (like the Caddy example): point _all_ paths at the backend instead of splitting them between backend and frontend, or simply expose the backend port and browse to it directly.
 
 ## Troubleshooting
 
