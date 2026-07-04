@@ -5,7 +5,7 @@
 services:
   medusa:
     build:
-      context: "https://github.com/pymedusa/Medusa.git#ecc1a2392c744a18f763f0eff0b7baed006977d0"
+      context: "https://github.com/pymedusa/Medusa.git#2df3311dc7ae7aa1ee170da12a872848382aa34e"
     container_name: medusa-e2e
     ports:
       - "8081:8081"
