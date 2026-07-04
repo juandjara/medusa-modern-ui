@@ -11,6 +11,8 @@ test("history renders its empty state", async ({ page }) => {
   await expect(page.getByText("No history entries.")).toBeVisible();
 });
 
+// Relies on running before search.spec / ws.spec (workers: 1 executes spec
+// files alphabetically), which queue work and would break the empty state.
 test("queue renders its empty state", async ({ page }) => {
   await page.goto("/queue");
   await expect(page.getByRole("heading", { name: "Queue" })).toBeVisible();
