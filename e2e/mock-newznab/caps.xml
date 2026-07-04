@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<caps>
+  <server version="1.0" title="Mock Newznab" url="http://mocknews/"/>
+  <limits max="100" default="100"/>
+  <registration available="no" open="no"/>
+  <searching>
+    <search available="yes" supportedParams="q"/>
+    <tv-search available="yes" supportedParams="q,rid,tvdbid,season,ep"/>
+    <movie-search available="no" supportedParams=""/>
+  </searching>
+  <categories>
+    <category id="5000" name="TV">
+      <subcat id="5030" name="SD"/>
+      <subcat id="5040" name="HD"/>
+    </category>
+  </categories>
+</caps>

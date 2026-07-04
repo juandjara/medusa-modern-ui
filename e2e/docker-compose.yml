@@ -13,3 +13,16 @@ services:
       # Populated from ./fixtures/config before each run (see e2e setup);
       # never mount fixtures/ directly or test runs would dirty the seed.
       - ./.runtime/config:/config
+
+  # Deterministic Newznab provider for manual-search tests. The fixture
+  # config registers it as http://mocknews/ (reachable on the compose
+  # network); host port 8090 is only for debugging.
+  mocknews:
+    image: nginx:alpine
+    container_name: medusa-e2e-mocknews
+    ports:
+      - "8090:80"
+    volumes:
+      - ./mock-newznab/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./mock-newznab/caps.xml:/usr/share/nginx/html/caps.xml:ro
+      - ./mock-newznab/tvsearch.xml:/usr/share/nginx/html/tvsearch.xml:ro

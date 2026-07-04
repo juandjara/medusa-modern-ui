@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:newznab="http://www.newznab.com/DTD/2010/feeds/attributes/">
+  <channel>
+    <atom:link href="http://mocknews/api" rel="self" type="application/rss+xml"/>
+    <title>Mock Newznab</title>
+    <description>Canned results for e2e manual-search tests</description>
+    <item>
+      <title>Firefly.S01E01.Serenity.1080p.WEB-DL.DD5.1.H.264-E2EMOCK</title>
+      <guid isPermaLink="true">http://mocknews/details/1001</guid>
+      <link>http://mocknews/getnzb/1001.nzb</link>
+      <comments>http://mocknews/details/1001</comments>
+      <pubDate>Fri, 03 Jul 2026 12:00:00 +0000</pubDate>
+      <category>TV &gt; HD</category>
+      <description>Firefly S01E01 1080p</description>
+      <enclosure url="http://mocknews/getnzb/1001.nzb" length="2147483648" type="application/x-nzb"/>
+      <newznab:attr name="category" value="5000"/>
+      <newznab:attr name="category" value="5040"/>
+      <newznab:attr name="size" value="2147483648"/>
+      <newznab:attr name="tvdbid" value="78874"/>
+      <newznab:attr name="season" value="1"/>
+      <newznab:attr name="episode" value="1"/>
+    </item>
+    <item>
+      <title>Firefly.S01E01.Serenity.720p.HDTV.x264-E2EMOCK</title>
+      <guid isPermaLink="true">http://mocknews/details/1002</guid>
+      <link>http://mocknews/getnzb/1002.nzb</link>
+      <comments>http://mocknews/details/1002</comments>
+      <pubDate>Fri, 03 Jul 2026 11:00:00 +0000</pubDate>
+      <category>TV &gt; HD</category>
+      <description>Firefly S01E01 720p</description>
+      <enclosure url="http://mocknews/getnzb/1002.nzb" length="1073741824" type="application/x-nzb"/>
+      <newznab:attr name="category" value="5000"/>
+      <newznab:attr name="category" value="5040"/>
+      <newznab:attr name="size" value="1073741824"/>
+      <newznab:attr name="tvdbid" value="78874"/>
+      <newznab:attr name="season" value="1"/>
+      <newznab:attr name="episode" value="1"/>
+    </item>
+  </channel>
+</rss>
