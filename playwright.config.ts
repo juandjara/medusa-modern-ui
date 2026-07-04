@@ -10,11 +10,15 @@ export const AUTH_STATE = "e2e/.runtime/auth.json";
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
+  // All specs share one stateful backend; parallel workers race each other
+  // (e.g. a queued rescan breaks the queue-empty smoke). Serial keeps runs
+  // deterministic — spec files execute in alphabetical order.
+  workers: 1,
   use: {
     baseURL: "http://localhost:4173",
-    // Reuse the system Chrome instead of downloading a browser; CI installs
-    // chromium via `pnpm exec playwright install chromium` and can drop this.
-    channel: "chrome",
+    // Locally, reuse the system Chrome instead of downloading a browser;
+    // CI installs chromium via `pnpm exec playwright install chromium`.
+    ...(process.env.CI ? {} : { channel: "chrome" as const }),
     trace: "retain-on-failure",
   },
   projects: [
