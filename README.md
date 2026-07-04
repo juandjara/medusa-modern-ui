@@ -52,11 +52,12 @@ If one of these is a blocker for you, the [legacy UI remains available](#reverti
 
 ## Compatibility
 
-| Backend                                                                                                                                                             | Status                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `pymedusa/Medusa` `develop` @ [`ecc1a23`](https://github.com/pymedusa/Medusa/commit/ecc1a2392c744a18f763f0eff0b7baed006977d0) (2026-05-17, internal version 1.0.25) | Developed and daily-driven against this commit                         |
-| `develop` commits after `ecc1a23`                                                                                                                                   | Expected to work (the apiv2 surface changes rarely) but not yet tested |
-| `master` releases                                                                                                                                                   | Not tested                                                             |
+| Backend                                                                                                                                                             | Status                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `pymedusa/Medusa` `develop` @ [`2df3311`](https://github.com/pymedusa/Medusa/commit/2df3311dc7ae7aa1ee170da12a872848382aa34e) (2026-06-15, internal version 1.0.25) | Validated by the automated e2e suite against a clean, unmodified checkout of this commit (see `e2e/`, runs in CI) |
+| `develop` @ [`ecc1a23`](https://github.com/pymedusa/Medusa/commit/ecc1a2392c744a18f763f0eff0b7baed006977d0) (2026-05-17)                                            | Developed and daily-driven against this commit                                                                    |
+| `develop` commits after `2df3311`                                                                                                                                   | Expected to work (the apiv2 surface changes rarely) but not yet tested                                            |
+| `master` releases                                                                                                                                                   | Not tested                                                                                                        |
 
 One optional feature degrades on a stock backend: release **info links** in the manual episode search results come from a small backend patch (adding `infoUrl` to Newznab/Torznab results) that has not been upstreamed yet. On an unpatched backend those links simply don't render — everything else uses stock apiv2 and legacy endpoints.
 
