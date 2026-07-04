@@ -2,7 +2,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-const SERVER_URL = "http://192.168.1.166:8888";
+// Overridable so e2e runs can point dev/preview at the dockerized backend
+// (vite preview inherits server.proxy when preview.proxy is unset).
+const SERVER_URL = process.env.MEDUSA_BACKEND_URL ?? "http://192.168.1.166:8888";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

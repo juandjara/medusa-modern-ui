@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# e2e
+e2e/.runtime/
+test-results/

@@ -1,0 +1,15 @@
+# E2E backend: a clean, unmodified pymedusa/Medusa checkout pinned to the
+# commit the UI is validated against (keep in sync with the README
+# compatibility table). Built straight from the upstream git URL so no local
+# backend checkout is involved.
+services:
+  medusa:
+    build:
+      context: "https://github.com/pymedusa/Medusa.git#ecc1a2392c744a18f763f0eff0b7baed006977d0"
+    container_name: medusa-e2e
+    ports:
+      - "8081:8081"
+    volumes:
+      # Populated from ./fixtures/config before each run (see e2e setup);
+      # never mount fixtures/ directly or test runs would dirty the seed.
+      - ./.runtime/config:/config
